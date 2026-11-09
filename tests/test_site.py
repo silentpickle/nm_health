@@ -20,7 +20,7 @@ from nm_health.site import (
 )
 from tests.test_archive import make_settings
 
-PESTS = Violation("Pest Control", "Removing Dead or Trapped", "", "Observed roaches.", ("pests", "pest_control"))
+PESTS = Violation("Pest Control", "Removing Dead or Trapped", "", "Observed roaches.", ("roaches", "pest_control"))
 OTHER = Violation("Plumbing", "System Maintained in Good Repair", "", "Observed leak.", ())
 REPORT_FILE = "2026-10-25_2026-10-31_abc.pdf"
 
@@ -139,7 +139,7 @@ def test_write_site_writes_every_page(tmp_path: Path) -> None:
         "style.css",
     ]
     index = (settings.site_dir / "index.html").read_text(encoding="utf-8")
-    assert 'data-flags="pest_control pests"' in index
+    assert 'data-flags="pest_control pests roaches"' in index
     assert "Oct 25, 2026" in (settings.site_dir / "reports.html").read_text(encoding="utf-8")
 
 

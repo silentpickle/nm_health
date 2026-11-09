@@ -21,10 +21,15 @@ from nm_health.settings import Settings
 STATIC_DIR = Path(__file__).resolve().parent / "site_static"
 STATIC_FILES = ("style.css", "search.js")
 SITE_TITLE = "ABQ Food Inspection History"
-PESTS = "pests"
+PESTS = "pests"  # index filter key: roaches or rodents cited
+HEADLINE_PESTS = ("roaches", "rodents")
 RED = "red"
 TAG_LABELS = {
-    "pests": "Pests seen",
+    "roaches": "Roaches",
+    "rodents": "Rodents",
+    "flies": "Flies",
+    "other_pests": "Other pests",
+    "pests_unspecified": "Pests, type not stated",
     "pest_control": "Pest control",
     "employee_items": "Employee items",
     "food_temperature": "Food temperature",
@@ -34,7 +39,12 @@ TAG_LABELS = {
     "permit": "Permit",
     "training": "Training",
 }
-FILTERS = (("all", "All"), (RED, "Closed or failed"), (PESTS, "Pests seen"), ("employee_items", "Employee items"))
+FILTERS = (
+    ("all", "All"),
+    (RED, "Closed or failed"),
+    (PESTS, "Roaches or rodents"),
+    ("employee_items", "Employee items"),
+)
 LEVELS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (RED, ("closure", "unsatisfactory")),
     ("yellow", ("conditional",)),
@@ -79,9 +89,9 @@ def status_level(status: str) -> str:
     return next((level for level, words in LEVELS if any(w in lower for w in words)), DEFAULT_LEVEL)
 
 
-def has_tag(inspection: Inspection, tag: str) -> bool:
-    """True when any violation in the inspection carries the tag."""
-    return any(tag in v.tags for v in inspection.violations)
+def has_headline_pests(inspection: Inspection) -> bool:
+    """True when any violation cites roaches or rodents."""
+    return any(tag in v.tags for v in inspection.violations for tag in HEADLINE_PESTS)
 
 
 def group_places(inspections: tuple[Inspection, ...]) -> list[Place]:
@@ -103,7 +113,7 @@ def _times(count: int) -> str:
 def pest_line(place: Place) -> tuple[str, bool]:
     """(sentence, is_alert) about pest citations, limited to what the archive holds."""
     dates = sorted({i.date for i in place.inspections}, reverse=True)
-    pest_dates = [i.date for i in place.inspections if has_tag(i, PESTS)]
+    pest_dates = [i.date for i in place.inspections if has_headline_pests(i)]
     if not pest_dates:
         span = f"{nice_date(dates[-1])} {EN_DASH} {nice_date(dates[0])}" if len(dates) > 1 else nice_date(dates[0])
         return f"No pest citations in {len(place.inspections)} archived inspection(s) ({span}).", False
@@ -149,6 +159,8 @@ replaces every week. This archive keeps every copy it has seen. Not affiliated w
 
 def _flags(place: Place) -> str:
     flags = {tag for i in place.inspections for v in i.violations for tag in v.tags}
+    if any(has_headline_pests(i) for i in place.inspections):
+        flags.add(PESTS)
     if any(status_level(i.status) == RED for i in place.inspections):
         flags.add(RED)
     return " ".join(sorted(flags))

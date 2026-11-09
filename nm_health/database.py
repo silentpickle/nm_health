@@ -12,7 +12,7 @@ from nm_health.ingest.normalizer import normalize_address, normalize_establishme
 from nm_health.model import Inspection
 from nm_health.rebuild import Rebuilt, Report
 
-PESTS = "pests"
+HEADLINE_PESTS = ("roaches", "rodents")  # what "pest history" means on the site and in the CLI
 RED_STATUS_WORDS = ("closure", "unsatisfactory")
 SQLITE_SIDE_FILES = ("-wal", "-shm")
 
@@ -91,6 +91,10 @@ def _permit_id(conn: sqlite3.Connection, establishment_id: int, inspection: Insp
     return int(row[0])
 
 
+def _headline_pests(tags: tuple[str, ...]) -> bool:
+    return any(tag in tags for tag in HEADLINE_PESTS)
+
+
 def _violation_count(inspection: Inspection) -> int:
     """Listed violations when the text is on file, else the status feed's count."""
     if inspection.has_details:
@@ -100,7 +104,7 @@ def _violation_count(inspection: Inspection) -> int:
 
 def _insert_inspection(conn: sqlite3.Connection, inspection: Inspection, report_id: int | None) -> None:
     establishment_id = _establishment_id(conn, inspection)
-    has_pests = any(PESTS in v.tags for v in inspection.violations)
+    has_pests = any(_headline_pests(v.tags) for v in inspection.violations)
     is_red = any(word in inspection.status.lower() for word in RED_STATUS_WORDS)
     row = conn.execute(
         """INSERT INTO inspections (report_id, establishment_id, permit_id, inspection_id_num, inspection_date,
@@ -124,7 +128,7 @@ def _insert_inspection(conn: sqlite3.Connection, inspection: Inspection, report_
     conn.executemany(
         """INSERT INTO violations (inspection_id, category, item_title, rule_description, observation, is_pest)
            VALUES (?, ?, ?, ?, ?, ?)""",
-        [(row[0], v.category, v.item, v.rule, v.observation, PESTS in v.tags) for v in inspection.violations],
+        [(row[0], v.category, v.item, v.rule, v.observation, _headline_pests(v.tags)) for v in inspection.violations],
     )
 
 

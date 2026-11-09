@@ -77,7 +77,7 @@ def test_later_report_wins(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> N
 
     (only,) = rebuilt.inspections
     assert (only.status, only.report_file) == ("Unsatisfactory Re-Inspection required", "amended.pdf")
-    assert only.violations[0].tags == ("pests", "pest_control")
+    assert only.violations[0].tags == ("roaches", "pest_control")
     assert [r.file for r in rebuilt.reports] == ["first.pdf", "amended.pdf"]
 
 
