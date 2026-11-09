@@ -33,11 +33,13 @@ STREET_TYPES = {
     "PKWY": "PKWY",
 }
 
+
 def clean_text(s: Optional[str]) -> str:
     if not s:
         return ""
     # Replace multiple whitespaces and trim
     return re.sub(r"\s+", " ", s).strip()
+
 
 def normalize_establishment_name(name: str) -> str:
     """Normalize restaurant name for consistent matching."""
@@ -45,6 +47,7 @@ def normalize_establishment_name(name: str) -> str:
     # Strip trailing punctuation
     name = re.sub(r"[\.,\-]+$", "", name).strip()
     return name
+
 
 def normalize_address(raw_address: str) -> Dict[str, Any]:
     """
@@ -57,12 +60,12 @@ def normalize_address(raw_address: str) -> Dict[str, Any]:
     """
     raw = clean_text(raw_address).upper()
     unit = ""
-    
+
     # Extract unit/suite after comma or # or STE/SUITE
-    unit_match = re.search(r'(?:,\s*|\s+#|\s+STE\.?\s*|\s+SUITE\s*)([A-Z0-9\-]+)$', raw, re.IGNORECASE)
+    unit_match = re.search(r"(?:,\s*|\s+#|\s+STE\.?\s*|\s+SUITE\s*)([A-Z0-9\-]+)$", raw, re.IGNORECASE)
     if unit_match:
         unit = unit_match.group(1).strip()
-        base = raw[:unit_match.start()].strip()
+        base = raw[: unit_match.start()].strip()
     else:
         base = raw
 
@@ -86,7 +89,7 @@ def normalize_address(raw_address: str) -> Dict[str, Any]:
             norm_tokens.append(clean_tok)
 
     street_name = " ".join(norm_tokens)
-    
+
     # Reassemble canonical normalized address
     parts = []
     if street_num:
@@ -95,7 +98,7 @@ def normalize_address(raw_address: str) -> Dict[str, Any]:
         parts.append(street_name)
     if quad:
         parts.append(quad)
-    
+
     canonical_street = " ".join(parts)
     full_normalized = f"{canonical_street}, Unit {unit}" if unit else canonical_street
 

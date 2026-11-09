@@ -4,6 +4,7 @@ from typing import Dict, Any, List, Optional
 from pathlib import Path
 from nm_health.ingest.normalizer import normalize_address, normalize_establishment_name, clean_text
 
+
 class InspectionReportParser:
     """
     Parses City of Albuquerque Environmental Health Department
@@ -67,9 +68,7 @@ class InspectionReportParser:
             violations = detail_info.get("violations", [])
             has_pest = any(v.get("is_pest") for v in violations)
             has_critical = any(
-                "closure" in item["status"].lower() 
-                or "unsatisfactory" in item["status"].lower() 
-                or has_pest
+                "closure" in item["status"].lower() or "unsatisfactory" in item["status"].lower() or has_pest
                 for _ in [1]
             )
 
@@ -85,7 +84,7 @@ class InspectionReportParser:
                     "raw_address": est_addr,
                     "normalized_address": addr_info["normalized_address"],
                     "permits": {},
-                    "inspections": []
+                    "inspections": [],
                 }
 
             # Permit
@@ -178,10 +177,18 @@ class InspectionReportParser:
                 line_str = line.rstrip()
                 if not line_str:
                     continue
-                if any(hdr in line_str for hdr in [
-                    "City of Albuquerque", "Environmental Health", "Consumer Health",
-                    "Summary Table", "Inspection Date", "Page ", "This report includes"
-                ]):
+                if any(
+                    hdr in line_str
+                    for hdr in [
+                        "City of Albuquerque",
+                        "Environmental Health",
+                        "Consumer Health",
+                        "Summary Table",
+                        "Inspection Date",
+                        "Page ",
+                        "This report includes",
+                    ]
+                ):
                     continue
 
                 # Check permit line
@@ -198,22 +205,28 @@ class InspectionReportParser:
                 m_row = row_re.match(line_str)
                 if m_row:
                     target_pg = m_row.group(5) or m_row.group(6) or ""
-                    records.append({
-                        "establishment": current_est,
-                        "permit": current_permit,
-                        "date": m_row.group(1),
-                        "id_num": m_row.group(2).strip(),
-                        "type": m_row.group(3).strip(),
-                        "status": m_row.group(4).strip(),
-                        "page_str": f"Pg. {target_pg}",
-                        "page_num": int(target_pg) if target_pg.isdigit() else None,
-                        "raw": line_str.strip(),
-                    })
+                    records.append(
+                        {
+                            "establishment": current_est,
+                            "permit": current_permit,
+                            "date": m_row.group(1),
+                            "id_num": m_row.group(2).strip(),
+                            "type": m_row.group(3).strip(),
+                            "status": m_row.group(4).strip(),
+                            "page_str": f"Pg. {target_pg}",
+                            "page_num": int(target_pg) if target_pg.isdigit() else None,
+                            "raw": line_str.strip(),
+                        }
+                    )
                     continue
 
                 # Check establishment header
                 m_est = est_re.match(line_str.strip())
-                if m_est and not line_str.strip().startswith("Week:") and not line_str.strip().startswith("Report Amended"):
+                if (
+                    m_est
+                    and not line_str.strip().startswith("Week:")
+                    and not line_str.strip().startswith("Report Amended")
+                ):
                     current_est = {
                         "name": m_est.group(1).strip(),
                         "address": m_est.group(2).strip(),
@@ -292,11 +305,13 @@ class InspectionReportParser:
             observations = []
             raw_text = part.strip()
 
-            is_pest = bool(re.search(
-                r"pest|mice|mouse|roach|cockroach|rodent|fly|flies|insect|vermin|infestation",
-                raw_text,
-                re.IGNORECASE,
-            ))
+            is_pest = bool(
+                re.search(
+                    r"pest|mice|mouse|roach|cockroach|rodent|fly|flies|insect|vermin|infestation",
+                    raw_text,
+                    re.IGNORECASE,
+                )
+            )
 
             for line in lines[1:]:
                 if line.startswith("•") or line.startswith("*"):
@@ -320,13 +335,15 @@ class InspectionReportParser:
                 else:
                     rule_desc.append(line)
 
-            violations.append({
-                "category": category,
-                "item_title": item_title or category,
-                "rule_description": " ".join(rule_desc),
-                "observation": " ".join(observations),
-                "raw_text": raw_text,
-                "is_pest": is_pest,
-            })
+            violations.append(
+                {
+                    "category": category,
+                    "item_title": item_title or category,
+                    "rule_description": " ".join(rule_desc),
+                    "observation": " ".join(observations),
+                    "raw_text": raw_text,
+                    "is_pest": is_pest,
+                }
+            )
 
         return violations

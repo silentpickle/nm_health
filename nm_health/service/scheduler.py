@@ -21,6 +21,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("nm_health.scheduler")
 
+
 def run_once(store: Optional[LocalStore] = None) -> dict:
     """Execute a single check against CABQ and ingest if updated."""
     store = store or LocalStore()
@@ -45,12 +46,15 @@ def run_once(store: Optional[LocalStore] = None) -> dict:
         logger.error("Failed during scheduled ingestion check: %s", e, exc_info=True)
         return {"status": "error", "error": str(e)}
 
+
 def run_daemon(interval: int = DEFAULT_POLL_INTERVAL):
     """
     Runs a continuous background loop, sleeping for `interval` seconds between checks.
     Defaults to 86,400s (24 hours).
     """
-    logger.info("Starting NM Health Ingestion Daemon (Poll Interval: %d seconds / %.1f hours)...", interval, interval / 3600.0)
+    logger.info(
+        "Starting NM Health Ingestion Daemon (Poll Interval: %d seconds / %.1f hours)...", interval, interval / 3600.0
+    )
     store = LocalStore()
 
     while True:
@@ -58,7 +62,7 @@ def run_daemon(interval: int = DEFAULT_POLL_INTERVAL):
             run_once(store)
         except Exception as e:
             logger.error("Unexpected error in daemon loop: %s", e)
-        
+
         logger.info("Sleeping for %d seconds until next check...", interval)
         try:
             time.sleep(interval)

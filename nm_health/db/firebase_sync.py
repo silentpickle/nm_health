@@ -9,6 +9,7 @@ from nm_health.config import FIREBASE_PROJECT_ID, FIREBASE_CREDENTIALS_PATH
 
 logger = logging.getLogger("nm_health.firebase")
 
+
 class FirebaseSyncer:
     """
     Synchronizes Albuquerque food inspection data to Cloud Firestore.
@@ -34,7 +35,7 @@ class FirebaseSyncer:
                     firebase_admin.initialize_app(cred, {"projectId": self.project_id})
                 else:
                     firebase_admin.initialize_app(options={"projectId": self.project_id})
-            
+
             self._db = firestore.client()
             return self._db
         except ImportError:
@@ -100,39 +101,45 @@ class FirebaseSyncer:
                 continue
 
             est_ref = client.collection("establishments").document(detail["slug"])
-            est_ref.set({
-                "name": detail["name"],
-                "normalized_name": detail["normalized_name"],
-                "raw_address": detail["raw_address"],
-                "normalized_address": detail["normalized_address"],
-                "street_number": detail["street_number"],
-                "street_name": detail["street_name"],
-                "quadrant": detail["quadrant"],
-                "unit": detail["unit"],
-                "city": detail["city"],
-                "state": detail["state"],
-                "latest_status": detail["latest_status"],
-                "latest_inspection_date": detail["latest_inspection_date"],
-                "has_pest_history": bool(detail["has_pest_history"]),
-                "total_inspections": detail["total_inspections"],
-                "updated_at": firestore.SERVER_TIMESTAMP,
-            }, merge=True)
+            est_ref.set(
+                {
+                    "name": detail["name"],
+                    "normalized_name": detail["normalized_name"],
+                    "raw_address": detail["raw_address"],
+                    "normalized_address": detail["normalized_address"],
+                    "street_number": detail["street_number"],
+                    "street_name": detail["street_name"],
+                    "quadrant": detail["quadrant"],
+                    "unit": detail["unit"],
+                    "city": detail["city"],
+                    "state": detail["state"],
+                    "latest_status": detail["latest_status"],
+                    "latest_inspection_date": detail["latest_inspection_date"],
+                    "has_pest_history": bool(detail["has_pest_history"]),
+                    "total_inspections": detail["total_inspections"],
+                    "updated_at": firestore.SERVER_TIMESTAMP,
+                },
+                merge=True,
+            )
 
             # Sync inspections subcollection
             for insp in detail.get("inspections", []):
                 insp_doc_id = f"{insp['inspection_id_num']}_{insp['inspection_date']}"
                 insp_ref = est_ref.collection("inspections").document(insp_doc_id)
-                insp_ref.set({
-                    "inspection_id_num": insp["inspection_id_num"],
-                    "inspection_date": insp["inspection_date"],
-                    "inspection_type": insp["inspection_type"],
-                    "inspection_status": insp["inspection_status"],
-                    "has_pest_violation": bool(insp.get("has_pest_violation")),
-                    "has_critical_violation": bool(insp.get("has_critical_violation")),
-                    "violation_count": insp.get("violation_count", 0),
-                    "violations": insp.get("violations", []),
-                    "report_filename": insp.get("report_filename"),
-                }, merge=True)
+                insp_ref.set(
+                    {
+                        "inspection_id_num": insp["inspection_id_num"],
+                        "inspection_date": insp["inspection_date"],
+                        "inspection_type": insp["inspection_type"],
+                        "inspection_status": insp["inspection_status"],
+                        "has_pest_violation": bool(insp.get("has_pest_violation")),
+                        "has_critical_violation": bool(insp.get("has_critical_violation")),
+                        "violation_count": insp.get("violation_count", 0),
+                        "violations": insp.get("violations", []),
+                        "report_filename": insp.get("report_filename"),
+                    },
+                    merge=True,
+                )
 
             synced_count += 1
 

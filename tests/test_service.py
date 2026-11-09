@@ -5,6 +5,7 @@ from nm_health.db.local_store import LocalStore
 from nm_health.ingest.parser import InspectionReportParser
 from nm_health.ingest.fetcher import ReportFetcher
 
+
 class TestServiceEndToEnd(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -51,6 +52,7 @@ class TestServiceEndToEnd(unittest.TestCase):
         self.assertGreater(stats["total_establishments"], 0)
         self.assertGreater(stats["total_violations"], 100)
         self.assertGreater(stats["total_closures"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -17,6 +17,7 @@ CYAN = "\033[96m"
 DIM = "\033[2m"
 RESET = "\033[0m"
 
+
 def status_badge(status: str) -> str:
     s = status or "Unknown"
     lower = s.lower()
@@ -27,6 +28,7 @@ def status_badge(status: str) -> str:
     elif "approved" in lower:
         return f"{GREEN}{BOLD}✔ {s}{RESET}"
     return f"{DIM}{s}{RESET}"
+
 
 def cmd_ingest(args):
     """Ingest a report file or check the live CABQ URL."""
@@ -60,6 +62,7 @@ def cmd_ingest(args):
         for c in closures:
             print(f"  - {c['name']} ({c['address']}): {status_badge(c['status'])} on {c['date']}")
 
+
 def cmd_search(args):
     """Search establishments by name, address, or violation keyword."""
     store = LocalStore()
@@ -79,6 +82,7 @@ def cmd_search(args):
         print(f"   Total History:  {est.get('total_inspections', 0)} inspections recorded")
         print(f"   Lookup command: nm-health lookup {est['id']}")
         print("-" * 70)
+
 
 def cmd_lookup(args):
     """Lookup detailed inspection history for a specific establishment."""
@@ -143,6 +147,7 @@ def cmd_lookup(args):
                     print(f"  │     {DIM}Observation:{RESET} {obs}")
             print(f"  └─")
 
+
 def cmd_alerts(args):
     """Show recent closures and downgrades."""
     store = LocalStore()
@@ -162,6 +167,7 @@ def cmd_alerts(args):
                 print(f"  - {BOLD}{v['category']}:{RESET} {v.get('observation', '')[:140]}...")
         print("-" * 70)
 
+
 def cmd_stats(args):
     """Display overall tracking database statistics."""
     store = LocalStore()
@@ -177,6 +183,7 @@ def cmd_stats(args):
     print("\nStatus Breakdown:")
     for status, count in stats.get("status_breakdown", {}).items():
         print(f"  - {status:35s}: {count}")
+
 
 def cmd_reports(args):
     """List all retained weekly PDF reports with download timestamps and integrity hashes."""
@@ -198,15 +205,20 @@ def cmd_reports(args):
         print(f"  Local Archive:   {rep['archive_path']}")
         print("-" * 75)
 
+
 def cmd_serve(args):
     """Start local web dashboard."""
     from nm_health.web.server import run_server
+
     run_server(host=args.host, port=args.port)
+
 
 def cmd_daemon(args):
     """Run continuous daily polling service."""
     from nm_health.service.scheduler import run_daemon
+
     run_daemon(interval=args.interval)
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -263,6 +275,7 @@ def main():
         sys.exit(1)
 
     args.func(args)
+
 
 if __name__ == "__main__":
     main()

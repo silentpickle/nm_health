@@ -14,6 +14,7 @@ from nm_health.config import (
 from nm_health.db.local_store import LocalStore
 from nm_health.ingest.parser import InspectionReportParser
 
+
 class ReportFetcher:
     """
     Checks CABQ for new inspection reports, archives PDFs,
@@ -41,7 +42,7 @@ class ReportFetcher:
             headers={
                 "User-Agent": HTTP_USER_AGENT,
                 "Accept": "application/pdf,*/*",
-            }
+            },
         )
 
         with urllib.request.urlopen(req, timeout=30) as resp, open(target_path, "wb") as out_f:
@@ -86,19 +87,21 @@ class ReportFetcher:
         meta = parsed_data.get("metadata", {})
 
         # Insert report record
-        report_id = self.store.insert_report({
-            "sha256_hash": sha256,
-            "filename": archive_name,
-            "source_url": source_url,
-            "week_start": meta.get("week_start"),
-            "week_end": meta.get("week_end"),
-            "raw_title": meta.get("raw_title"),
-            "amendment_notes": meta.get("amendment_notes"),
-            "file_size": file_size,
-            "archive_path": str(archive_dest),
-            "total_establishments": parsed_data.get("total_establishments", 0),
-            "total_inspections": parsed_data.get("total_inspections", 0),
-        })
+        report_id = self.store.insert_report(
+            {
+                "sha256_hash": sha256,
+                "filename": archive_name,
+                "source_url": source_url,
+                "week_start": meta.get("week_start"),
+                "week_end": meta.get("week_end"),
+                "raw_title": meta.get("raw_title"),
+                "amendment_notes": meta.get("amendment_notes"),
+                "file_size": file_size,
+                "archive_path": str(archive_dest),
+                "total_establishments": parsed_data.get("total_establishments", 0),
+                "total_inspections": parsed_data.get("total_inspections", 0),
+            }
+        )
 
         # Save Establishments, Permits, Inspections, and Violations
         saved_establishments = 0
@@ -125,41 +128,47 @@ class ReportFetcher:
         # Save inspections and violations
         for insp in parsed_data["inspections"]:
             est_id = est_id_map[insp["establishment_slug"]]
-            
-            insp_id = self.store.upsert_inspection({
-                "report_id": report_id,
-                "establishment_id": est_id,
-                "inspection_id_num": insp["inspection_id_num"],
-                "inspection_date": insp["inspection_date"],
-                "inspection_type": insp["inspection_type"],
-                "inspection_status": insp["inspection_status"],
-                "summary_page": insp.get("summary_page"),
-                "detail_page": insp.get("detail_page"),
-                "has_pest_violation": insp.get("has_pest_violation", False),
-                "has_critical_violation": insp.get("has_critical_violation", False),
-                "violation_count": insp.get("violation_count", 0),
-                "raw_summary_line": insp.get("raw_summary_line", ""),
-            })
+
+            insp_id = self.store.upsert_inspection(
+                {
+                    "report_id": report_id,
+                    "establishment_id": est_id,
+                    "inspection_id_num": insp["inspection_id_num"],
+                    "inspection_date": insp["inspection_date"],
+                    "inspection_type": insp["inspection_type"],
+                    "inspection_status": insp["inspection_status"],
+                    "summary_page": insp.get("summary_page"),
+                    "detail_page": insp.get("detail_page"),
+                    "has_pest_violation": insp.get("has_pest_violation", False),
+                    "has_critical_violation": insp.get("has_critical_violation", False),
+                    "violation_count": insp.get("violation_count", 0),
+                    "raw_summary_line": insp.get("raw_summary_line", ""),
+                }
+            )
             saved_inspections += 1
 
             if "closure" in insp["inspection_status"].lower():
-                new_closures.append({
-                    "name": insp["establishment_name"],
-                    "address": insp["establishment_address"],
-                    "status": insp["inspection_status"],
-                    "date": insp["inspection_date"],
-                })
+                new_closures.append(
+                    {
+                        "name": insp["establishment_name"],
+                        "address": insp["establishment_address"],
+                        "status": insp["inspection_status"],
+                        "date": insp["inspection_date"],
+                    }
+                )
 
             for v in insp.get("violations", []):
-                self.store.insert_violation({
-                    "inspection_id": insp_id,
-                    "category": v.get("category", ""),
-                    "item_title": v.get("item_title", ""),
-                    "rule_description": v.get("rule_description", ""),
-                    "observation": v.get("observation", ""),
-                    "raw_text": v.get("raw_text", ""),
-                    "is_pest": v.get("is_pest", False),
-                })
+                self.store.insert_violation(
+                    {
+                        "inspection_id": insp_id,
+                        "category": v.get("category", ""),
+                        "item_title": v.get("item_title", ""),
+                        "rule_description": v.get("rule_description", ""),
+                        "observation": v.get("observation", ""),
+                        "raw_text": v.get("raw_text", ""),
+                        "is_pest": v.get("is_pest", False),
+                    }
+                )
                 saved_violations += 1
 
         return {

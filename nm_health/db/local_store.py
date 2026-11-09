@@ -147,6 +147,7 @@ CREATE TRIGGER IF NOT EXISTS violations_ad AFTER DELETE ON violations BEGIN
 END;
 """
 
+
 class LocalStore:
     def __init__(self, db_path: Path = DB_PATH):
         self.db_path = db_path
@@ -201,7 +202,7 @@ class LocalStore:
                     report_data.get("archive_path", ""),
                     report_data.get("total_establishments", 0),
                     report_data.get("total_inspections", 0),
-                )
+                ),
             )
             return cur.fetchone()[0]
 
@@ -216,7 +217,7 @@ class LocalStore:
             # Check existing by slug or by normalized address + normalized name
             cur = conn.execute(
                 "SELECT id FROM establishments WHERE slug = ? OR (normalized_name = ? AND normalized_address = ?)",
-                (slug, norm_name, addr_info["normalized_address"])
+                (slug, norm_name, addr_info["normalized_address"]),
             )
             row = cur.fetchone()
             if row:
@@ -227,10 +228,10 @@ class LocalStore:
                         raw_address = ?
                     WHERE id = ?
                     """,
-                    (raw_address, row[0])
+                    (raw_address, row[0]),
                 )
                 return row[0]
-            
+
             cur = conn.execute(
                 """
                 INSERT INTO establishments (
@@ -240,15 +241,24 @@ class LocalStore:
                 RETURNING id;
                 """,
                 (
-                    slug, name.strip(), norm_name, raw_address.strip(),
-                    addr_info["normalized_address"], addr_info["street_number"],
-                    addr_info["street_name"], addr_info["quadrant"],
-                    addr_info["unit"], addr_info["city"], addr_info["state"]
-                )
+                    slug,
+                    name.strip(),
+                    norm_name,
+                    raw_address.strip(),
+                    addr_info["normalized_address"],
+                    addr_info["street_number"],
+                    addr_info["street_name"],
+                    addr_info["quadrant"],
+                    addr_info["unit"],
+                    addr_info["city"],
+                    addr_info["state"],
+                ),
             )
             return cur.fetchone()[0]
 
-    def upsert_permit(self, establishment_id: int, permit_number: str, permit_type: str, operational_status: str) -> int:
+    def upsert_permit(
+        self, establishment_id: int, permit_number: str, permit_type: str, operational_status: str
+    ) -> int:
         with self.get_connection() as conn:
             cur = conn.execute(
                 """
@@ -259,7 +269,7 @@ class LocalStore:
                     operational_status = excluded.operational_status
                 RETURNING id;
                 """,
-                (establishment_id, permit_number.strip(), permit_type.strip(), operational_status.strip())
+                (establishment_id, permit_number.strip(), permit_type.strip(), operational_status.strip()),
             )
             return cur.fetchone()[0]
 
@@ -296,7 +306,7 @@ class LocalStore:
                     1 if inspection_data.get("has_critical_violation") else 0,
                     inspection_data.get("violation_count", 0),
                     inspection_data.get("raw_summary_line", ""),
-                )
+                ),
             )
             insp_id = cur.fetchone()[0]
 
@@ -327,7 +337,7 @@ class LocalStore:
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
                 """,
-                (est_id, est_id, est_id, est_id, est_id)
+                (est_id, est_id, est_id, est_id, est_id),
             )
             return insp_id
 
@@ -349,7 +359,7 @@ class LocalStore:
                     violation_data.get("observation", ""),
                     violation_data.get("raw_text", ""),
                     1 if violation_data.get("is_pest") else 0,
-                )
+                ),
             )
             return cur.fetchone()[0]
 
@@ -365,7 +375,7 @@ class LocalStore:
             if query:
                 clean_q = query.strip()
                 # Check if it's an FTS search
-                fts_query = ' OR '.join(f'"{word}*"' for word in clean_q.split() if word.isalnum())
+                fts_query = " OR ".join(f'"{word}*"' for word in clean_q.split() if word.isalnum())
                 if fts_query:
                     # Search either establishment name/address or violation keywords
                     sql = f"""
@@ -408,13 +418,12 @@ class LocalStore:
             est_row = conn.execute("SELECT * FROM establishments WHERE id = ?", (establishment_id,)).fetchone()
             if not est_row:
                 return None
-            
+
             est = dict(est_row)
 
             # Permits
             permits = conn.execute(
-                "SELECT * FROM permits WHERE establishment_id = ? ORDER BY id ASC",
-                (establishment_id,)
+                "SELECT * FROM permits WHERE establishment_id = ? ORDER BY id ASC", (establishment_id,)
             ).fetchall()
             est["permits"] = [dict(p) for p in permits]
 
@@ -435,15 +444,14 @@ class LocalStore:
                 WHERE i.establishment_id = ?
                 ORDER BY i.inspection_date DESC, i.id DESC
                 """,
-                (establishment_id,)
+                (establishment_id,),
             ).fetchall()
 
             insp_list = []
             for insp_row in inspections:
                 insp = dict(insp_row)
                 violations = conn.execute(
-                    "SELECT * FROM violations WHERE inspection_id = ? ORDER BY is_pest DESC, id ASC",
-                    (insp["id"],)
+                    "SELECT * FROM violations WHERE inspection_id = ? ORDER BY is_pest DESC, id ASC", (insp["id"],)
                 ).fetchall()
                 insp["violations"] = [dict(v) for v in violations]
                 insp_list.append(insp)
@@ -480,15 +488,15 @@ class LocalStore:
                 ORDER BY i.inspection_date DESC, i.id DESC
                 LIMIT ?
                 """,
-                (limit,)
+                (limit,),
             ).fetchall()
-            
+
             alerts = []
             for r in rows:
                 item = dict(r)
                 viols = conn.execute(
                     "SELECT category, item_title, observation, is_pest FROM violations WHERE inspection_id = ?",
-                    (item["id"],)
+                    (item["id"],),
                 ).fetchall()
                 item["violations"] = [dict(v) for v in viols]
                 alerts.append(item)
@@ -499,8 +507,12 @@ class LocalStore:
             est_count = conn.execute("SELECT COUNT(*) FROM establishments").fetchone()[0]
             insp_count = conn.execute("SELECT COUNT(*) FROM inspections").fetchone()[0]
             viol_count = conn.execute("SELECT COUNT(*) FROM violations").fetchone()[0]
-            pest_count = conn.execute("SELECT COUNT(DISTINCT establishment_id) FROM inspections WHERE has_pest_violation = 1").fetchone()[0]
-            closure_count = conn.execute("SELECT COUNT(*) FROM inspections WHERE inspection_status LIKE '%Closure%'").fetchone()[0]
+            pest_count = conn.execute(
+                "SELECT COUNT(DISTINCT establishment_id) FROM inspections WHERE has_pest_violation = 1"
+            ).fetchone()[0]
+            closure_count = conn.execute(
+                "SELECT COUNT(*) FROM inspections WHERE inspection_status LIKE '%Closure%'"
+            ).fetchone()[0]
             report_count = conn.execute("SELECT COUNT(*) FROM reports").fetchone()[0]
 
             # Status breakdown

@@ -1,6 +1,7 @@
 import unittest
 from nm_health.ingest.normalizer import normalize_address, normalize_establishment_name
 
+
 class TestNormalizer(unittest.TestCase):
     def test_normalize_address_standard(self):
         res = normalize_address("1700 TOWNE CENTER LN SE")
@@ -20,6 +21,7 @@ class TestNormalizer(unittest.TestCase):
     def test_normalize_establishment_name(self):
         name = normalize_establishment_name("  BUFFALO WILD WINGS 613 - ")
         self.assertEqual(name, "BUFFALO WILD WINGS 613")
+
 
 if __name__ == "__main__":
     unittest.main()

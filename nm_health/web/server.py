@@ -11,6 +11,7 @@ from nm_health.config import ARCHIVE_DIR
 WEB_DIR = Path(__file__).resolve().parent
 STATIC_DIR = WEB_DIR / "static"
 
+
 class HealthAppHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         self.store = LocalStore()
@@ -31,7 +32,7 @@ class HealthAppHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         elif path.startswith("/api/establishments/"):
-            est_id_str = path[len("/api/establishments/"):]
+            est_id_str = path[len("/api/establishments/") :]
             if est_id_str.isdigit():
                 detail = self.store.get_establishment_detail(int(est_id_str))
                 if detail:
@@ -57,7 +58,7 @@ class HealthAppHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         elif path.startswith("/api/pdf/"):
-            filename = urllib.parse.unquote(path[len("/api/pdf/"):])
+            filename = urllib.parse.unquote(path[len("/api/pdf/") :])
             pdf_path = (ARCHIVE_DIR / filename).resolve()
             # Ensure within ARCHIVE_DIR
             if pdf_path.exists() and ARCHIVE_DIR.resolve() in pdf_path.parents:
@@ -86,6 +87,7 @@ class HealthAppHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(body)
+
 
 def run_server(host: str = "127.0.0.1", port: int = 8000):
     server_address = (host, port)
