@@ -23,8 +23,36 @@ cdx_url = "https://web.archive.org/cdx/search/cdx"
 raw_url_template = "https://web.archive.org/web/{timestamp}id_/{url}"
 
 [site]
+# The site's name, everywhere it appears (page titles, header, footer). Rename here and nowhere else.
+name = "Food Inspection History"
+# Search engines stay out until the data is trusted: flip by hand after 4 clean weekly runs and a 10-page spot check.
+indexable = false
+# Only inspections from the last this-many days are collected and shown. Archived PDFs are kept regardless.
+window_days = 365
 # Where the archived PDFs can be opened from the site (GitHub blob view of data/archive).
 pdf_base_url = "https://github.com/silentpickle/nm_health/blob/main/data/archive/"
+
+[feed]
+# The city's Info Connect inspection-status feed: status, violation count, coordinates; no violation text.
+details_url = "https://albuquerquenm-cc.connect.socrata.com/api/tickets/details.json"
+# Category group 8 (health inspections), types 4300-4312; pools are dropped after fetching.
+categories = "8:4300-4312"
+# Bounding box the feed is queried with (all of Albuquerque).
+lat1 = 35.4
+lat2 = 34.8
+lng1 = -106.2
+lng2 = -107.0
+# Records are filtered by creation date, which can be months before the inspection; look back this far.
+lookback_days = 730
+# Every distinct response, gzipped, one folder per creation year.
+raw_dir = "data/feed/raw"
+
+[mac_collector]
+# Backup collector (scripts/collect_mac.sh, docs/mac-collector.md). The script reads clone_dir via
+# NM_HEALTH_COLLECTOR_DIR; the time is set when the plist is installed.
+clone_dir = "~/Library/Application Support/nm-health-collector/repo"
+hour = 9
+minute = 0
 
 [secrets]
 # None. The collector reads only public pages.
