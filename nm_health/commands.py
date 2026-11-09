@@ -4,7 +4,7 @@
 import argparse
 import logging
 import sys
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 from nm_health import feed
@@ -52,11 +52,16 @@ def cmd_backfill_wayback(_args: argparse.Namespace) -> None:
     _say(f"{sum(r.is_new for r in results)} new of {len(results)} PDF captures")
 
 
+def window_start(settings: settings_module.Settings) -> date:
+    """First day of the window the site and database cover (window_days back from today)."""
+    return feed.today_utc().date() - timedelta(days=settings.window_days)
+
+
 def cmd_ingest(_args: argparse.Namespace) -> None:
     """Rebuild the database from every archived PDF."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     settings = settings_module.load()
-    rebuilt = rebuild(settings)
+    rebuilt = rebuild(settings, window_start(settings))
     write_database(rebuilt, settings.db, settings.archive_dir)
     for report in rebuilt.reports:
         _say(f"{report.file}: {report.layout}, {report.inspections} inspections")
@@ -70,7 +75,7 @@ def cmd_site(_args: argparse.Namespace) -> None:
     """Render the static site from every archived PDF."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     settings = settings_module.load()
-    places = write_site(rebuild(settings), settings)
+    places = write_site(rebuild(settings, window_start(settings)), settings)
     _say(f"{places} place pages -> {settings.site_dir}")
 
 

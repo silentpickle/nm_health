@@ -10,9 +10,12 @@ import json
 import logging
 import subprocess
 from dataclasses import dataclass, replace
+from datetime import date
 from pathlib import Path
 from typing import Any
 
+from nm_health.feed import FeedRecord, load_records
+from nm_health.identity import normalized_address, split_dba
 from nm_health.ingest.parser import InspectionReportParser
 from nm_health.legacy_parser import is_legacy, parse_legacy
 from nm_health.model import Inspection, Violation
@@ -119,16 +122,78 @@ def _report(entry: dict[str, Any], layout: str, count: int) -> Report:
     )
 
 
-def rebuild(settings: Settings) -> Rebuilt:
-    """Parse every archived PDF listed in the manifest, oldest week first; later reports win."""
+def _prepare(inspection: Inspection) -> Inspection:
+    """Tag violations and show the place under the name people know (DBA), keeping the legal name."""
+    name, legal_name = split_dba(inspection.name)
+    return replace(
+        inspection,
+        name=name,
+        legal_name=inspection.legal_name or legal_name,
+        violations=tuple(tagged(v) for v in inspection.violations),
+    )
+
+
+def _supersede(previous: Inspection | None, current: Inspection) -> Inspection:
+    """A later report's version wins; if it changed the status, remember the first status reported."""
+    if previous is None or previous.status == current.status:
+        return current
+    return replace(current, amended_from=previous.amended_from or previous.status)
+
+
+def _from_feed(record: FeedRecord) -> Inspection:
+    """An inspection known only from the status feed: no violation text."""
+    return Inspection(
+        inspection_id=record.number,
+        date=record.date,
+        kind=record.kind,
+        status=record.status,
+        name=record.name,
+        address=record.address,
+        permit_number=None,
+        permit_type=None,
+        report_file="",
+        page=None,
+        legal_name=record.legal_name,
+        has_details=False,
+        violation_count=record.violations,
+        lat=record.lat,
+        lng=record.lng,
+    )
+
+
+def merge_feed(detailed: list[Inspection], records: list[FeedRecord]) -> list[Inspection]:
+    """Detailed inspections gain the feed's coordinates and count; feed-only inspections are added without text."""
+    by_key = {(r.number, r.date): r for r in records}
+    by_address = {normalized_address(r.address): r for r in records if r.lat is not None}
+    merged: list[Inspection] = []
+    for inspection in detailed:
+        match = by_key.pop((inspection.inspection_id, inspection.date), None)
+        nearby = match or by_address.get(normalized_address(inspection.address))
+        if nearby is not None:
+            inspection = replace(inspection, lat=nearby.lat, lng=nearby.lng)  # noqa: PLW2901 - enriching the loop item
+        if match is not None:
+            inspection = replace(inspection, violation_count=match.violations)  # noqa: PLW2901 - enriching the loop item
+        merged.append(inspection)
+    return merged + [_from_feed(r) for r in by_key.values()]
+
+
+def rebuild(settings: Settings, since: date | None = None) -> Rebuilt:
+    """Every archived PDF (oldest week first, later reports win) merged with the status feed.
+
+    With `since`, only inspections on or after that date are kept (the site's 12-month window); without it,
+    everything archived and the whole feed.
+    """
     entries = sorted(read_manifest(settings.manifest).values(), key=_order_key)
     latest: dict[tuple[str, str], Inspection] = {}
     reports: list[Report] = []
     for entry in entries:
         layout, inspections = parse_report(settings.archive_dir / str(entry["file"]))
         reports.append(_report(entry, layout, len(inspections)))
-        for inspection in inspections:
-            tags_applied = replace(inspection, violations=tuple(tagged(v) for v in inspection.violations))
-            latest[(inspection.inspection_id, inspection.date)] = tags_applied
-    ordered = sorted(latest.values(), key=lambda i: (i.date, i.name, i.inspection_id))
+        for inspection in map(_prepare, inspections):
+            key = (inspection.inspection_id, inspection.date)
+            latest[key] = _supersede(latest.get(key), inspection)
+    cutoff = (since or date.min).isoformat()
+    detailed = [i for i in latest.values() if i.date >= cutoff]
+    merged = merge_feed(detailed, load_records(settings, since or date.min))
+    ordered = sorted(merged, key=lambda i: (i.date, i.name, i.inspection_id))
     return Rebuilt(inspections=tuple(ordered), reports=tuple(reports))

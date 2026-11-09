@@ -17,6 +17,14 @@ DIM = "\033[2m"
 RESET = "\033[0m"
 
 
+def no_violations_line(insp: dict[str, object]) -> str:
+    """'No violations recorded' only when the report text is on file; feed-only inspections say what is missing."""
+    if insp.get("report_filename"):
+        return f"{GREEN}No violations recorded.{RESET}"
+    count = insp.get("violation_count") or 0
+    return f"{DIM}Details not on file (city status feed: {count} violations).{RESET}"
+
+
 def status_badge(status: str) -> str:  # noqa: D103
     s = status or "Unknown"
     lower = s.lower()
@@ -101,7 +109,7 @@ def cmd_lookup(args):  # noqa: ANN001, ANN201, PLR0912
 
         violations = insp.get("violations", [])
         if not violations:
-            print(f"  └─ {GREEN}No violations recorded.{RESET}")  # noqa: T201
+            print(f"  └─ {no_violations_line(insp)}")  # noqa: T201
         else:
             print(f"  │  Violations ({len(violations)}):")  # noqa: T201
             for v in violations:

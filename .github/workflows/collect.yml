@@ -42,7 +42,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/archive data/feed
           pdfs="$(git diff --cached --name-only -- '*.pdf' | xargs -r -n1 basename | tr '\n' ' ')"
-          git commit -m "Archive ${pdfs:+inspection report $pdfs}${pdfs:+and }status feed changes"
+          git commit -m "Collect ${pdfs:-status feed changes (no new report)}"
           git push
           echo "new=true" >> "$GITHUB_OUTPUT"
   site:

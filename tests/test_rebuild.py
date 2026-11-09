@@ -2,6 +2,8 @@
 """Rebuild: every archived PDF, oldest first, later reports win; then the SQLite file the CLI reads."""
 
 import json
+from dataclasses import replace
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -9,9 +11,10 @@ import pytest
 from nm_health import rebuild as rebuild_module
 from nm_health.database import write_database
 from nm_health.db.local_store import LocalStore
+from nm_health.feed import FeedRecord
 from nm_health.identity import split_dba, strip_city
 from nm_health.model import Inspection, Violation
-from nm_health.rebuild import LAYOUT_CURRENT, LAYOUT_UNREADABLE, parse_report, read_manifest, rebuild
+from nm_health.rebuild import LAYOUT_CURRENT, LAYOUT_UNREADABLE, merge_feed, parse_report, read_manifest, rebuild
 from nm_health.settings import Settings
 from tests.test_archive import make_settings
 
@@ -126,3 +129,63 @@ def test_strip_city() -> None:
     assert strip_city("7202 MENAUL BLVD NE ALBUQUERQUE, NM 87110 ") == "7202 MENAUL BLVD NE"
     assert strip_city("6902 MENAUL BLVD NE Albuquerque, NM 87110-1234") == "6902 MENAUL BLVD NE"
     assert strip_city("840 SAN MATEO BLVD SE") == "840 SAN MATEO BLVD SE"
+
+
+def feed_record(number: str, day: str, status: str = "Approved", violations: int = 2) -> FeedRecord:
+    """A status-feed record at the test cafe's address."""
+    return FeedRecord(
+        number=number,
+        date=day,
+        kind="Routine Food Establishment Inspection",
+        status=status,
+        name="TEST CAFE",
+        legal_name=None,
+        address="100 CENTRAL AVE SW",
+        lat=35.08,
+        lng=-106.65,
+        violations=violations,
+        risk="3",
+    )
+
+
+def test_merge_feed() -> None:
+    """A matching record adds coordinates and the count; an unmatched one becomes a status-only inspection."""
+    detailed = inspection("Approved", "r.pdf")
+    merged = merge_feed(
+        [detailed],
+        [feed_record("PT0000001", "2026-10-29", violations=1), feed_record("RT-9", "2026-06-08", "Closure", 28)],
+    )
+    enriched, feed_only = merged
+    assert (enriched.lat, enriched.lng, enriched.violation_count, enriched.has_details) == (35.08, -106.65, 1, True)
+    assert (feed_only.inspection_id, feed_only.status, feed_only.violation_count) == ("RT-9", "Closure", 28)
+    assert (feed_only.has_details, feed_only.violations, feed_only.report_file) == (False, (), "")
+
+
+def test_unmatched_inspection_gets_coordinates_by_address() -> None:
+    """A follow-up the feed doesn't carry still lands on the map via its address."""
+    follow_up = replace(inspection("Approved", "r.pdf"), inspection_id="CAC-1")
+    (enriched, _feed_only) = merge_feed([follow_up], [feed_record("RT-9", "2026-06-08")])
+    assert (enriched.lat, enriched.violation_count) == (35.08, None)
+
+
+def test_amended_status_and_dba_and_window(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A later report's changed status keeps the first one; DBA names split; `since` drops older inspections."""
+    settings = make_settings(tmp_path)
+    write_manifest(
+        settings,
+        [
+            {"file": "first.pdf", "sha256": "a", "week_end": "2026-10-31", "seen_at": "2026-11-02"},
+            {"file": "amended.pdf", "sha256": "b", "week_end": "2026-10-31", "seen_at": "2026-11-04"},
+        ],
+    )
+    old = replace(inspection("Approved", "first.pdf"), inspection_id="OLD", date="2025-01-02")
+    statuses = {"first.pdf": "Approved", "amended.pdf": "Conditional Approved"}
+
+    def parsed(pdf: Path) -> tuple[str, list[Inspection]]:
+        current = replace(inspection(statuses[pdf.name], pdf.name), name="ACME LLC DBA TEST CAFE")
+        return LAYOUT_CURRENT, [current, old]
+
+    monkeypatch.setattr(rebuild_module, "parse_report", parsed)
+    (only,) = rebuild(settings, date(2025, 11, 9)).inspections
+    assert (only.status, only.amended_from) == ("Conditional Approved", "Approved")
+    assert (only.name, only.legal_name) == ("TEST CAFE", "ACME LLC")

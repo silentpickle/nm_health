@@ -30,6 +30,7 @@ def make_settings(tmp_path: Path) -> Settings:
         cdx_url="https://example.test/cdx",
         raw_url_template="https://example.test/{timestamp}/{url}",
         pdf_base_url="https://example.test/pdf/",
+        feed_raw_dir=tmp_path / "feed",
     )
 
 

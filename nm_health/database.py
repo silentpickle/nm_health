@@ -91,7 +91,14 @@ def _permit_id(conn: sqlite3.Connection, establishment_id: int, inspection: Insp
     return int(row[0])
 
 
-def _insert_inspection(conn: sqlite3.Connection, inspection: Inspection, report_id: int) -> None:
+def _violation_count(inspection: Inspection) -> int:
+    """Listed violations when the text is on file, else the status feed's count."""
+    if inspection.has_details:
+        return len(inspection.violations)
+    return inspection.violation_count or 0
+
+
+def _insert_inspection(conn: sqlite3.Connection, inspection: Inspection, report_id: int | None) -> None:
     establishment_id = _establishment_id(conn, inspection)
     has_pests = any(PESTS in v.tags for v in inspection.violations)
     is_red = any(word in inspection.status.lower() for word in RED_STATUS_WORDS)
@@ -111,7 +118,7 @@ def _insert_inspection(conn: sqlite3.Connection, inspection: Inspection, report_
             inspection.page,
             has_pests,
             is_red or has_pests,
-            len(inspection.violations),
+            _violation_count(inspection),
         ),
     ).fetchone()
     conn.executemany(
@@ -123,7 +130,7 @@ def _insert_inspection(conn: sqlite3.Connection, inspection: Inspection, report_
 
 def _insert_all(conn: sqlite3.Connection, inspections: Iterable[Inspection], report_ids: dict[str, int]) -> None:
     for inspection in inspections:
-        _insert_inspection(conn, inspection, report_ids[inspection.report_file])
+        _insert_inspection(conn, inspection, report_ids.get(inspection.report_file))  # None: feed-only
 
 
 def write_database(rebuilt: Rebuilt, db_path: Path, archive_dir: Path) -> None:
