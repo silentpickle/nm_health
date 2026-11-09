@@ -78,6 +78,7 @@ def v(category: str, item: str = "", observation: str = "", rule: str = BOILERPL
             (),
             id="thermometer_not_food_temperature",
         ),
+        pytest.param(v("Records", "Temperature Logs"), (), id="temperature_logs_are_paperwork"),
         pytest.param(v("Handwashing", "Handwashing Sinks, Accessibility"), ("handwashing",), id="handwashing"),
         pytest.param(v("Availability", "Cleaning Agents and Sanitizers, Availability"), ("sanitizer",), id="sanitizer"),
         pytest.param(v("Operations", "Valid Permit"), ("permit",), id="permit"),

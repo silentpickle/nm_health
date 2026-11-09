@@ -24,7 +24,7 @@ EMPLOYEE_ITEMS = re.compile(
     re.IGNORECASE,
 )
 FOOD_TEMPERATURE = re.compile(r"Temperature|Cold Holding|Hot Holding|Cooling|Reheating|Cooking", re.IGNORECASE)
-NOT_FOOD_TEMPERATURE = re.compile(r"Measuring Device|Thermometer|Warewash", re.IGNORECASE)
+NOT_FOOD_TEMPERATURE = re.compile(r"Measuring Device|Thermometer|Warewash|Temperature Logs", re.IGNORECASE)
 # "Time/Temperature Control for Safety Food" names a class of food, not a temperature problem.
 TCS_PHRASE = re.compile(r"Time/Temperature Control(?: for Safety)?", re.IGNORECASE)
 HANDWASHING = re.compile(r"Hand ?wash|Hand Sink|Hands", re.IGNORECASE)
