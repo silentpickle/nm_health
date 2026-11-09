@@ -1,5 +1,6 @@
 import unittest  # noqa: CPY001, D100, I001
 import tempfile
+from unittest import mock
 from pathlib import Path
 from nm_health.db.local_store import LocalStore
 from nm_health.ingest.parser import InspectionReportParser
@@ -13,9 +14,13 @@ class TestServiceEndToEnd(unittest.TestCase):  # noqa: D101
         cls.temp_dir = tempfile.TemporaryDirectory()
         cls.temp_db = Path(cls.temp_dir.name) / "test.db"
         cls.store = LocalStore(db_path=cls.temp_db)
+        # ingest_file copies the PDF into ARCHIVE_DIR: point it at the temp dir, never the real archive.
+        cls.archive_patch = mock.patch("nm_health.ingest.fetcher.ARCHIVE_DIR", Path(cls.temp_dir.name))
+        cls.archive_patch.start()
 
     @classmethod
     def tearDownClass(cls):  # noqa: ANN206, D102
+        cls.archive_patch.stop()
         cls.temp_dir.cleanup()
 
     def test_01_parser_sample(self):  # noqa: ANN201, D102
