@@ -1,138 +1,64 @@
-# NM Food Safety Watch (Albuquerque Restaurant Inspection Tracker)
+# ABQ Food Inspection History
 
-An automated ingestion, archival, and lookup service for the City of Albuquerque Environmental Health Department's weekly food inspection reports.
+The City of Albuquerque publishes restaurant inspections as **one PDF that it overwrites every week**
+(`chpd_main_inspection_report.pdf`). Once a week rolls off, its closures, roach citations and red tags are gone.
+This project keeps every copy and turns them into a history per restaurant:
 
----
+> **Little Bear Coffee**, 330 Tijeras St NW: *Last pest citation Sep 24, 2026 · inspected 1 time since, most recently Sep 25, 2026.*
 
-## The Problem
+It only claims what the archive shows. A place with no pest citations reads "No pest citations in N archived
+inspections (first – last)", never "pest-free": inspections happen a few times a year, and weeks nobody saved
+are missing.
 
-The City of Albuquerque publishes restaurant inspection grades as a single weekly PDF (`chpd_main_inspection_report.pdf`). When each new report is published, the previous week's PDF is overwritten.
+## How it works
 
-Because of this:
-- **No historical memory**: There is no official multi-week history available to the public.
-- **Hidden violations**: If a restaurant is shut down or cited for critical health hazards (such as cockroach/rodent infestations, improper food temperatures, or sewage backups), the incident vanishes from the public report once the next week's report is published or the facility passes a re-inspection.
-
-**NM Food Safety Watch** solves this by:
-1. **Automated Daily Monitoring**: Automatically polling the CABQ inspection URL once a day.
-2. **Permanent Archival**: Calculating SHA-256 checksums and archiving every distinct weekly report PDF into `data/archive/` for posterity.
-3. **Structured Ingestion**: Parsing summary tables and detailed inspector observations (including specific pest types, temperatures, and location notes).
-4. **Address-Normalized Database**: Standardizing Albuquerque street names, quadrants (`NE`, `NW`, `SE`, `SW`), and unit numbers to link historical inspections to the same physical location over time.
-5. **Human-Readable Lookups**:
-   - **CLI**: Instant terminal search, inspection timeline lookup, statistics, and alert feeds.
-   - **Web Dashboard**: Modern, responsive dashboard with live search, status badges, and expandable violation observations.
-   - **Firebase Integration**: Built-in support for Cloud Firestore and Firebase Hosting in the `abq-food-inspections` project.
-
----
-
-## Quick Start
-
-### 1. Install & Setup
-```bash
-# Clone and enter directory
-cd nm_health
-
-# Install locally in editable mode (creates 'nm-health' CLI tool)
-pip3 install -e .
+```
+cabq.gov PDF ──daily──▶ data/archive/<week>_<sha>.pdf ──▶ parse (3 layouts) ──▶ tag ──▶ site/  (GitHub Pages)
+                         + manifest.jsonl (committed)                                └──▶ data/nm_health.db (CLI)
 ```
 
-Prerequisites:
-- `pdftotext` (part of `poppler`, already installed on macOS via `brew install poppler`).
+1. **Archive** (`collect.yml`, daily 15:00 UTC): download the PDF, refuse anything that isn't a PDF, and save it
+   if those bytes are new. Archiving never parses, so a PDF the parser can't read yet is still kept. Amended
+   re-issues are kept beside the original.
+2. **Rebuild**: parse every archived PDF, oldest week first. The later report wins when two state the same
+   inspection (keyed by inspection ID + date: routine inspections reuse the permit number as their ID).
+3. **Tag** each violation from the inspector's observation, not the rule boilerplate. "pests" needs evidence
+   (roaches, mice, droppings, "Pest Type:"); door gaps and pest paperwork are "pest_control".
+4. **Publish** (`site.yml`): plain HTML pages, a list of archived weeks, and `data.json`.
 
----
+Three report layouts are parsed: the current one (late 2025 on), the early-2025 transitional one, and the
+2021–2024 "Activity Date" one. The last two have no inspection or permit numbers, so their IDs are synthetic.
 
-## Command Line Interface (CLI)
+## Use it
+
+Needs `uv`, `node` (site JS checks only) and poppler (`brew install poppler`).
 
 ```bash
-# Ingest current live report from CABQ or a local test PDF
-nm-health ingest --file sample_inspection_report.pdf
-
-# Search by restaurant name, address, or violation keyword (e.g., pests, foods)
-nm-health search "cockroach"
-nm-health search "California Del Norte"
-nm-health search "Central Ave"
-
-# Detailed chronological inspection history lookup (by ID or name)
-nm-health lookup 39
-nm-health lookup "California Del Norte"
-
-# View recent enforcement alerts (closures, conditional approvals, downgrades)
-nm-health alerts
-
-# Display tracking statistics
-nm-health stats
-
-# Launch the local web dashboard
-nm-health serve --port 8000
-
-# Run continuous background daily polling daemon (default: 86400s / 24h)
-nm-health daemon --interval 86400
+uv sync && npm ci && uv run pre-commit install
 ```
 
----
-
-## Web Dashboard
-
-Start the web dashboard:
 ```bash
-nm-health serve --port 8000
-```
-Then visit `http://127.0.0.1:8000` in your browser.
-
-Features:
-- **Instant Search**: Type any restaurant name, street address, or violation term (e.g. `mice`, `cockroach`, `ranch`, `tacos`, `Central Ave`).
-- **Status Badges**:
-  - 🟢 **Approved**: Passing inspection.
-  - 🟡 **Conditional Approved**: Violations found; corrective action required.
-  - 🔴 **Closure / Unsatisfactory**: Facility closed or re-inspection ordered.
-- **Pest Warning Flags**: Highlights any facility with past rodent, vermin, or insect citations.
-- **Detailed History Modal**: Full chronological inspection timeline with exact inspector observation notes and direct links to original archived PDFs.
-- **Recent Action Alerts**: Slide-out feed of the latest closures and urgent actions.
-
----
-
-## Automated Daily Ingestion Service
-
-You can run the ingestion checker in several ways:
-
-### Option A: Built-in Daemon
-```bash
-nm-health daemon --interval 86400
-```
-Runs continuously in the background, waking once every 24 hours to check for new reports.
-
-### Option B: System Cron
-Add this entry to your crontab (`crontab -e`) to check every morning at 6:00 AM:
-```cron
-0 6 * * * /usr/local/bin/python3 -m nm_health ingest >> /path/to/nm_health/data/cron.log 2>&1
+uv run nm-health archive              # save this week's PDF if it's new
+uv run nm-health backfill-wayback     # recover older weeks from the Internet Archive
+uv run nm-health ingest               # rebuild data/nm_health.db from the archive
+uv run nm-health site                 # render site/ (open site/index.html)
+uv run nm-health search "pho"         # CLI lookups against the database
+uv run nm-health lookup "Little Bear Coffee"
 ```
 
----
+`uv run nm-health serve` still starts the prototype's local dashboard on the database.
 
-## Firebase Integration (Cloud Firestore & Hosting)
+## Layout
 
-A dedicated Firebase project has been created:
-- **Project ID**: `abq-food-inspections`
-- **Console**: [https://console.firebase.google.com/project/abq-food-inspections/overview](https://console.firebase.google.com/project/abq-food-inspections/overview)
+| Path | What |
+|---|---|
+| `config.toml` | Every setting (source URL, paths, Wayback endpoints). No secrets; none are needed. |
+| `data/archive/` | The archive: every distinct PDF + `manifest.jsonl`. The only data that is committed. |
+| `nm_health/archive.py`, `wayback.py` | Download / backfill and dedupe. |
+| `nm_health/ingest/parser.py` | Current layout (the prototype's parser, pinned by `tests/golden/`). |
+| `nm_health/legacy_parser.py` | 2021–2024 and early-2025 layouts. |
+| `nm_health/tags.py` | One small rule per tag. |
+| `nm_health/rebuild.py`, `database.py`, `site.py` | Archive → inspections → SQLite / static site. |
+| `scripts/checks.sh` | The gate: ruff (all rules), mypy, complexity, shellcheck, ESLint/tsc/Prettier, pytest. Pre-commit and CI run it. |
 
-### Setup Steps:
-1. Open the [Firebase Console Firestore tab](https://console.firebase.google.com/project/abq-food-inspections/firestore) and click **Create Database** (e.g. location `nam5` or `us-central1`).
-2. Deploy Firestore Security Rules & Hosting:
-   ```bash
-   npx -y firebase-tools@latest deploy --project=abq-food-inspections
-   ```
-3. Sync local data to Firestore:
-   ```bash
-   pip3 install firebase-admin
-   python3 -c "from nm_health.db.local_store import LocalStore; from nm_health.db.firebase_sync import FirebaseSyncer; syncer = FirebaseSyncer(project_id='abq-food-inspections'); syncer.sync_store(LocalStore())"
-   ```
-
----
-
-## Database Architecture
-
-- `reports`: Tracks each downloaded weekly PDF (SHA-256 hash, week range, file size, archive path).
-- `establishments`: Normalized restaurant entities (Name, normalized street address, quadrant, unit, latest status, pest history flag).
-- `permits`: Food establishment permits linked to locations.
-- `inspections`: Individual inspection events with status, date, type, report page numbers, and critical violation flags.
-- `violations`: Individual inspector findings (category, code item, legal requirement, and raw inspector observations).
-- `establishments_fts` & `violations_fts`: SQLite FTS5 full-text indices for sub-millisecond keyword queries across all historical notes.
+Not affiliated with the City of Albuquerque.
