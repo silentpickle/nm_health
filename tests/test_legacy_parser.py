@@ -78,3 +78,50 @@ def test_stray_lines_before_any_inspection_ignored() -> None:
         "    S14 Food-contact surfaces: cleaned and sanitized\n"
     )
     assert parse_legacy(text, "r.pdf") == []
+
+
+REPORT_2025 = """\
+                         Consumer Health Protection Inspections Performed
+                                      1/27/2025 - 1/31/2025
+        Sheraton Albuquerque Airport Hotel \u2013 Kitchen \u2013 2910 Yale Blvd SE \u2013 Current Status: Approved
+Sheraton Albuquerque Airport Hotel \u2013 Kitchen \u2013 2910 Yale Blvd SE
+Description \u2013 Food Service Establishment
+Activity Date \u2013 1/29/2025 Service- HIGH RISK/ Result-IMMEDIATE CLOSURE/ Action- IMMEDIATE CLOSURE
+
+Violations Observed
+Violation: Pest Control
+- Controlling Pests, If Present: Treatment
+      - 6-202.13
+      - Insects and other pests are capable of transmitting disease. Instructed PIC
+to eliminate their presence.
+Observed live cockroaches under the dish machine.
+Pest Type: Cockroaches
+
+Violation: Records
+- Temperature Logs
+      - Instructed PIC to keep logs.
+"""
+
+
+def test_parses_2025_layout() -> None:
+    """En dashes, a name containing a dash, Violation: headings, and dash-prefixed item/code/rule lines."""
+    (inspection,) = parse_legacy(REPORT_2025, "r.pdf")
+    assert (inspection.name, inspection.address) == (
+        "Sheraton Albuquerque Airport Hotel \u2013 Kitchen",
+        "2910 Yale Blvd SE",
+    )
+    assert (inspection.date, inspection.kind, inspection.status) == ("2025-01-29", "High Risk", "Immediate Closure")
+    assert inspection.permit_type == "Food Service Establishment"
+    pests, logs = inspection.violations
+    assert (pests.category, pests.item) == ("Pest Control", "6-202.13 Controlling Pests, If Present: Treatment")
+    assert (
+        pests.rule
+        == "Insects and other pests are capable of transmitting disease. Instructed PIC to eliminate their presence."
+    )
+    assert pests.observation == "Observed live cockroaches under the dish machine. Pest Type: Cockroaches"
+    assert (logs.category, logs.item, logs.rule, logs.observation) == (
+        "Records",
+        "Temperature Logs",
+        "Instructed PIC to keep logs.",
+        "",
+    )

@@ -1,5 +1,7 @@
 # Copyright (c) 2026 nm_health contributors
-"""Parse the report layout the city used through 2024.
+"""Parse the two "Activity Date" layouts the city used before late 2025.
+
+Through 2024:
 
     SAMS CLUB 6672 - 300 EUBANK BLVD NE
       Description - SAMS CLUB 6672 GROCERY (Retail -Grocery)
@@ -9,7 +11,17 @@
           3-101.11 Safe, Unadulterated, and Honestly Presented
           OBSERVED ...
 
-That layout has no inspection or permit numbers, so each inspection gets a stable synthetic ID.
+Early 2025 (en dashes, current-style violation headings):
+
+    Taylor Ranch Community Center \u2013 4900 Kachina NW
+    Description \u2013Food Service Establishment
+    Activity Date \u2013 1/27/2025 Service- HIGH RISK/ Result-IN COMPLIANCE/ Action- APPROVED
+    Violation: Maintenance and Operation
+    - Good Repair and Proper Adjustment-Equipment
+          - 4-501.11
+    Observed equipment not maintained in good repair. ...
+
+Neither layout has inspection or permit numbers, so each inspection gets a stable synthetic ID.
 """
 
 import re
@@ -19,17 +31,25 @@ from datetime import UTC, datetime
 
 from nm_health.model import Inspection, Violation
 
-MARKER = "Activity Date - "
-DESCRIPTION = "Description -"
+DASH = "[-\u2013]"
+MARKER_RE = re.compile(rf"Activity Date {DASH} ")
 ACTIVITY_RE = re.compile(
-    r"Activity Date - (\d{2}/\d{2}/\d{4}) \(Service - (.+?) / Result - (.+?) / Action - ([^)]+?)\)?\s*$"
+    rf"Activity Date {DASH} (\d{{1,2}}/\d{{1,2}}/\d{{4}}) \(?Service\s*-\s*(.+?)\s*/\s*Result\s*-\s*(.+?)\s*/\s*"
+    r"Action\s*-\s*([^)]+?)\)?\s*$"
 )
-ESTABLISHMENT_RE = re.compile(r"^(\S.*?) - (\S.*)$")
+DESCRIPTION_RE = re.compile(rf"^\s*Description\s*{DASH}\s*(.*)$")
+# Name, then the address from the last dash before a street number ("Sheraton ... \u2013 Bar \u2013 2910 Yale Blvd SE").
+ESTABLISHMENT_RE = re.compile(rf"^(\S.*) {DASH} (\d.*)$")
+ESTABLISHMENT_ANY_RE = re.compile(rf"^(\S.*?) {DASH} (\S.*)$")
 TYPE_RE = re.compile(r"\(([^()]*)\)\s*$")
 VIOLATION_RE = re.compile(r"^\s*(S\d+\s+.+)$")
+VIOLATION_HEADING_RE = re.compile(r"^\s*Violation:\s*(\S.*)$")
+DASH_LINE_RE = re.compile(r"^\s*-\s*(\S.*)$")
+OBSERVED_RE = re.compile(r"^\s*Observed\b", re.IGNORECASE)
 CODE_RE = re.compile(r"^\s*\d-\d{3}\.\d+")  # FDA Food Code section, e.g. 6-501.111
 SKIP_RE = re.compile(
-    r"^\s*(?:\d+ OUT OF COMPLIANCE|Page \d+ of \d+|Consumer Health Protection Inspections Performed.*|Report amended.*)\s*$",
+    r"^\s*(?:\d+ OUT OF COMPLIANCE|Violations Observed|Page \d+ of \d+"
+    r"|Consumer Health Protection Inspections Performed.*|Report amended.*)\s*$",
     re.IGNORECASE,
 )
 QUIET_RESULTS = frozenset({"IN COMPLIANCE", "NOT APPLICABLE"})
@@ -37,8 +57,8 @@ SLUG_RE = re.compile(r"[^a-z0-9]+")
 
 
 def is_legacy(text: str) -> bool:
-    """True for the pre-2025 layout."""
-    return MARKER in text
+    """True for either "Activity Date" layout."""
+    return MARKER_RE.search(text) is not None
 
 
 @dataclass
@@ -71,7 +91,7 @@ def _iso(us_date: str) -> str:
 
 def _status(result: str, action: str) -> str:
     status = action.strip().title()
-    if result.strip().upper() in QUIET_RESULTS:
+    if result.strip().upper() in QUIET_RESULTS or result.strip().title() == status:
         return status
     return f"{status} - {result.strip().title()}"
 
@@ -84,16 +104,23 @@ def _synthetic_id(state: _State, date: str) -> str:
     return key if count == 1 else f"{key}-{count}"
 
 
+def _split_establishment(line: str) -> tuple[str, str] | None:
+    found = ESTABLISHMENT_RE.match(line) or ESTABLISHMENT_ANY_RE.match(line)
+    return (found[1].strip(), found[2].strip()) if found else None
+
+
 def _on_establishment(state: _State, line: str) -> None:
-    found = ESTABLISHMENT_RE.match(line.strip())
-    if found is None:
+    split = _split_establishment(line.strip())
+    if split is None:
         return
-    state.name, state.address, state.permit_type = found[1].strip(), found[2].strip(), None
+    (state.name, state.address), state.permit_type = split, None
 
 
 def _on_description(state: _State, line: str) -> None:
-    found = TYPE_RE.search(line)
-    state.permit_type = found[1].strip() if found else None
+    found = DESCRIPTION_RE.match(line)
+    rest = found[1].strip() if found else ""
+    in_parens = TYPE_RE.search(rest)
+    state.permit_type = (in_parens[1].strip() if in_parens else rest) or None
 
 
 def _on_activity(state: _State, line: str) -> None:
@@ -116,11 +143,28 @@ def _on_activity(state: _State, line: str) -> None:
     state.drafts.append(_Draft(inspection))
 
 
-def _on_violation(state: _State, line: str) -> None:
+def _open_violation(state: _State, category: str) -> None:
     draft = state.current()
     if draft is None:
         return
-    draft.violations.append(Violation(category=" ".join(line.split()), item="", rule="", observation=""))
+    draft.violations.append(Violation(category=" ".join(category.split()), item="", rule="", observation=""))
+
+
+def _on_violation(state: _State, line: str) -> None:
+    """A 2024-style 'S36 Insects, rodents, ...' line."""
+    _open_violation(state, line)
+
+
+def _on_violation_heading(state: _State, line: str) -> None:
+    """A 2025-style 'Violation: Pest Control' line."""
+    found = VIOLATION_HEADING_RE.match(line)
+    if found is not None:
+        _open_violation(state, found[1])
+
+
+def _last_violation(state: _State) -> _Draft | None:
+    draft = state.current()
+    return draft if draft is not None and draft.violations else None
 
 
 def _on_code(draft: _Draft, text: str) -> None:
@@ -132,29 +176,49 @@ def _on_code(draft: _Draft, text: str) -> None:
     draft.violations.append(Violation(category=last.category, item=text, rule="", observation=""))
 
 
+def _on_dash(state: _State, line: str) -> None:
+    """2025-style '- item', '- 4-501.11' and '- rule text' lines."""
+    draft = _last_violation(state)
+    found = DASH_LINE_RE.match(line)
+    if draft is None or found is None:
+        return
+    text, last = " ".join(found[1].split()), draft.violations[-1]
+    if not last.item:
+        draft.violations[-1] = replace(last, item=text)
+    elif CODE_RE.match(text):
+        draft.violations[-1] = replace(last, item=f"{text} {last.item}")
+    else:
+        draft.violations[-1] = replace(last, rule=f"{last.rule} {text}".strip())
+
+
 def _on_text(state: _State, line: str) -> None:
-    draft = state.current()
-    if draft is None or not draft.violations:
+    """Free text: an FDA code item, rule text continuing, or the inspector's observation."""
+    draft = _last_violation(state)
+    if draft is None:
         return
     text = " ".join(line.split())
     if CODE_RE.match(line):
         _on_code(draft, text)
         return
     last = draft.violations[-1]
-    joined = f"{last.observation} {text}" if last.observation else text
-    draft.violations[-1] = replace(last, observation=joined)
+    if last.rule and not last.observation and not OBSERVED_RE.match(line):
+        draft.violations[-1] = replace(last, rule=f"{last.rule} {text}")
+        return
+    draft.violations[-1] = replace(last, observation=f"{last.observation} {text}".strip())
 
 
-LINE_HANDLERS: tuple[tuple[Callable[[str], bool], Callable[[_State, str], None]], ...] = (
-    (lambda line: line.strip().startswith(DESCRIPTION), _on_description),
-    (lambda line: MARKER in line, _on_activity),
-    (lambda line: VIOLATION_RE.match(line) is not None, _on_violation),
+LINE_HANDLERS: tuple[tuple[re.Pattern[str], Callable[[_State, str], None]], ...] = (
+    (DESCRIPTION_RE, _on_description),
+    (MARKER_RE, _on_activity),
+    (VIOLATION_RE, _on_violation),
+    (VIOLATION_HEADING_RE, _on_violation_heading),
+    (DASH_LINE_RE, _on_dash),
 )
 
 
 def _looks_like_header(line: str) -> bool:
     """Establishment headers start at column 0 as 'NAME - ADDRESS'."""
-    return bool(line[:1].strip()) and MARKER not in line and ESTABLISHMENT_RE.match(line.strip()) is not None
+    return bool(line[:1].strip()) and not MARKER_RE.search(line) and _split_establishment(line.strip()) is not None
 
 
 def _header_lines(lines: list[str]) -> set[int]:
@@ -165,7 +229,7 @@ def _header_lines(lines: list[str]) -> set[int]:
     headers: set[int] = set()
     previous = -1
     for index, line in enumerate(lines):
-        if line.strip().startswith(DESCRIPTION) and previous >= 0 and _looks_like_header(lines[previous]):
+        if DESCRIPTION_RE.match(line) and previous >= 0 and _looks_like_header(lines[previous]):
             headers.add(previous)
         if line.strip():
             previous = index
@@ -173,8 +237,8 @@ def _header_lines(lines: list[str]) -> set[int]:
 
 
 def _handle(state: _State, line: str) -> None:
-    for matches, handler in LINE_HANDLERS:
-        if matches(line):
+    for pattern, handler in LINE_HANDLERS:
+        if pattern.search(line):
             handler(state, line)
             return
     _on_text(state, line)
