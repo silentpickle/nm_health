@@ -10,6 +10,8 @@ on:
     paths: [".github/workflows/collect.yml", "nm_health/archive.py", "nm_health/settings.py", "config.toml"]
 permissions:
   contents: write
+  pages: write
+  id-token: write
 concurrency:
   group: collect
   cancel-in-progress: false
@@ -17,6 +19,8 @@ jobs:
   archive:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      new: ${{ steps.commit.outputs.new }}
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
@@ -26,13 +30,19 @@ jobs:
       - name: Archive this week's report if new
         run: uv run --no-dev nm-health archive
       - name: Commit a new PDF
+        id: commit
         if: github.event_name != 'pull_request'
         run: |
           if [ -z "$(git status --porcelain data/archive)" ]; then
-            echo "Report unchanged."; exit 0
+            echo "Report unchanged."; echo "new=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/archive
           git commit -m "Archive inspection report $(git diff --cached --name-only -- '*.pdf' | xargs -n1 basename | tr '\n' ' ')"
           git push
+          echo "new=true" >> "$GITHUB_OUTPUT"
+  site:
+    needs: archive
+    if: needs.archive.outputs.new == 'true'
+    uses: ./.github/workflows/site.yml

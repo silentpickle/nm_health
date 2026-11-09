@@ -1,5 +1,5 @@
 # Copyright (c) 2026 nm_health contributors
-"""CLI commands for the pipeline: `archive`, `backfill-wayback`, `ingest` (rebuild)."""
+"""CLI commands for the pipeline: `archive`, `backfill-wayback`, `ingest` (rebuild the database), `site`."""
 
 import argparse
 import logging
@@ -11,6 +11,7 @@ from nm_health import settings as settings_module
 from nm_health.archive import Archived, archive_current, archive_file
 from nm_health.database import write_database
 from nm_health.rebuild import rebuild
+from nm_health.site import write_site
 from nm_health.wayback import backfill
 
 
@@ -64,6 +65,14 @@ def cmd_ingest(_args: argparse.Namespace) -> None:
     )
 
 
+def cmd_site(_args: argparse.Namespace) -> None:
+    """Render the static site from every archived PDF."""
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    settings = settings_module.load()
+    places = write_site(rebuild(settings), settings)
+    _say(f"{places} place pages -> {settings.site_dir}")
+
+
 def add_commands(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
     """Register the archive commands on the main CLI."""
     p_archive = subparsers.add_parser("archive", help="Save this week's report PDF if it is new (no parsing)")
@@ -77,3 +86,6 @@ def add_commands(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser
 
     p_ingest = subparsers.add_parser("ingest", help="Rebuild the database from every archived PDF")
     p_ingest.set_defaults(func=cmd_ingest)
+
+    p_site = subparsers.add_parser("site", help="Render the static site (GitHub Pages) from every archived PDF")
+    p_site.set_defaults(func=cmd_site)

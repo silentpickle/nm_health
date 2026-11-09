@@ -8,4 +8,5 @@ uv run ruff format --check .
 uv run mypy nm_health tests
 uv run python scripts/complexity.py
 uv run shellcheck --severity=style scripts/*.sh
+npm run --silent check
 uv run pytest -q

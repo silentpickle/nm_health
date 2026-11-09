@@ -1,0 +1,22 @@
+{
+  "name": "nm-health-site",
+  "private": true,
+  "type": "module",
+  "description": "Lint, type-check and format the static site's JavaScript and CSS",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc -p .",
+    "format": "prettier --write nm_health/site_static eslint.config.js tsconfig.json package.json",
+    "format:check": "prettier --check nm_health/site_static eslint.config.js tsconfig.json package.json",
+    "check": "npm run format:check && npm run lint && npm run typecheck"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.5",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
+    "prettier": "^3.9.10",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.1"
+  }
+}
