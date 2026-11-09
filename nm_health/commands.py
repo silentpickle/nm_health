@@ -1,5 +1,5 @@
 # Copyright (c) 2026 nm_health contributors
-"""CLI commands for the archive: `archive` and `backfill-wayback`."""
+"""CLI commands for the pipeline: `archive`, `backfill-wayback`, `ingest` (rebuild)."""
 
 import argparse
 import logging
@@ -9,6 +9,8 @@ from pathlib import Path
 
 from nm_health import settings as settings_module
 from nm_health.archive import Archived, archive_current, archive_file
+from nm_health.database import write_database
+from nm_health.rebuild import rebuild
 from nm_health.wayback import backfill
 
 
@@ -48,6 +50,20 @@ def cmd_backfill_wayback(_args: argparse.Namespace) -> None:
     _say(f"{sum(r.is_new for r in results)} new of {len(results)} PDF captures")
 
 
+def cmd_ingest(_args: argparse.Namespace) -> None:
+    """Rebuild the database from every archived PDF."""
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    settings = settings_module.load()
+    rebuilt = rebuild(settings)
+    write_database(rebuilt, settings.db, settings.archive_dir)
+    for report in rebuilt.reports:
+        _say(f"{report.file}: {report.layout}, {report.inspections} inspections")
+    places = len({(i.name, i.address) for i in rebuilt.inspections})
+    _say(
+        f"{len(rebuilt.inspections)} inspections of {places} places from {len(rebuilt.reports)} reports -> {settings.db}"
+    )
+
+
 def add_commands(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
     """Register the archive commands on the main CLI."""
     p_archive = subparsers.add_parser("archive", help="Save this week's report PDF if it is new (no parsing)")
@@ -58,3 +74,6 @@ def add_commands(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser
 
     p_wayback = subparsers.add_parser("backfill-wayback", help="Archive every Wayback Machine copy of the report")
     p_wayback.set_defaults(func=cmd_backfill_wayback)
+
+    p_ingest = subparsers.add_parser("ingest", help="Rebuild the database from every archived PDF")
+    p_ingest.set_defaults(func=cmd_ingest)

@@ -78,7 +78,7 @@ check_untyped_defs = true
 
 # New modules meet --strict. Legacy modules from the prototype get the default mode until someone touches them.
 [[tool.mypy.overrides]]
-module = ["nm_health.archive", "nm_health.archive_cli", "nm_health.settings", "nm_health.wayback", "nm_health.model", "nm_health.legacy_parser", "nm_health.tags", "nm_health.site", "nm_health.rebuild"]
+module = ["nm_health.archive", "nm_health.commands", "nm_health.identity", "nm_health.database", "nm_health.settings", "nm_health.wayback", "nm_health.model", "nm_health.legacy_parser", "nm_health.tags", "nm_health.site", "nm_health.rebuild"]
 strict = true
 
 [tool.pytest.ini_options]
@@ -90,13 +90,10 @@ module = [
     "nm_health.cli",
     "nm_health.db.firebase_sync",
     "nm_health.db.local_store",
-    "nm_health.ingest.fetcher",
     "nm_health.ingest.parser",
     "nm_health.ingest.normalizer",
-    "nm_health.service.scheduler",
     "nm_health.web.server",
     "nm_health.__main__",
-    "test_normalizer",
-    "test_service",
+    "tests.test_normalizer",
 ]
 ignore_errors = true

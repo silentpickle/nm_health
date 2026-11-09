@@ -1,0 +1,101 @@
+# Copyright (c) 2026 nm_health contributors
+"""Rebuild: every archived PDF, oldest first, later reports win; then the SQLite file the CLI reads."""
+
+import json
+import shutil
+from pathlib import Path
+
+import pytest
+
+from nm_health import rebuild as rebuild_module
+from nm_health.database import write_database
+from nm_health.db.local_store import LocalStore
+from nm_health.model import Inspection, Violation
+from nm_health.rebuild import LAYOUT_CURRENT, LAYOUT_UNREADABLE, parse_report, read_manifest, rebuild
+from nm_health.settings import Settings
+from tests.test_archive import make_settings
+
+ARCHIVE = Path(__file__).resolve().parent.parent / "data" / "archive"
+EXPECTED_REPORT_INSPECTIONS = {
+    "2025-01-27_2025-01-31_d4feb78541ce.pdf": 35,
+    "2026-09-20_2026-09-26_4526d9bed974.pdf": 80,
+    "2026-10-25_2026-10-31_0e0b9708501f.pdf": 64,
+}
+
+
+def write_manifest(settings: Settings, entries: list[dict[str, str]]) -> None:
+    """A manifest with the given entries (plus a blank line, which is ignored)."""
+    settings.manifest.write_text("\n".join(json.dumps(e) for e in entries) + "\n\n", encoding="utf-8")
+
+
+def inspection(status: str, report_file: str) -> Inspection:
+    """The same inspection (ID and date) as some report states it."""
+    return Inspection(
+        inspection_id="PT0000001",
+        date="2026-10-29",
+        kind="Routine Food Establishment Inspection",
+        status=status,
+        name="TEST CAFE",
+        address="100 CENTRAL AVE SW",
+        permit_number="PT0000001",
+        permit_type="Food Establishment",
+        report_file=report_file,
+        page=1,
+        violations=(Violation("Pest Control", "Removing Dead or Trapped", "", "Observed roaches."),),
+    )
+
+
+def test_manifest_keeps_first_entry_per_file(tmp_path: Path) -> None:
+    """A file archived twice keeps the time it was first seen."""
+    settings = make_settings(tmp_path)
+    first = {"file": "a.pdf", "seen_at": "2026-01-01"}
+    write_manifest(settings, [first, {"file": "a.pdf", "seen_at": "2026-02-02"}])
+    assert read_manifest(settings.manifest) == {"a.pdf": first}
+
+
+def test_later_report_wins(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """An amended re-issue (later week_end/seen_at) replaces the earlier statement of the same inspection."""
+    settings = make_settings(tmp_path)
+    write_manifest(
+        settings,
+        [
+            {"file": "amended.pdf", "sha256": "b", "week_end": "2026-10-31", "seen_at": "2026-11-04"},
+            {"file": "first.pdf", "sha256": "a", "week_end": "2026-10-31", "seen_at": "2026-11-02"},
+        ],
+    )
+    statuses = {"first.pdf": "Approved", "amended.pdf": "Unsatisfactory Re-Inspection required"}
+    monkeypatch.setattr(
+        rebuild_module,
+        "parse_report",
+        lambda pdf: (LAYOUT_CURRENT, [inspection(statuses[pdf.name], pdf.name)]),
+    )
+
+    rebuilt = rebuild(settings)
+
+    (only,) = rebuilt.inspections
+    assert (only.status, only.report_file) == ("Unsatisfactory Re-Inspection required", "amended.pdf")
+    assert only.violations[0].tags == ("pests", "pest_control")
+    assert [r.file for r in rebuilt.reports] == ["first.pdf", "amended.pdf"]
+
+
+def test_unknown_layout_skipped(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A PDF that is neither layout yields no inspections and is reported as unreadable."""
+    monkeypatch.setattr(rebuild_module, "report_text", lambda _pdf: "a menu, not an inspection report")
+    assert parse_report(tmp_path / "menu.pdf") == (LAYOUT_UNREADABLE, [])
+
+
+def test_real_archive_end_to_end(tmp_path: Path) -> None:
+    """Every archived report parses with its layout, and the database answers CLI queries."""
+    settings = make_settings(tmp_path)
+    shutil.copy(ARCHIVE / "manifest.jsonl", settings.manifest)
+    settings = Settings(**{**settings.__dict__, "archive_dir": ARCHIVE})
+
+    rebuilt = rebuild(settings)
+    write_database(rebuilt, settings.db, settings.archive_dir)
+
+    assert {r.file: r.inspections for r in rebuilt.reports} == EXPECTED_REPORT_INSPECTIONS
+    assert len({(i.inspection_id, i.date) for i in rebuilt.inspections}) == len(rebuilt.inspections)
+    store = LocalStore(db_path=settings.db)
+    (place,) = store.search_establishments("ALBUQ GRAND SENIOR")
+    assert place["has_pest_history"] == 1
+    assert store.get_stats()["total_inspections"] == len(rebuilt.inspections)

@@ -1,13 +1,11 @@
 import argparse  # noqa: CPY001, D100, I001
 import sys
 import json  # noqa: F401
-from pathlib import Path
 from datetime import datetime  # noqa: F401
 
 from nm_health.config import DB_PATH, CABQ_INSPECTION_PDF_URL  # noqa: F401
-from nm_health.archive_cli import add_commands
+from nm_health.commands import add_commands
 from nm_health.db.local_store import LocalStore
-from nm_health.ingest.fetcher import ReportFetcher
 
 # ANSI Colors for terminal output
 GREEN = "\033[92m"
@@ -29,39 +27,6 @@ def status_badge(status: str) -> str:  # noqa: D103
     elif "approved" in lower:
         return f"{GREEN}{BOLD}✔ {s}{RESET}"
     return f"{DIM}{s}{RESET}"
-
-
-def cmd_ingest(args):  # noqa: ANN001, ANN201
-    """Ingest a report file or check the live CABQ URL."""
-    store = LocalStore()
-    fetcher = ReportFetcher(store)
-
-    if args.file:
-        file_path = Path(args.file)
-        print(f"{CYAN}Ingesting local file:{RESET} {file_path}")  # noqa: T201
-        result = fetcher.ingest_file(file_path, force=args.force)
-    else:
-        print(f"{CYAN}Checking CABQ report URL:{RESET} {CABQ_INSPECTION_PDF_URL}")  # noqa: T201
-        result = fetcher.check_and_ingest(force=args.force)
-
-    if result.get("status") == "already_ingested":
-        print(f"{YELLOW}Notice:{RESET} {result['message']}")  # noqa: T201
-        print(f"SHA256: {result['sha256']}")  # noqa: T201
-        return
-
-    print(f"\n{GREEN}{BOLD}Ingestion Successful!{RESET}")  # noqa: T201
-    print(f"Report ID:             {result.get('report_id')}")  # noqa: T201
-    print(f"Week Range:            {result.get('week_range')}")  # noqa: T201
-    print(f"Total Establishments:  {result.get('total_establishments')}")  # noqa: T201
-    print(f"Total Inspections:     {result.get('total_inspections')}")  # noqa: T201
-    print(f"Total Violations:      {result.get('total_violations')}")  # noqa: T201
-    print(f"Archived To:           {result.get('archive_path')}")  # noqa: T201
-
-    closures = result.get("new_closures", [])
-    if closures:
-        print(f"\n{RED}{BOLD}⚠ Closures / Re-Inspections Required in this report:{RESET}")  # noqa: T201
-        for c in closures:
-            print(f"  - {c['name']} ({c['address']}): {status_badge(c['status'])} on {c['date']}")  # noqa: T201
 
 
 def cmd_search(args):  # noqa: ANN001, ANN201
@@ -214,25 +179,12 @@ def cmd_serve(args):  # noqa: ANN001, ANN201
     run_server(host=args.host, port=args.port)
 
 
-def cmd_daemon(args):  # noqa: ANN001, ANN201
-    """Run continuous daily polling service."""
-    from nm_health.service.scheduler import run_daemon  # noqa: PLC0415
-
-    run_daemon(interval=args.interval)
-
-
 def main():  # noqa: ANN201, D103
     parser = argparse.ArgumentParser(
         prog="nm-health",
         description="Albuquerque & New Mexico Food Inspection Tracking & Lookup Service",
     )
     subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
-
-    # Ingest
-    p_ingest = subparsers.add_parser("ingest", help="Ingest weekly inspection report")
-    p_ingest.add_argument("--file", "-f", type=str, help="Path to local PDF file")
-    p_ingest.add_argument("--force", action="store_true", help="Force re-ingest if already ingested")
-    p_ingest.set_defaults(func=cmd_ingest)
 
     # Search
     p_search = subparsers.add_parser("search", help="Search restaurants by name, address, or violation term")
@@ -264,11 +216,6 @@ def main():  # noqa: ANN201, D103
     p_serve.add_argument("--host", type=str, default="127.0.0.1", help="Host interface")
     p_serve.add_argument("--port", type=int, default=8000, help="Port number")
     p_serve.set_defaults(func=cmd_serve)
-
-    # Daemon
-    p_daemon = subparsers.add_parser("daemon", help="Run daily automated background checker")
-    p_daemon.add_argument("--interval", type=int, default=86400, help="Poll interval in seconds (default 86400 / 24h)")
-    p_daemon.set_defaults(func=cmd_daemon)
 
     add_commands(subparsers)
 
