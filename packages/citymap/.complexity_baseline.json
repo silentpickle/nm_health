@@ -1,0 +1,7 @@
+{"limits": {"hard": 20, "soft": 15, "depth": 2}, "tool": "ruff C901 (mccabe) + ast nesting",
+"complexity": {
+
+},
+"nesting": {
+
+}}

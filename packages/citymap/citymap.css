@@ -1,0 +1,144 @@
+/* Copyright (c) 2026 nm_health contributors */
+/*
+ * citymap default styles. Every colour and width reads a public custom property first (--cm-*), falling back to a
+ * private default (--_cm-*) that switches with prefers-color-scheme. A host page overrides a colour by setting the
+ * public property anywhere above the map, e.g. :root { --cm-water: #9cc9f0; }, in both light and dark mode.
+ * Points are .pt and .pt-<kind>: colour your own kinds with e.g. .citymap .pt-pass { --cm-point: #2a7; }.
+ */
+
+.citymap {
+  --_cm-bg: #f6f5f1;
+  --_cm-water: #a9cbe6;
+  --_cm-river: #6fa3cf;
+  --_cm-road-major: #c9a46a;
+  --_cm-road-medium: #d8cdb8;
+  --_cm-boundary: #8a7f9e;
+  --_cm-text: #4a4a4a;
+  --_cm-point: #d1495b;
+  --_cm-point-stroke: #ffffff;
+  --_cm-focus: #1a5fb4;
+  --_cm-control-bg: #ffffff;
+  --_cm-control-fg: #222222;
+  --_cm-control-border: #c8c8c8;
+
+  position: relative;
+  background: var(--cm-bg, var(--_cm-bg));
+  line-height: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .citymap {
+    --_cm-bg: #1c1f24;
+    --_cm-water: #22415e;
+    --_cm-river: #3d6f9c;
+    --_cm-road-major: #8d7448;
+    --_cm-road-medium: #4b4840;
+    --_cm-boundary: #9b90b3;
+    --_cm-text: #c9c9c9;
+    --_cm-point: #ff6b7d;
+    --_cm-point-stroke: #1c1f24;
+    --_cm-focus: #8fb8ff;
+    --_cm-control-bg: #2a2e35;
+    --_cm-control-fg: #eeeeee;
+    --_cm-control-border: #4a4f58;
+  }
+}
+
+.citymap .cm-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.citymap .cm-svg.cm-zoomable {
+  touch-action: none; /* the map handles one-finger drag and pinch itself */
+  cursor: grab;
+}
+
+.citymap .cm-feature {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke; /* line widths stay in screen pixels at any zoom */
+}
+
+.citymap .cm-water {
+  fill: var(--cm-water, var(--_cm-water));
+  stroke: none;
+}
+
+.citymap .cm-river {
+  stroke: var(--cm-river, var(--_cm-river));
+  stroke-width: var(--cm-river-width, 2.5px);
+}
+
+.citymap .cm-road_medium {
+  stroke: var(--cm-road-medium, var(--_cm-road-medium));
+  stroke-width: var(--cm-road-medium-width, 1px);
+}
+
+.citymap .cm-road_major {
+  stroke: var(--cm-road-major, var(--_cm-road-major));
+  stroke-width: var(--cm-road-major-width, 1.75px);
+}
+
+.citymap .cm-boundary {
+  stroke: var(--cm-boundary, var(--_cm-boundary));
+  stroke-width: var(--cm-boundary-width, 1.25px);
+  stroke-dasharray: 6 4;
+}
+
+.citymap .pt {
+  fill: var(--cm-point, var(--_cm-point));
+  stroke: var(--cm-point-stroke, var(--_cm-point-stroke));
+  stroke-width: var(--cm-point-stroke-width, 1px);
+  vector-effect: non-scaling-stroke;
+}
+
+.citymap .cm-point-link:focus {
+  outline: none;
+}
+
+.citymap .cm-point-link:focus-visible .pt,
+.citymap .cm-point-link:hover .pt {
+  stroke: var(--cm-focus, var(--_cm-focus));
+  stroke-width: 3px;
+}
+
+.citymap .cm-attribution {
+  font-family:
+    system-ui, sans-serif; /* size is set by citymap.js so it stays readable at any map width */
+  fill: var(--cm-text, var(--_cm-text));
+  stroke: var(--cm-bg, var(--_cm-bg));
+  stroke-width: 3px;
+  vector-effect: non-scaling-stroke;
+  paint-order: stroke; /* a halo so the text reads over roads and water */
+}
+
+.citymap .cm-zoom {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  line-height: 1;
+}
+
+.citymap .cm-zoom button {
+  width: 32px;
+  height: 32px;
+  font:
+    18px / 1 system-ui,
+    sans-serif;
+  color: var(--cm-control-fg, var(--_cm-control-fg));
+  background: var(--cm-control-bg, var(--_cm-control-bg));
+  border: 1px solid var(--cm-control-border, var(--_cm-control-border));
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.citymap .cm-zoom button:focus-visible {
+  outline: 2px solid var(--cm-focus, var(--_cm-focus));
+  outline-offset: 1px;
+}
