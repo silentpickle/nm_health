@@ -8,6 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG_PATH = ROOT / "config.toml"
 DEFAULT_SITE_NAME = "Food Inspection History"
+DEFAULT_REPORT_ERROR_URL = "https://github.com/silentpickle/nm_health/issues"
 DEFAULT_WINDOW_DAYS = 365
 DEFAULT_FEED_LOOKBACK_DAYS = 2200
 
@@ -28,6 +29,8 @@ class Settings:
     pdf_base_url: str
     site_name: str = DEFAULT_SITE_NAME
     indexable: bool = False
+    # Where the About page's "Report an error" link goes.
+    report_error_url: str = DEFAULT_REPORT_ERROR_URL
     # Only inspections this recent are collected and shown (archived PDFs are kept regardless).
     window_days: int = DEFAULT_WINDOW_DAYS
     feed_url: str = ""
@@ -56,6 +59,7 @@ def load(path: Path = CONFIG_PATH) -> Settings:
         pdf_base_url=str(site["pdf_base_url"]),
         site_name=str(site["name"]),
         indexable=bool(site["indexable"]),
+        report_error_url=str(site["report_error_url"]),
         window_days=int(site["window_days"]),
         feed_url=str(feed["details_url"]),
         feed_categories=str(feed["categories"]),

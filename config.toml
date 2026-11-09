@@ -31,6 +31,8 @@ indexable = false
 window_days = 365
 # Where the archived PDFs can be opened from the site (GitHub blob view of data/archive).
 pdf_base_url = "https://github.com/silentpickle/nm_health/blob/main/data/archive/"
+# The About page's "Report an error" link.
+report_error_url = "https://github.com/silentpickle/nm_health/issues"
 
 [feed]
 # The city's Info Connect inspection-status feed: status, violation count, coordinates; no violation text.
