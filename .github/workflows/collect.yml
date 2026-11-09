@@ -6,6 +6,8 @@ on:
   schedule:
     - cron: '0 15 * * *'   # 08:00 Albuquerque (MST); reports have appeared mid-week
   workflow_dispatch:
+  pull_request:            # dry run: proves the runner can still reach the city's PDF; never commits
+    paths: [".github/workflows/collect.yml", "nm_health/archive.py", "nm_health/settings.py", "config.toml"]
 permissions:
   contents: write
 concurrency:
@@ -24,6 +26,7 @@ jobs:
       - name: Archive this week's report if new
         run: uv run --no-dev nm-health archive
       - name: Commit a new PDF
+        if: github.event_name != 'pull_request'
         run: |
           if [ -z "$(git status --porcelain data/archive)" ]; then
             echo "Report unchanged."; exit 0
