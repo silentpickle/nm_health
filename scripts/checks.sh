@@ -10,3 +10,4 @@ uv run python scripts/complexity.py
 uv run shellcheck --severity=style scripts/*.sh
 npm run --silent check
 uv run pytest -q
+(cd packages/citymap && scripts/checks.sh)
