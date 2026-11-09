@@ -14,7 +14,10 @@ from nm_health.settings import Settings
 
 LOG = logging.getLogger(__name__)
 TIMESTAMP_FORMAT = "%Y%m%d%H%M%S"
-PAUSE_SECONDS = 2.0  # be polite to web.archive.org between snapshot downloads
+PAUSE_SECONDS = 6.0  # be polite to web.archive.org between snapshot downloads
+TOO_MANY_REQUESTS = 429
+MAX_ATTEMPTS = 4
+BACKOFF_SECONDS = 30.0  # wait after a 429, times the attempt number, unless Retry-After says otherwise
 
 
 @dataclass(frozen=True)
@@ -54,14 +57,35 @@ def list_snapshots(settings: Settings) -> list[Snapshot]:
     return parse_cdx(download(cdx_query_url(settings), settings.user_agent, settings.timeout_seconds))
 
 
-def _fetch_snapshot(snapshot: Snapshot, settings: Settings) -> bytes | None:
-    """Raw bytes of one capture, or None (logged) when the archive can't serve it."""
-    url = settings.raw_url_template.format(timestamp=snapshot.timestamp, url=settings.report_url)
+def _retry_wait(error: urllib.error.HTTPError, attempt: int) -> float:
+    """Seconds to wait before retrying a rate-limited request."""
+    retry_after = error.headers.get("Retry-After", "")
+    return float(retry_after) if retry_after.isdigit() else BACKOFF_SECONDS * attempt
+
+
+def _download_once(url: str, settings: Settings) -> bytes | urllib.error.HTTPError:
+    """One attempt; an HTTP error comes back as a value so the caller can decide to retry."""
     try:
         return download(url, settings.user_agent, settings.timeout_seconds)
     except urllib.error.HTTPError as error:
-        LOG.warning("wayback %s: HTTP %s, skipped", snapshot.timestamp, error.code)
-        return None
+        return error
+
+
+def _fetch_snapshot(snapshot: Snapshot, settings: Settings) -> bytes | None:
+    """Raw bytes of one capture, or None (logged) when the archive can't serve it."""
+    url = settings.raw_url_template.format(timestamp=snapshot.timestamp, url=settings.report_url)
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        result = _download_once(url, settings)
+        if isinstance(result, bytes):
+            return result
+        if result.code != TOO_MANY_REQUESTS:
+            LOG.warning("wayback %s: HTTP %s, skipped", snapshot.timestamp, result.code)
+            return None
+        wait = _retry_wait(result, attempt)
+        LOG.info("wayback %s: rate limited, retrying in %.0fs", snapshot.timestamp, wait)
+        time.sleep(wait)
+    LOG.warning("wayback %s: still rate limited after %d attempts, skipped", snapshot.timestamp, MAX_ATTEMPTS)
+    return None
 
 
 def backfill(settings: Settings) -> list[Archived]:
