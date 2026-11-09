@@ -251,7 +251,7 @@ class InspectionReportParser:
             re.IGNORECASE,
         )
         row_re = re.compile(
-            r"^\s*(\d{2}/\d{2}/\d{4})\s+([A-Za-z0-9\-]+)\s+(.+?)\s{2,}([A-Za-z\s\-]+?)\s+(?:Pg\.\s*(\d+)|Page\s*(\d+))\s*$",
+            r"^\s*(\d{2}/\d{2}/\d{4})\s+([A-Za-z0-9\-]+)\s+(.+?)\s{2,}([A-Za-z\s\-]+?)\s+(?:Pg\.\s*(\d+)|Page\s*(\d+)|(\d+))\s*$",
             re.IGNORECASE,
         )
 
@@ -288,7 +288,7 @@ class InspectionReportParser:
                 # Check inspection row
                 m_row = row_re.match(line_str)
                 if m_row:
-                    target_pg = m_row.group(5) or m_row.group(6) or ""
+                    target_pg = m_row.group(5) or m_row.group(6) or m_row.group(7) or ""
                     records.append(
                         {
                             "establishment": current_est,

@@ -147,3 +147,11 @@ def test_each_bullet_is_its_own_violation() -> None:
     assert first["observation"] == "Observed no certified food protection manager on staff."
     assert (second["category"], second["item_title"]) == ("Training Records", "Food Handler Cards")
     assert second["rule_description"] == "Cards shall be kept on file. The PIC was unable to provide records."
+
+
+def test_bare_page_number_column(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Some weeks print the summary's page column as '4' instead of 'Pg. 4'; those rows still count."""
+    bare_row = "  10/06/2025     PT0142645     Routine Food Establishment Inspection     Approved     4"
+    summary = f"Summary Table\n{EST_LINE}\n{PERMIT_LINE}\n{HEADER_LINE}\n{bare_row}"
+    (inspection,) = parse_pages([summary], monkeypatch)["inspections"]
+    assert (inspection["inspection_id_num"], inspection["summary_page"]) == ("PT0142645", 4)
