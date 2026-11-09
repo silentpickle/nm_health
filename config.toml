@@ -42,8 +42,10 @@ lat1 = 35.4
 lat2 = 34.8
 lng1 = -106.2
 lng2 = -107.0
-# Records are filtered by creation date, which can be months before the inspection; look back this far.
-lookback_days = 730
+# Records are filtered by creation date, which can be YEARS before the inspection (routine inspections hang off
+# records created when the permit was issued). Measured Nov 2026: inspections in the last 12 months came from records
+# created 2021-2026, so look back six years. Each daily run fetches one response per creation year.
+lookback_days = 2200
 # Every distinct response, gzipped, one folder per creation year.
 raw_dir = "data/feed/raw"
 

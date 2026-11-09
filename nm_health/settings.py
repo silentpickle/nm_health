@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CONFIG_PATH = ROOT / "config.toml"
 DEFAULT_SITE_NAME = "Food Inspection History"
 DEFAULT_WINDOW_DAYS = 365
-DEFAULT_FEED_LOOKBACK_DAYS = 730
+DEFAULT_FEED_LOOKBACK_DAYS = 2200
 
 
 @dataclass(frozen=True)
@@ -33,7 +33,7 @@ class Settings:
     feed_url: str = ""
     feed_categories: str = ""
     feed_bounds: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)  # lat1, lat2, lng1, lng2
-    # Feed records are filtered by creation date, which can precede the inspection by months.
+    # Feed records are filtered by creation date, which can precede the inspection by years.
     feed_lookback_days: int = DEFAULT_FEED_LOOKBACK_DAYS
     feed_raw_dir: Path = ROOT / "data" / "feed" / "raw"
 

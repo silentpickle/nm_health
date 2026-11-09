@@ -1,5 +1,5 @@
 # Copyright (c) 2026 nm_health contributors
-"""CLI commands for the pipeline: `archive`, `backfill-wayback`, `ingest` (rebuild the database), `site`."""
+"""CLI commands for the pipeline: `archive`, `feed`, `backfill-wayback`, `ingest` (rebuild the database), `site`."""
 
 import argparse
 import logging
@@ -7,6 +7,7 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+from nm_health import feed
 from nm_health import settings as settings_module
 from nm_health.archive import Archived, archive_current, archive_file
 from nm_health.database import write_database
@@ -73,6 +74,15 @@ def cmd_site(_args: argparse.Namespace) -> None:
     _say(f"{places} place pages -> {settings.site_dir}")
 
 
+def cmd_feed(_args: argparse.Namespace) -> None:
+    """Fetch the city's inspection-status feed; keep each year's response if it changed."""
+    settings = settings_module.load()
+    saved = feed.collect(settings, feed.today_utc())
+    for path in saved:
+        _say(f"NEW: {path.relative_to(settings.feed_raw_dir)}")
+    _say(f"{len(saved)} changed year(s)")
+
+
 def add_commands(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
     """Register the archive commands on the main CLI."""
     p_archive = subparsers.add_parser("archive", help="Save this week's report PDF if it is new (no parsing)")
@@ -83,6 +93,9 @@ def add_commands(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser
 
     p_wayback = subparsers.add_parser("backfill-wayback", help="Archive every Wayback Machine copy of the report")
     p_wayback.set_defaults(func=cmd_backfill_wayback)
+
+    p_feed = subparsers.add_parser("feed", help="Save the city's inspection-status feed if it changed")
+    p_feed.set_defaults(func=cmd_feed)
 
     p_ingest = subparsers.add_parser("ingest", help="Rebuild the database from every archived PDF")
     p_ingest.set_defaults(func=cmd_ingest)

@@ -1,4 +1,4 @@
-# Daily: save the city's weekly inspection report PDF if it is new. The city overwrites one URL every week, so a
+# Daily: save the city's weekly inspection report PDF if it is new, and the status feed if it changed. The city overwrites one URL every week, so a
 # missed week is gone for good; checking daily also catches amended re-issues. Archiving never parses (a PDF the
 # parser can't read is still kept). A failed run means nothing was saved that day: GitHub emails the repo owner.
 name: collect
@@ -29,17 +29,20 @@ jobs:
       - run: uv sync --frozen --no-dev
       - name: Archive this week's report if new
         run: uv run --no-dev nm-health archive
-      - name: Commit a new PDF
+      - name: Save the city's inspection-status feed if it changed
+        run: uv run --no-dev nm-health feed
+      - name: Commit new data
         id: commit
         if: github.event_name != 'pull_request'
         run: |
-          if [ -z "$(git status --porcelain data/archive)" ]; then
-            echo "Report unchanged."; echo "new=false" >> "$GITHUB_OUTPUT"; exit 0
+          if [ -z "$(git status --porcelain data/archive data/feed)" ]; then
+            echo "Report and feed unchanged."; echo "new=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/archive
-          git commit -m "Archive inspection report $(git diff --cached --name-only -- '*.pdf' | xargs -n1 basename | tr '\n' ' ')"
+          git add data/archive data/feed
+          pdfs="$(git diff --cached --name-only -- '*.pdf' | xargs -r -n1 basename | tr '\n' ' ')"
+          git commit -m "Archive ${pdfs:+inspection report $pdfs}${pdfs:+and }status feed changes"
           git push
           echo "new=true" >> "$GITHUB_OUTPUT"
   site:
