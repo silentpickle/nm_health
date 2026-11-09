@@ -13,6 +13,8 @@ export default defineConfig(
       "node_modules/",
       ".venv/",
       "site/",
+      ".claude/",
+      "packages/",
       // Baseline: the prototype's local dashboard (served by `nm-health serve`), not linted until it is next changed.
       "nm_health/web/static/",
     ],

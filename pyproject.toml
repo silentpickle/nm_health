@@ -34,7 +34,7 @@ dev = [
 target-version = "py312"
 line-length = 120
 # Vendored from ~/test_qwen/house_walkthrough: kept byte-identical so fixes flow both ways; it is linted there.
-extend-exclude = ["scripts/complexity.py"]
+extend-exclude = ["scripts/complexity.py", ".claude"]
 
 [tool.ruff.lint]
 select = ["ALL"]

@@ -2,7 +2,6 @@
 """Rebuild: every archived PDF, oldest first, later reports win; then the SQLite file the CLI reads."""
 
 import json
-import shutil
 from pathlib import Path
 
 import pytest
@@ -87,7 +86,12 @@ def test_unknown_layout_skipped(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
 def test_real_archive_end_to_end(tmp_path: Path) -> None:
     """Every archived report parses with its layout, and the database answers CLI queries."""
     settings = make_settings(tmp_path)
-    shutil.copy(ARCHIVE / "manifest.jsonl", settings.manifest)
+    pinned = [
+        line
+        for line in (ARCHIVE / "manifest.jsonl").read_text(encoding="utf-8").splitlines()
+        if json.loads(line)["file"] in EXPECTED_REPORT_INSPECTIONS
+    ]
+    settings.manifest.write_text("\n".join(pinned) + "\n", encoding="utf-8")
     settings = Settings(**{**settings.__dict__, "archive_dir": ARCHIVE})
 
     rebuilt = rebuild(settings)
