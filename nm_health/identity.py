@@ -6,6 +6,21 @@ import re
 from nm_health.ingest.normalizer import normalize_address, normalize_establishment_name
 
 NON_ALNUM = re.compile(r"[^a-z0-9]+")
+DBA_RE = re.compile(r"\s+D\.?/?B\.?/?A\.?:?\s+", re.IGNORECASE)  # "Long Cao LLC DBA Dragon Sushi", "X d/b/a Y"
+CITY_SUFFIX_RE = re.compile(r",?\s+ALBUQUERQUE,?\s*NM\s*\d{5}(?:-\d{4})?\s*$", re.IGNORECASE)
+
+
+def split_dba(name: str) -> tuple[str, str | None]:
+    """(name people know, legal name or None): 'Long Cao LLC DBA Dragon Sushi' -> ('Dragon Sushi', 'Long Cao LLC')."""
+    parts = DBA_RE.split(name.strip(), maxsplit=1)
+    if len(parts) == 1 or not parts[1].strip():
+        return name.strip(), None
+    return parts[1].strip(), parts[0].strip()
+
+
+def strip_city(address: str) -> str:
+    """Drop a trailing 'ALBUQUERQUE, NM 87110' from a feed address."""
+    return CITY_SUFFIX_RE.sub("", address.strip())
 
 
 def establishment_slug(name: str, address: str) -> str:

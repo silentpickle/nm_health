@@ -9,6 +9,7 @@ import pytest
 from nm_health import rebuild as rebuild_module
 from nm_health.database import write_database
 from nm_health.db.local_store import LocalStore
+from nm_health.identity import split_dba, strip_city
 from nm_health.model import Inspection, Violation
 from nm_health.rebuild import LAYOUT_CURRENT, LAYOUT_UNREADABLE, parse_report, read_manifest, rebuild
 from nm_health.settings import Settings
@@ -103,3 +104,25 @@ def test_real_archive_end_to_end(tmp_path: Path) -> None:
     (place,) = store.search_establishments("ALBUQ GRAND SENIOR")
     assert place["has_pest_history"] == 1
     assert store.get_stats()["total_inspections"] == len(rebuilt.inspections)
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        pytest.param("Long Cao LLC DBA Dragon Sushi", ("Dragon Sushi", "Long Cao LLC"), id="dba_upper"),
+        pytest.param("AN BE LLC dba Saigon Restaurant", ("Saigon Restaurant", "AN BE LLC"), id="dba_lower"),
+        pytest.param("Acme Inc d/b/a Taco Spot", ("Taco Spot", "Acme Inc"), id="dba_slashed"),
+        pytest.param("BAMBOO", ("BAMBOO", None), id="no_dba"),
+        pytest.param("DBA HOLDINGS", ("DBA HOLDINGS", None), id="dba_word_first"),
+    ],
+)
+def test_split_dba(raw: str, expected: tuple[str, str | None]) -> None:
+    """The name people know is shown; the legal name is kept separately."""
+    assert split_dba(raw) == expected
+
+
+def test_strip_city() -> None:
+    """Feed addresses end with the city, state and ZIP; PDFs don't."""
+    assert strip_city("7202 MENAUL BLVD NE ALBUQUERQUE, NM 87110 ") == "7202 MENAUL BLVD NE"
+    assert strip_city("6902 MENAUL BLVD NE Albuquerque, NM 87110-1234") == "6902 MENAUL BLVD NE"
+    assert strip_city("840 SAN MATEO BLVD SE") == "840 SAN MATEO BLVD SE"
