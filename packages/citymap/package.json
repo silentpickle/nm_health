@@ -16,7 +16,7 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc -p .",
-    "test": "node --test tests/citymap.test.js",
+    "test": "node --test --test-reporter=dot tests/citymap.test.js",
     "format": "prettier --write citymap.js citymap.css example.html tests eslint.config.js tsconfig.json package.json",
     "format:check": "prettier --check citymap.js citymap.css example.html tests eslint.config.js tsconfig.json package.json",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test"
