@@ -78,7 +78,7 @@ check_untyped_defs = true
 
 # New modules meet --strict. Legacy modules from the prototype get the default mode until someone touches them.
 [[tool.mypy.overrides]]
-module = ["nm_health.archive", "nm_health.archive_cli", "nm_health.settings", "nm_health.wayback", "nm_health.tags", "nm_health.site", "nm_health.rebuild"]
+module = ["nm_health.archive", "nm_health.archive_cli", "nm_health.settings", "nm_health.wayback", "nm_health.model", "nm_health.legacy_parser", "nm_health.tags", "nm_health.site", "nm_health.rebuild"]
 strict = true
 
 [tool.pytest.ini_options]
