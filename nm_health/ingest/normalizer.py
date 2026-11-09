@@ -1,5 +1,5 @@
-import re
-from typing import Dict, Any, Optional
+import re  # noqa: CPY001, D100, I001
+from typing import Dict, Any, Optional  # noqa: UP035
 
 QUADRANTS = {"NE", "NW", "SE", "SW"}
 
@@ -34,7 +34,7 @@ STREET_TYPES = {
 }
 
 
-def clean_text(s: Optional[str]) -> str:
+def clean_text(s: Optional[str]) -> str:  # noqa: D103, UP045
     if not s:
         return ""
     # Replace multiple whitespaces and trim
@@ -46,10 +46,10 @@ def normalize_establishment_name(name: str) -> str:
     name = clean_text(name).upper()
     # Strip trailing punctuation
     name = re.sub(r"[\.,\-]+$", "", name).strip()
-    return name
+    return name  # noqa: RET504
 
 
-def normalize_address(raw_address: str) -> Dict[str, Any]:
+def normalize_address(raw_address: str) -> Dict[str, Any]:  # noqa: UP006
     """
     Parses and normalizes Albuquerque addresses.
     Examples:
@@ -57,7 +57,7 @@ def normalize_address(raw_address: str) -> Dict[str, Any]:
       '1415 4TH ST SW, H' -> street_num='1415', street_name='4TH ST', quad='SW', unit='H'
       '1405 N RENAISSANCE NE, A-B' -> unit='A-B', quad='NE'
       '5701 Gibson BLVD SE' -> street_num='5701', street_name='GIBSON BLVD', quad='SE'
-    """
+    """  # noqa: D205, D212, D411, D415
     raw = clean_text(raw_address).upper()
     unit = ""
 

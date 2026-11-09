@@ -1,7 +1,7 @@
-import sqlite3
+import sqlite3  # noqa: CPY001, D100, I001
 import re
 import contextlib
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple  # noqa: F401, UP035
 from pathlib import Path
 from nm_health.config import DB_PATH
 from nm_health.ingest.normalizer import normalize_address, normalize_establishment_name
@@ -145,16 +145,16 @@ CREATE TRIGGER IF NOT EXISTS violations_ad AFTER DELETE ON violations BEGIN
   INSERT INTO violations_fts(violations_fts, rowid, observation, category, item_title) 
   VALUES('delete', old.id, old.observation, old.category, old.item_title);
 END;
-"""
+"""  # noqa: W291
 
 
-class LocalStore:
-    def __init__(self, db_path: Path = DB_PATH):
+class LocalStore:  # noqa: D101
+    def __init__(self, db_path: Path = DB_PATH):  # noqa: ANN204, D107
         self.db_path = db_path
         self._init_db()
 
     @contextlib.contextmanager
-    def get_connection(self):
+    def get_connection(self):  # noqa: ANN201, D102
         conn = sqlite3.connect(str(self.db_path))
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON;")
@@ -164,17 +164,17 @@ class LocalStore:
         finally:
             conn.close()
 
-    def _init_db(self):
+    def _init_db(self):  # noqa: ANN202
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         with self.get_connection() as conn:
             conn.executescript(SCHEMA_SQL)
 
-    def report_exists(self, sha256_hash: str) -> bool:
+    def report_exists(self, sha256_hash: str) -> bool:  # noqa: D102
         with self.get_connection() as conn:
             cur = conn.execute("SELECT 1 FROM reports WHERE sha256_hash = ?", (sha256_hash,))
             return cur.fetchone() is not None
 
-    def insert_report(self, report_data: Dict[str, Any]) -> int:
+    def insert_report(self, report_data: Dict[str, Any]) -> int:  # noqa: D102, UP006
         with self.get_connection() as conn:
             cur = conn.execute(
                 """
@@ -206,7 +206,7 @@ class LocalStore:
             )
             return cur.fetchone()[0]
 
-    def upsert_establishment(self, name: str, raw_address: str) -> int:
+    def upsert_establishment(self, name: str, raw_address: str) -> int:  # noqa: D102
         norm_name = normalize_establishment_name(name)
         addr_info = normalize_address(raw_address)
         # Unique slug based on normalized address and cleaned name
@@ -256,7 +256,7 @@ class LocalStore:
             )
             return cur.fetchone()[0]
 
-    def upsert_permit(
+    def upsert_permit(  # noqa: D102
         self, establishment_id: int, permit_number: str, permit_type: str, operational_status: str
     ) -> int:
         with self.get_connection() as conn:
@@ -273,7 +273,7 @@ class LocalStore:
             )
             return cur.fetchone()[0]
 
-    def upsert_inspection(self, inspection_data: Dict[str, Any]) -> int:
+    def upsert_inspection(self, inspection_data: Dict[str, Any]) -> int:  # noqa: D102, UP006
         with self.get_connection() as conn:
             cur = conn.execute(
                 """
@@ -341,7 +341,7 @@ class LocalStore:
             )
             return insp_id
 
-    def insert_violation(self, violation_data: Dict[str, Any]) -> int:
+    def insert_violation(self, violation_data: Dict[str, Any]) -> int:  # noqa: D102, UP006
         with self.get_connection() as conn:
             cur = conn.execute(
                 """
@@ -363,7 +363,7 @@ class LocalStore:
             )
             return cur.fetchone()[0]
 
-    def search_establishments(self, query: str = "", status: str = "", limit: int = 50) -> List[Dict[str, Any]]:
+    def search_establishments(self, query: str = "", status: str = "", limit: int = 50) -> List[Dict[str, Any]]:  # noqa: D102, UP006
         with self.get_connection() as conn:
             params = []
             where_clauses = []
@@ -394,7 +394,7 @@ class LocalStore:
                         OR e.name LIKE ?
                         OR e.normalized_address LIKE ?
                     )
-                    """
+                    """  # noqa: F541, W291
                     params.extend([fts_query, fts_query, f"%{clean_q}%", f"%{clean_q}%"])
                     if status:
                         sql += " AND e.latest_status LIKE ?"
@@ -413,7 +413,7 @@ class LocalStore:
             rows = conn.execute(sql, params).fetchall()
             return [dict(r) for r in rows]
 
-    def get_establishment_detail(self, establishment_id: int) -> Optional[Dict[str, Any]]:
+    def get_establishment_detail(self, establishment_id: int) -> Optional[Dict[str, Any]]:  # noqa: D102, UP006, UP045
         with self.get_connection() as conn:
             est_row = conn.execute("SELECT * FROM establishments WHERE id = ?", (establishment_id,)).fetchone()
             if not est_row:
@@ -443,7 +443,7 @@ class LocalStore:
                 LEFT JOIN reports r ON r.id = i.report_id
                 WHERE i.establishment_id = ?
                 ORDER BY i.inspection_date DESC, i.id DESC
-                """,
+                """,  # noqa: W291
                 (establishment_id,),
             ).fetchall()
 
@@ -459,7 +459,7 @@ class LocalStore:
             est["inspections"] = insp_list
             return est
 
-    def get_reports(self) -> List[Dict[str, Any]]:
+    def get_reports(self) -> List[Dict[str, Any]]:  # noqa: UP006
         """List all archived PDF reports in reverse chronological order."""
         with self.get_connection() as conn:
             rows = conn.execute(
@@ -473,7 +473,7 @@ class LocalStore:
             ).fetchall()
             return [dict(r) for r in rows]
 
-    def get_recent_alerts(self, limit: int = 20) -> List[Dict[str, Any]]:
+    def get_recent_alerts(self, limit: int = 20) -> List[Dict[str, Any]]:  # noqa: UP006
         """Get recent inspections that resulted in closure, downgrade, or conditional approval."""
         with self.get_connection() as conn:
             rows = conn.execute(
@@ -502,7 +502,7 @@ class LocalStore:
                 alerts.append(item)
             return alerts
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> Dict[str, Any]:  # noqa: D102, UP006
         with self.get_connection() as conn:
             est_count = conn.execute("SELECT COUNT(*) FROM establishments").fetchone()[0]
             insp_count = conn.execute("SELECT COUNT(*) FROM inspections").fetchone()[0]

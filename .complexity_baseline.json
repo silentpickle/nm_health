@@ -1,0 +1,13 @@
+{"limits": {"hard": 20, "soft": 15, "depth": 2}, "tool": "ruff C901 (mccabe) + ast nesting",
+"complexity": {
+
+},
+"nesting": {
+  "nm_health/cli.py::cmd_alerts": [3],
+  "nm_health/cli.py::cmd_lookup": [4],
+  "nm_health/db/firebase_sync.py::initialize_client": [3],
+  "nm_health/db/local_store.py::search_establishments": [4],
+  "nm_health/ingest/parser.py::_parse_summary_pages": [3],
+  "nm_health/ingest/parser.py::_parse_violations": [3],
+  "nm_health/web/server.py::do_GET": [3]
+}}

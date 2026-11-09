@@ -1,9 +1,9 @@
-import time
+import time  # noqa: CPY001, D100, I001
 import logging
 import sys
-from datetime import datetime
+from datetime import datetime  # noqa: F401
 from typing import Optional
-from pathlib import Path
+from pathlib import Path  # noqa: F401
 
 from nm_health.config import DATA_DIR, DEFAULT_POLL_INTERVAL
 from nm_health.db.local_store import LocalStore
@@ -22,7 +22,7 @@ logging.basicConfig(
 logger = logging.getLogger("nm_health.scheduler")
 
 
-def run_once(store: Optional[LocalStore] = None) -> dict:
+def run_once(store: Optional[LocalStore] = None) -> dict:  # noqa: UP045
     """Execute a single check against CABQ and ingest if updated."""
     store = store or LocalStore()
     fetcher = ReportFetcher(store)
@@ -41,17 +41,17 @@ def run_once(store: Optional[LocalStore] = None) -> dict:
                 result.get("total_violations"),
                 len(result.get("new_closures", [])),
             )
-        return result
+        return result  # noqa: TRY300
     except Exception as e:
-        logger.error("Failed during scheduled ingestion check: %s", e, exc_info=True)
+        logger.error("Failed during scheduled ingestion check: %s", e, exc_info=True)  # noqa: G201
         return {"status": "error", "error": str(e)}
 
 
-def run_daemon(interval: int = DEFAULT_POLL_INTERVAL):
+def run_daemon(interval: int = DEFAULT_POLL_INTERVAL):  # noqa: ANN201
     """
     Runs a continuous background loop, sleeping for `interval` seconds between checks.
     Defaults to 86,400s (24 hours).
-    """
+    """  # noqa: D205, D212
     logger.info(
         "Starting NM Health Ingestion Daemon (Poll Interval: %d seconds / %.1f hours)...", interval, interval / 3600.0
     )
@@ -60,8 +60,8 @@ def run_daemon(interval: int = DEFAULT_POLL_INTERVAL):
     while True:
         try:
             run_once(store)
-        except Exception as e:
-            logger.error("Unexpected error in daemon loop: %s", e)
+        except Exception as e:  # noqa: BLE001
+            logger.error("Unexpected error in daemon loop: %s", e)  # noqa: TRY400
 
         logger.info("Sleeping for %d seconds until next check...", interval)
         try:

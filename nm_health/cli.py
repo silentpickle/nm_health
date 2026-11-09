@@ -1,10 +1,10 @@
-import argparse
+import argparse  # noqa: CPY001, D100, I001
 import sys
-import json
+import json  # noqa: F401
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime  # noqa: F401
 
-from nm_health.config import DB_PATH, CABQ_INSPECTION_PDF_URL
+from nm_health.config import DB_PATH, CABQ_INSPECTION_PDF_URL  # noqa: F401
 from nm_health.db.local_store import LocalStore
 from nm_health.ingest.fetcher import ReportFetcher
 
@@ -18,73 +18,73 @@ DIM = "\033[2m"
 RESET = "\033[0m"
 
 
-def status_badge(status: str) -> str:
+def status_badge(status: str) -> str:  # noqa: D103
     s = status or "Unknown"
     lower = s.lower()
     if "closure" in lower or "unsatisfactory" in lower or "downgrade" in lower:
         return f"{RED}{BOLD}● {s}{RESET}"
-    elif "conditional" in lower:
+    elif "conditional" in lower:  # noqa: RET505
         return f"{YELLOW}{BOLD}▲ {s}{RESET}"
     elif "approved" in lower:
         return f"{GREEN}{BOLD}✔ {s}{RESET}"
     return f"{DIM}{s}{RESET}"
 
 
-def cmd_ingest(args):
+def cmd_ingest(args):  # noqa: ANN001, ANN201
     """Ingest a report file or check the live CABQ URL."""
     store = LocalStore()
     fetcher = ReportFetcher(store)
 
     if args.file:
         file_path = Path(args.file)
-        print(f"{CYAN}Ingesting local file:{RESET} {file_path}")
+        print(f"{CYAN}Ingesting local file:{RESET} {file_path}")  # noqa: T201
         result = fetcher.ingest_file(file_path, force=args.force)
     else:
-        print(f"{CYAN}Checking CABQ report URL:{RESET} {CABQ_INSPECTION_PDF_URL}")
+        print(f"{CYAN}Checking CABQ report URL:{RESET} {CABQ_INSPECTION_PDF_URL}")  # noqa: T201
         result = fetcher.check_and_ingest(force=args.force)
 
     if result.get("status") == "already_ingested":
-        print(f"{YELLOW}Notice:{RESET} {result['message']}")
-        print(f"SHA256: {result['sha256']}")
+        print(f"{YELLOW}Notice:{RESET} {result['message']}")  # noqa: T201
+        print(f"SHA256: {result['sha256']}")  # noqa: T201
         return
 
-    print(f"\n{GREEN}{BOLD}Ingestion Successful!{RESET}")
-    print(f"Report ID:             {result.get('report_id')}")
-    print(f"Week Range:            {result.get('week_range')}")
-    print(f"Total Establishments:  {result.get('total_establishments')}")
-    print(f"Total Inspections:     {result.get('total_inspections')}")
-    print(f"Total Violations:      {result.get('total_violations')}")
-    print(f"Archived To:           {result.get('archive_path')}")
+    print(f"\n{GREEN}{BOLD}Ingestion Successful!{RESET}")  # noqa: T201
+    print(f"Report ID:             {result.get('report_id')}")  # noqa: T201
+    print(f"Week Range:            {result.get('week_range')}")  # noqa: T201
+    print(f"Total Establishments:  {result.get('total_establishments')}")  # noqa: T201
+    print(f"Total Inspections:     {result.get('total_inspections')}")  # noqa: T201
+    print(f"Total Violations:      {result.get('total_violations')}")  # noqa: T201
+    print(f"Archived To:           {result.get('archive_path')}")  # noqa: T201
 
     closures = result.get("new_closures", [])
     if closures:
-        print(f"\n{RED}{BOLD}⚠ Closures / Re-Inspections Required in this report:{RESET}")
+        print(f"\n{RED}{BOLD}⚠ Closures / Re-Inspections Required in this report:{RESET}")  # noqa: T201
         for c in closures:
-            print(f"  - {c['name']} ({c['address']}): {status_badge(c['status'])} on {c['date']}")
+            print(f"  - {c['name']} ({c['address']}): {status_badge(c['status'])} on {c['date']}")  # noqa: T201
 
 
-def cmd_search(args):
+def cmd_search(args):  # noqa: ANN001, ANN201
     """Search establishments by name, address, or violation keyword."""
     store = LocalStore()
     results = store.search_establishments(query=args.query, status=args.status or "", limit=args.limit)
 
-    print(f"\n{BOLD}Search Results for:{RESET} '{args.query}' ({len(results)} found)\n")
+    print(f"\n{BOLD}Search Results for:{RESET} '{args.query}' ({len(results)} found)\n")  # noqa: T201
     if not results:
-        print(f"{DIM}No matching establishments found.{RESET}")
+        print(f"{DIM}No matching establishments found.{RESET}")  # noqa: T201
         return
 
     for est in results:
         badge = status_badge(est.get("latest_status"))
         pest_flag = f" {RED}{BOLD}[PEST HISTORY]{RESET}" if est.get("has_pest_history") else ""
-        print(f"{BOLD}[ID: {est['id']}]{RESET} {BOLD}{est['name']}{RESET}{pest_flag}")
-        print(f"   Address:        {est['normalized_address']} ({est['raw_address']})")
-        print(f"   Latest Status:  {badge} (Last Inspection: {est.get('latest_inspection_date') or 'N/A'})")
-        print(f"   Total History:  {est.get('total_inspections', 0)} inspections recorded")
-        print(f"   Lookup command: nm-health lookup {est['id']}")
-        print("-" * 70)
+        print(f"{BOLD}[ID: {est['id']}]{RESET} {BOLD}{est['name']}{RESET}{pest_flag}")  # noqa: T201
+        print(f"   Address:        {est['normalized_address']} ({est['raw_address']})")  # noqa: T201
+        print(f"   Latest Status:  {badge} (Last Inspection: {est.get('latest_inspection_date') or 'N/A'})")  # noqa: T201
+        print(f"   Total History:  {est.get('total_inspections', 0)} inspections recorded")  # noqa: T201
+        print(f"   Lookup command: nm-health lookup {est['id']}")  # noqa: T201
+        print("-" * 70)  # noqa: T201
 
 
-def cmd_lookup(args):
+def cmd_lookup(args):  # noqa: ANN001, ANN201, PLR0912
     """Lookup detailed inspection history for a specific establishment."""
     store = LocalStore()
     est_id = None
@@ -96,131 +96,131 @@ def cmd_lookup(args):
             est_id = matches[0]["id"]
 
     if not est_id:
-        print(f"{RED}Error:{RESET} Could not find establishment matching '{args.target}'")
+        print(f"{RED}Error:{RESET} Could not find establishment matching '{args.target}'")  # noqa: T201
         return
 
     detail = store.get_establishment_detail(est_id)
     if not detail:
-        print(f"{RED}Error:{RESET} Establishment ID {est_id} not found.")
+        print(f"{RED}Error:{RESET} Establishment ID {est_id} not found.")  # noqa: T201
         return
 
-    print("=" * 78)
-    print(f"{BOLD}{detail['name']}{RESET}")
-    print(f"Address:        {detail['normalized_address']} (Raw: {detail['raw_address']})")
-    print(f"Latest Status:  {status_badge(detail.get('latest_status'))}")
+    print("=" * 78)  # noqa: T201
+    print(f"{BOLD}{detail['name']}{RESET}")  # noqa: T201
+    print(f"Address:        {detail['normalized_address']} (Raw: {detail['raw_address']})")  # noqa: T201
+    print(f"Latest Status:  {status_badge(detail.get('latest_status'))}")  # noqa: T201
     if detail.get("has_pest_history"):
-        print(f"{RED}{BOLD}⚠ Warning: History of pest/rodent/insect violations on record.{RESET}")
-    print("=" * 78)
+        print(f"{RED}{BOLD}⚠ Warning: History of pest/rodent/insect violations on record.{RESET}")  # noqa: T201
+    print("=" * 78)  # noqa: T201
 
     # Permits
     if detail.get("permits"):
-        print(f"\n{CYAN}{BOLD}Permits:{RESET}")
+        print(f"\n{CYAN}{BOLD}Permits:{RESET}")  # noqa: T201
         for p in detail["permits"]:
-            print(f"  • Permit #{p['permit_number']}: {p['permit_type']} (Status: {p['operational_status']})")
+            print(f"  • Permit #{p['permit_number']}: {p['permit_type']} (Status: {p['operational_status']})")  # noqa: T201
 
     # Inspections History
     inspections = detail.get("inspections", [])
-    print(f"\n{CYAN}{BOLD}Chronological Inspection History ({len(inspections)} records):{RESET}")
+    print(f"\n{CYAN}{BOLD}Chronological Inspection History ({len(inspections)} records):{RESET}")  # noqa: T201
     for insp in inspections:
         badge = status_badge(insp["inspection_status"])
-        print(f"\n  ┌─ {BOLD}{insp['inspection_date']}{RESET} | Status: {badge}")
-        print(f"  │  ID: {insp['inspection_id_num']} | Type: {insp['inspection_type']}")
+        print(f"\n  ┌─ {BOLD}{insp['inspection_date']}{RESET} | Status: {badge}")  # noqa: T201
+        print(f"  │  ID: {insp['inspection_id_num']} | Type: {insp['inspection_type']}")  # noqa: T201
         if insp.get("report_filename"):
             dl_time = insp.get("report_downloaded_at") or "N/A"
             pg = insp.get("detail_page") or insp.get("summary_page") or 1
             h = (insp.get("report_sha256") or "")[:16]
-            print(f"  │  Retained PDF:  {GREEN}{insp['report_filename']}{RESET} (Page #{pg})")
-            print(f"  │  Downloaded At: {CYAN}{dl_time}{RESET} | SHA256: {DIM}{h}...{RESET}")
-            print(f"  │  Report Week:   {insp.get('week_start')} to {insp.get('week_end')}")
+            print(f"  │  Retained PDF:  {GREEN}{insp['report_filename']}{RESET} (Page #{pg})")  # noqa: T201
+            print(f"  │  Downloaded At: {CYAN}{dl_time}{RESET} | SHA256: {DIM}{h}...{RESET}")  # noqa: T201
+            print(f"  │  Report Week:   {insp.get('week_start')} to {insp.get('week_end')}")  # noqa: T201
 
         violations = insp.get("violations", [])
         if not violations:
-            print(f"  └─ {GREEN}No violations recorded.{RESET}")
+            print(f"  └─ {GREEN}No violations recorded.{RESET}")  # noqa: T201
         else:
-            print(f"  │  Violations ({len(violations)}):")
+            print(f"  │  Violations ({len(violations)}):")  # noqa: T201
             for v in violations:
                 is_pest = v.get("is_pest")
                 pest_tag = f"{RED}{BOLD}[PEST WARNING]{RESET} " if is_pest else ""
-                print(f"  │   • {pest_tag}{BOLD}{v['category']}{RESET}: {v['item_title']}")
+                print(f"  │   • {pest_tag}{BOLD}{v['category']}{RESET}: {v['item_title']}")  # noqa: T201
                 if v.get("observation"):
                     obs = v["observation"].replace("\n", " ")
-                    print(f"  │     {DIM}Observation:{RESET} {obs}")
-            print(f"  └─")
+                    print(f"  │     {DIM}Observation:{RESET} {obs}")  # noqa: T201
+            print(f"  └─")  # noqa: F541, T201
 
 
-def cmd_alerts(args):
+def cmd_alerts(args):  # noqa: ANN001, ANN201
     """Show recent closures and downgrades."""
     store = LocalStore()
     alerts = store.get_recent_alerts(limit=args.limit)
 
-    print(f"\n{RED}{BOLD}Recent Health Department Action Alerts ({len(alerts)} items):{RESET}\n")
+    print(f"\n{RED}{BOLD}Recent Health Department Action Alerts ({len(alerts)} items):{RESET}\n")  # noqa: T201
     if not alerts:
-        print(f"{GREEN}No recent closures or conditional actions found.{RESET}")
+        print(f"{GREEN}No recent closures or conditional actions found.{RESET}")  # noqa: T201
         return
 
     for item in alerts:
         badge = status_badge(item["inspection_status"])
-        print(f"• {BOLD}{item['establishment_name']}{RESET} - {item['normalized_address']}")
-        print(f"  Date: {item['inspection_date']} | Status: {badge} | Type: {item['inspection_type']}")
+        print(f"• {BOLD}{item['establishment_name']}{RESET} - {item['normalized_address']}")  # noqa: T201
+        print(f"  Date: {item['inspection_date']} | Status: {badge} | Type: {item['inspection_type']}")  # noqa: T201
         for v in item.get("violations", []):
             if v.get("is_pest") or "closure" in item["inspection_status"].lower():
-                print(f"  - {BOLD}{v['category']}:{RESET} {v.get('observation', '')[:140]}...")
-        print("-" * 70)
+                print(f"  - {BOLD}{v['category']}:{RESET} {v.get('observation', '')[:140]}...")  # noqa: T201
+        print("-" * 70)  # noqa: T201
 
 
-def cmd_stats(args):
+def cmd_stats(args):  # noqa: ANN001, ANN201, ARG001
     """Display overall tracking database statistics."""
     store = LocalStore()
     stats = store.get_stats()
 
-    print(f"\n{BOLD}NM Health Safety Tracking Statistics:{RESET}")
-    print(f"  Total Ingested Reports:             {stats['total_reports']}")
-    print(f"  Total Establishments Tracked:       {stats['total_establishments']}")
-    print(f"  Total Inspections Recorded:         {stats['total_inspections']}")
-    print(f"  Total Violations Logged:            {stats['total_violations']}")
-    print(f"  Establishments with Pest History:   {RED}{stats['establishments_with_pest_violations']}{RESET}")
-    print(f"  Total Closures / Stop-Orders:       {RED}{stats['total_closures']}{RESET}")
-    print("\nStatus Breakdown:")
+    print(f"\n{BOLD}NM Health Safety Tracking Statistics:{RESET}")  # noqa: T201
+    print(f"  Total Ingested Reports:             {stats['total_reports']}")  # noqa: T201
+    print(f"  Total Establishments Tracked:       {stats['total_establishments']}")  # noqa: T201
+    print(f"  Total Inspections Recorded:         {stats['total_inspections']}")  # noqa: T201
+    print(f"  Total Violations Logged:            {stats['total_violations']}")  # noqa: T201
+    print(f"  Establishments with Pest History:   {RED}{stats['establishments_with_pest_violations']}{RESET}")  # noqa: T201
+    print(f"  Total Closures / Stop-Orders:       {RED}{stats['total_closures']}{RESET}")  # noqa: T201
+    print("\nStatus Breakdown:")  # noqa: T201
     for status, count in stats.get("status_breakdown", {}).items():
-        print(f"  - {status:35s}: {count}")
+        print(f"  - {status:35s}: {count}")  # noqa: T201
 
 
-def cmd_reports(args):
+def cmd_reports(args):  # noqa: ANN001, ANN201, ARG001
     """List all retained weekly PDF reports with download timestamps and integrity hashes."""
     store = LocalStore()
     reports = store.get_reports()
 
-    print(f"\n{BOLD}Retained Weekly PDF Inspection Reports ({len(reports)} archived):{RESET}\n")
+    print(f"\n{BOLD}Retained Weekly PDF Inspection Reports ({len(reports)} archived):{RESET}\n")  # noqa: T201
     if not reports:
-        print(f"{DIM}No reports archived yet.{RESET}")
+        print(f"{DIM}No reports archived yet.{RESET}")  # noqa: T201
         return
 
     for rep in reports:
-        print(f"• {BOLD}{rep['filename']}{RESET}")
-        print(f"  Week Covered:    {rep['week_start']} to {rep['week_end']}")
-        print(f"  Downloaded At:   {CYAN}{rep['downloaded_at']}{RESET}")
-        print(f"  Establishments:  {rep['total_establishments']} | Inspections: {rep['total_inspections']}")
-        print(f"  File Size:       {rep['file_size']:,} bytes")
-        print(f"  SHA-256 Hash:    {DIM}{rep['sha256_hash']}{RESET}")
-        print(f"  Local Archive:   {rep['archive_path']}")
-        print("-" * 75)
+        print(f"• {BOLD}{rep['filename']}{RESET}")  # noqa: T201
+        print(f"  Week Covered:    {rep['week_start']} to {rep['week_end']}")  # noqa: T201
+        print(f"  Downloaded At:   {CYAN}{rep['downloaded_at']}{RESET}")  # noqa: T201
+        print(f"  Establishments:  {rep['total_establishments']} | Inspections: {rep['total_inspections']}")  # noqa: T201
+        print(f"  File Size:       {rep['file_size']:,} bytes")  # noqa: T201
+        print(f"  SHA-256 Hash:    {DIM}{rep['sha256_hash']}{RESET}")  # noqa: T201
+        print(f"  Local Archive:   {rep['archive_path']}")  # noqa: T201
+        print("-" * 75)  # noqa: T201
 
 
-def cmd_serve(args):
+def cmd_serve(args):  # noqa: ANN001, ANN201
     """Start local web dashboard."""
-    from nm_health.web.server import run_server
+    from nm_health.web.server import run_server  # noqa: PLC0415
 
     run_server(host=args.host, port=args.port)
 
 
-def cmd_daemon(args):
+def cmd_daemon(args):  # noqa: ANN001, ANN201
     """Run continuous daily polling service."""
-    from nm_health.service.scheduler import run_daemon
+    from nm_health.service.scheduler import run_daemon  # noqa: PLC0415
 
     run_daemon(interval=args.interval)
 
 
-def main():
+def main():  # noqa: ANN201, D103
     parser = argparse.ArgumentParser(
         prog="nm-health",
         description="Albuquerque & New Mexico Food Inspection Tracking & Lookup Service",

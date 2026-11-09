@@ -1,34 +1,34 @@
-import re
+import re  # noqa: CPY001, D100, I001
 import subprocess
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional  # noqa: F401, UP035
 from pathlib import Path
-from nm_health.ingest.normalizer import normalize_address, normalize_establishment_name, clean_text
+from nm_health.ingest.normalizer import normalize_address, normalize_establishment_name, clean_text  # noqa: F401
 
 
 class InspectionReportParser:
     """
     Parses City of Albuquerque Environmental Health Department
     weekly food inspection PDF reports.
-    """
+    """  # noqa: D205, D212
 
-    def __init__(self, pdf_path: Path):
+    def __init__(self, pdf_path: Path):  # noqa: ANN204, D107
         self.pdf_path = Path(pdf_path)
         if not self.pdf_path.exists():
-            raise FileNotFoundError(f"PDF report not found: {self.pdf_path}")
+            raise FileNotFoundError(f"PDF report not found: {self.pdf_path}")  # noqa: EM102, TRY003
 
-    def extract_text_pages(self) -> List[str]:
+    def extract_text_pages(self) -> List[str]:  # noqa: UP006
         """Extract text page-by-page using pdftotext with layout preservation."""
         cmd = ["pdftotext", "-layout", str(self.pdf_path), "-"]
         try:
-            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)  # noqa: UP022
             text = res.stdout.decode("utf-8", errors="ignore")
             # pdftotext separates pages with form feed \x0c
             pages = text.split("\x0c")
-            return pages
-        except Exception as e:
-            raise RuntimeError(f"Failed to extract text from PDF: {e}")
+            return pages  # noqa: RET504, TRY300
+        except Exception as e:  # noqa: BLE001
+            raise RuntimeError(f"Failed to extract text from PDF: {e}")  # noqa: B904, EM102, TRY003
 
-    def parse(self) -> Dict[str, Any]:
+    def parse(self) -> Dict[str, Any]:  # noqa: D102, UP006
         pages = self.extract_text_pages()
         if not pages:
             return {"error": "Empty PDF"}
@@ -40,7 +40,7 @@ class InspectionReportParser:
         summary_pages = []
         detail_pages = []
         for i, page in enumerate(pages):
-            if "Summary Table" in page or (i < 8 and "Inspection Date" in page and "Inspection ID Number" in page):
+            if "Summary Table" in page or (i < 8 and "Inspection Date" in page and "Inspection ID Number" in page):  # noqa: PLR2004
                 summary_pages.append((i + 1, page))
             else:
                 detail_pages.append((i + 1, page))
@@ -124,7 +124,7 @@ class InspectionReportParser:
             "inspections": inspections,
         }
 
-    def _parse_metadata(self, first_page: str) -> Dict[str, Any]:
+    def _parse_metadata(self, first_page: str) -> Dict[str, Any]:  # noqa: UP006
         meta = {
             "week_start": None,
             "week_end": None,
@@ -156,14 +156,14 @@ class InspectionReportParser:
             return f"{m.group(3)}-{m.group(1)}-{m.group(2)}"
         return d_str.strip()
 
-    def _parse_summary_pages(self, summary_pages: List[tuple]) -> List[Dict[str, Any]]:
+    def _parse_summary_pages(self, summary_pages: List[tuple]) -> List[Dict[str, Any]]:  # noqa: UP006
         records = []
         current_est = None
         current_permit = None
 
         est_re = re.compile(r"^([A-Za-z0-9\s#&\'\.\,\-]+?)\s+-\s+(\d+[A-Za-z0-9\s\,\-\.#/]+)$")
         permit_re = re.compile(
-            r"^(.*?)\(Permit\s*#\s*-\s*([A-Za-z0-9]+)\)\s*-\s*Operational\s*Status\s*[-–]\s*([A-Za-z]+)",
+            r"^(.*?)\(Permit\s*#\s*-\s*([A-Za-z0-9]+)\)\s*-\s*Operational\s*Status\s*[-–]\s*([A-Za-z]+)",  # noqa: RUF001
             re.IGNORECASE,
         )
         row_re = re.compile(
@@ -171,7 +171,7 @@ class InspectionReportParser:
             re.IGNORECASE,
         )
 
-        for page_num, text in summary_pages:
+        for page_num, text in summary_pages:  # noqa: B007
             lines = text.split("\n")
             for line in lines:
                 line_str = line.rstrip()
@@ -234,11 +234,11 @@ class InspectionReportParser:
 
         return records
 
-    def _parse_detail_pages(self, detail_pages: List[tuple]) -> Dict[str, Any]:
+    def _parse_detail_pages(self, detail_pages: List[tuple]) -> Dict[str, Any]:  # noqa: UP006
         """
         Parses pages containing detailed inspection blocks and violations.
         Returns a dict keyed by '<id_num>_<date>' and '<id_num>'.
-        """
+        """  # noqa: D205, D212
         detail_records = {}
 
         # Stitch detail pages while tracking page numbers
@@ -287,7 +287,7 @@ class InspectionReportParser:
 
         return detail_records
 
-    def _parse_violations(self, block_text: str) -> List[Dict[str, Any]]:
+    def _parse_violations(self, block_text: str) -> List[Dict[str, Any]]:  # noqa: UP006
         violations = []
         # Split by "Violation:"
         parts = re.split(r"\n\s*Violation:\s*", block_text)
@@ -295,7 +295,7 @@ class InspectionReportParser:
             return violations
 
         for part in parts[1:]:
-            lines = [l.strip() for l in part.split("\n") if l.strip()]
+            lines = [l.strip() for l in part.split("\n") if l.strip()]  # noqa: E741
             if not lines:
                 continue
 
@@ -314,12 +314,12 @@ class InspectionReportParser:
             )
 
             for line in lines[1:]:
-                if line.startswith("•") or line.startswith("*"):
+                if line.startswith("•") or line.startswith("*"):  # noqa: PIE810
                     item_title = line.lstrip("•* ").strip()
                 elif line.startswith("-"):
                     rule_desc.append(line.lstrip("- ").strip())
                 elif (
-                    line.startswith("Observed")
+                    line.startswith("Observed")  # noqa: PIE810
                     or line.startswith("Location:")
                     or line.startswith("Condition:")
                     or line.startswith("Pest Type:")

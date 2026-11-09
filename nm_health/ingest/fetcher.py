@@ -1,10 +1,10 @@
-import hashlib
+import hashlib  # noqa: CPY001, D100, I001
 import shutil
 import urllib.request
 import urllib.error
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional  # noqa: UP035
 
 from nm_health.config import (
     CABQ_INSPECTION_PDF_URL,
@@ -19,25 +19,25 @@ class ReportFetcher:
     """
     Checks CABQ for new inspection reports, archives PDFs,
     and coordinates ingestion into the database.
-    """
+    """  # noqa: D205, D212
 
-    def __init__(self, store: Optional[LocalStore] = None):
+    def __init__(self, store: Optional[LocalStore] = None):  # noqa: ANN204, D107, UP045
         self.store = store or LocalStore()
 
-    def calculate_sha256(self, file_path: Path) -> str:
+    def calculate_sha256(self, file_path: Path) -> str:  # noqa: D102
         hasher = hashlib.sha256()
-        with open(file_path, "rb") as f:
+        with open(file_path, "rb") as f:  # noqa: PTH123
             while chunk := f.read(65536):
                 hasher.update(chunk)
         return hasher.hexdigest()
 
-    def download_report(self, url: str = CABQ_INSPECTION_PDF_URL, target_path: Optional[Path] = None) -> Path:
+    def download_report(self, url: str = CABQ_INSPECTION_PDF_URL, target_path: Optional[Path] = None) -> Path:  # noqa: UP045
         """Download latest PDF from CABQ."""
         if target_path is None:
-            now_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+            now_str = datetime.now().strftime("%Y%m%d_%H%M%S")  # noqa: DTZ005
             target_path = ARCHIVE_DIR / f"temp_{now_str}.pdf"
 
-        req = urllib.request.Request(
+        req = urllib.request.Request(  # noqa: S310
             url,
             headers={
                 "User-Agent": HTTP_USER_AGENT,
@@ -45,7 +45,7 @@ class ReportFetcher:
             },
         )
 
-        with urllib.request.urlopen(req, timeout=30) as resp, open(target_path, "wb") as out_f:
+        with urllib.request.urlopen(req, timeout=30) as resp, open(target_path, "wb") as out_f:  # noqa: PTH123, S310
             shutil.copyfileobj(resp, out_f)
 
         return target_path
@@ -54,14 +54,14 @@ class ReportFetcher:
         self,
         file_path: Path,
         source_url: str = CABQ_INSPECTION_PDF_URL,
-        force: bool = False,
-    ) -> Dict[str, Any]:
+        force: bool = False,  # noqa: FBT001, FBT002
+    ) -> Dict[str, Any]:  # noqa: UP006
         """
         Parses a local PDF report file, archives it, and saves structured records into the DB.
-        """
+        """  # noqa: D200, D212
         file_path = Path(file_path)
         if not file_path.exists():
-            raise FileNotFoundError(f"File not found: {file_path}")
+            raise FileNotFoundError(f"File not found: {file_path}")  # noqa: EM102, TRY003
 
         sha256 = self.calculate_sha256(file_path)
         file_size = file_path.stat().st_size
@@ -78,7 +78,7 @@ class ReportFetcher:
         parsed_data = parser.parse()
 
         # Archive file permanently
-        date_prefix = datetime.now().strftime("%Y-%m-%d")
+        date_prefix = datetime.now().strftime("%Y-%m-%d")  # noqa: DTZ005
         archive_name = f"{date_prefix}_{sha256[:12]}.pdf"
         archive_dest = ARCHIVE_DIR / archive_name
         if file_path.resolve() != archive_dest.resolve():
@@ -183,15 +183,15 @@ class ReportFetcher:
             "new_closures": new_closures,
         }
 
-    def check_and_ingest(self, force: bool = False) -> Dict[str, Any]:
+    def check_and_ingest(self, force: bool = False) -> Dict[str, Any]:  # noqa: FBT001, FBT002, UP006
         """
         Polls CABQ website, downloads current PDF, and ingests if new.
-        """
+        """  # noqa: D200, D212
         temp_file = ARCHIVE_DIR / "latest_incoming.pdf"
         try:
             self.download_report(CABQ_INSPECTION_PDF_URL, temp_file)
             result = self.ingest_file(temp_file, source_url=CABQ_INSPECTION_PDF_URL, force=force)
-            return result
+            return result  # noqa: RET504
         finally:
             if temp_file.exists():
                 temp_file.unlink(missing_ok=True)

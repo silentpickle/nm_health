@@ -1,0 +1,30 @@
+# Settings only. No secrets: those live in secrets.env.
+
+[source]
+# The city overwrites this one file every week with that week's inspections.
+report_url = "https://www.cabq.gov/environmentalhealth/documents/chpd_main_inspection_report.pdf"
+# Generic browser-style agent: cabq.gov sits behind Cloudflare, which turns away bare script agents.
+user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36 nm-health-archiver/1.0"
+timeout_seconds = 60
+
+[paths]
+# Every distinct PDF ever seen, named <week_start>_<week_end>_<sha256[:12]>.pdf. Committed: this is the archive.
+archive_dir = "data/archive"
+# One JSON line per archived PDF: where and when it came from.
+manifest = "data/archive/manifest.jsonl"
+# Rebuilt from archive_dir on every run; never committed.
+db = "data/nm_health.db"
+# Static site output for GitHub Pages; never committed.
+site_dir = "site"
+
+[wayback]
+cdx_url = "https://web.archive.org/cdx/search/cdx"
+# Raw snapshot bytes: https://web.archive.org/web/<timestamp>id_/<original url>
+raw_url_template = "https://web.archive.org/web/{timestamp}id_/{url}"
+
+[site]
+# Where the archived PDFs can be opened from the site (GitHub blob view of data/archive).
+pdf_base_url = "https://github.com/silentpickle/nm_health/blob/main/data/archive/"
+
+[secrets]
+# None. The collector reads only public pages.

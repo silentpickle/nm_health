@@ -1,0 +1,10 @@
+# Every commit runs the same checks as CI (scripts/checks.sh). Install once: uv run pre-commit install
+repos:
+  - repo: local
+    hooks:
+      - id: checks
+        name: checks (ruff, ruff format, mypy, complexity, pytest)
+        entry: scripts/checks.sh
+        language: system
+        pass_filenames: false
+        always_run: true

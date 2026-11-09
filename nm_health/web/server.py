@@ -1,9 +1,9 @@
-import http.server
+import http.server  # noqa: CPY001, D100, I001, INP001
 import socketserver
 import json
 import urllib.parse
 from pathlib import Path
-from typing import Optional
+from typing import Optional  # noqa: F401
 
 from nm_health.db.local_store import LocalStore
 from nm_health.config import ARCHIVE_DIR
@@ -12,12 +12,12 @@ WEB_DIR = Path(__file__).resolve().parent
 STATIC_DIR = WEB_DIR / "static"
 
 
-class HealthAppHandler(http.server.SimpleHTTPRequestHandler):
-    def __init__(self, *args, **kwargs):
+class HealthAppHandler(http.server.SimpleHTTPRequestHandler):  # noqa: D101
+    def __init__(self, *args, **kwargs):  # noqa: ANN002, ANN003, ANN204, D107
         self.store = LocalStore()
         super().__init__(*args, directory=str(STATIC_DIR), **kwargs)
 
-    def do_GET(self):
+    def do_GET(self):  # noqa: ANN201, D102, PLR0911
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
         params = urllib.parse.parse_qs(parsed.query)
@@ -31,7 +31,7 @@ class HealthAppHandler(http.server.SimpleHTTPRequestHandler):
             self._send_json(results)
             return
 
-        elif path.startswith("/api/establishments/"):
+        elif path.startswith("/api/establishments/"):  # noqa: RET505
             est_id_str = path[len("/api/establishments/") :]
             if est_id_str.isdigit():
                 detail = self.store.get_establishment_detail(int(est_id_str))
@@ -70,7 +70,7 @@ class HealthAppHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_header("Content-Length", str(pdf_path.stat().st_size))
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
-                with open(pdf_path, "rb") as f:
+                with open(pdf_path, "rb") as f:  # noqa: PTH123
                     self.wfile.write(f.read())
                 return
             self._send_json({"error": "PDF file not found"}, status=404)
@@ -79,7 +79,7 @@ class HealthAppHandler(http.server.SimpleHTTPRequestHandler):
         # Serve SPA static files (fallback to index.html if not found)
         super().do_GET()
 
-    def _send_json(self, data, status=200):
+    def _send_json(self, data, status=200):  # noqa: ANN001, ANN202
         body = json.dumps(data).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
@@ -89,17 +89,17 @@ class HealthAppHandler(http.server.SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
 
-def run_server(host: str = "127.0.0.1", port: int = 8000):
+def run_server(host: str = "127.0.0.1", port: int = 8000):  # noqa: ANN201, D103
     server_address = (host, port)
     # Enable address reuse
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(server_address, HealthAppHandler) as httpd:
-        print(f"\n=======================================================")
-        print(f"  NM Health Inspection Tracker & Search Dashboard")
-        print(f"  Running locally at: http://{host}:{port}")
-        print(f"  Press Ctrl+C to stop.")
-        print(f"=======================================================\n")
+        print(f"\n=======================================================")  # noqa: F541, T201
+        print(f"  NM Health Inspection Tracker & Search Dashboard")  # noqa: F541, T201
+        print(f"  Running locally at: http://{host}:{port}")  # noqa: T201
+        print(f"  Press Ctrl+C to stop.")  # noqa: F541, T201
+        print(f"=======================================================\n")  # noqa: F541, T201
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
-            print("\nShutting down server...")
+            print("\nShutting down server...")  # noqa: T201
