@@ -35,6 +35,60 @@ def _block_end(text: str, next_date_pos: int) -> int:
     return len("\n".join(lines))
 
 
+BULLETS = ("\u2022", "*")
+OBSERVATION_PREFIXES = (
+    "Observed",
+    "Location:",
+    "Condition:",
+    "Pest Type:",
+    "Food Items:",
+    "Concentration:",
+    "instructed pic",
+    "pic cleaned",
+)
+PEST_WORDS_RE = re.compile(r"pest|mice|mouse|roach|cockroach|rodent|fly|flies|insect|vermin|infestation", re.IGNORECASE)
+
+
+def _is_bullet(line: str) -> bool:
+    return line.startswith(BULLETS)
+
+
+def _split_bullets(lines: list[str]) -> list[list[str]]:
+    """Group a violation's lines into one list per bullet item; lines before the first bullet join it."""
+    groups: list[list[str]] = [[]]
+    for line in lines:
+        if _is_bullet(line) and any(_is_bullet(seen) for seen in groups[-1]):
+            groups.append([])
+        groups[-1].append(line)
+    return groups
+
+
+def _violation_from(category: str, lines: list[str], raw_text: str) -> dict[str, Any]:
+    """One violation record: bullet = item, '-' lines = rule text, 'Observed...' and what follows = observation."""
+    item_title = ""
+    rule_desc: list[str] = []
+    observations: list[str] = []
+    for line in lines:
+        if _is_bullet(line):
+            item_title = line.lstrip("\u2022* ").strip()
+            continue
+        if line.startswith("-"):
+            rule_desc.append(line.lstrip("- ").strip())
+            continue
+        if line.startswith(OBSERVATION_PREFIXES) or observations:
+            observations.append(line)
+            continue
+        rule_desc.append(line)
+    return {
+        "category": category,
+        "item_title": item_title or category,
+        "rule_description": " ".join(rule_desc),
+        "observation": " ".join(observations),
+        "raw_text": raw_text,
+        "is_pest": bool(PEST_WORDS_RE.search(raw_text)),
+    }
+
+
 class InspectionReportParser:
     """
     Parses City of Albuquerque Environmental Health Department
@@ -319,63 +373,15 @@ class InspectionReportParser:
 
         return detail_records
 
-    def _parse_violations(self, block_text: str) -> List[Dict[str, Any]]:  # noqa: UP006
-        violations = []
-        # Split by "Violation:"
-        parts = re.split(r"\n\s*Violation:\s*", block_text)
-        if len(parts) <= 1:
-            return violations
-
-        for part in parts[1:]:
-            lines = [l.strip() for l in part.split("\n") if l.strip()]  # noqa: E741
+    def _parse_violations(self, block_text: str) -> list[dict[str, Any]]:
+        """One record per bullet item under each 'Violation:' category."""
+        violations: list[dict[str, Any]] = []
+        for part in re.split(r"\n\s*Violation:\s*", block_text)[1:]:
+            lines = [line.strip() for line in part.split("\n") if line.strip()]
             if not lines:
                 continue
-
-            category = lines[0].strip()
-            item_title = ""
-            rule_desc = []
-            observations = []
-            raw_text = part.strip()
-
-            is_pest = bool(
-                re.search(
-                    r"pest|mice|mouse|roach|cockroach|rodent|fly|flies|insect|vermin|infestation",
-                    raw_text,
-                    re.IGNORECASE,
-                )
-            )
-
-            for line in lines[1:]:
-                if line.startswith("•") or line.startswith("*"):  # noqa: PIE810
-                    item_title = line.lstrip("•* ").strip()
-                elif line.startswith("-"):
-                    rule_desc.append(line.lstrip("- ").strip())
-                elif (
-                    line.startswith("Observed")  # noqa: PIE810
-                    or line.startswith("Location:")
-                    or line.startswith("Condition:")
-                    or line.startswith("Pest Type:")
-                    or line.startswith("Food Items:")
-                    or line.startswith("Concentration:")
-                    or line.startswith("instructed pic")
-                    or line.startswith("pic cleaned")
-                ):
-                    observations.append(line)
-                elif observations:
-                    # Append continuation of observation
-                    observations.append(line)
-                else:
-                    rule_desc.append(line)
-
-            violations.append(
-                {
-                    "category": category,
-                    "item_title": item_title or category,
-                    "rule_description": " ".join(rule_desc),
-                    "observation": " ".join(observations),
-                    "raw_text": raw_text,
-                    "is_pest": is_pest,
-                }
-            )
-
+            groups = _split_bullets(lines[1:])
+            for group in groups:
+                raw_text = part.strip() if len(groups) == 1 else "\n".join([lines[0], *group])
+                violations.append(_violation_from(lines[0], group, raw_text))
         return violations

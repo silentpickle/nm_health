@@ -127,3 +127,23 @@ def test_block_end_trims_next_heading(before_next_date: str, kept: str) -> None:
 def test_footer_lines_dropped() -> None:
     """Page footers never reach violation text."""
     assert _drop_layout_lines("a\n      Page 5 of 44\nb") == "a\nb"
+
+
+TWO_BULLET_BLOCK = (
+    "\nViolation: Training Records\n"
+    " • Certified Food Protection Manager\n"
+    "  - All Food Establishments shall have one.\n"
+    "  Observed no certified food protection manager on staff.\n"
+    " • Food Handler Cards\n"
+    "  - Cards shall be kept on file.\n"
+    "  The PIC was unable to provide records.\n"
+)
+
+
+def test_each_bullet_is_its_own_violation() -> None:
+    """Two bullets under one category give two violations, each with its own rule text and observation."""
+    first, second = InspectionReportParser(ANY_PDF)._parse_violations(TWO_BULLET_BLOCK)  # noqa: SLF001 - pinning a private helper
+    assert (first["category"], first["item_title"]) == ("Training Records", "Certified Food Protection Manager")
+    assert first["observation"] == "Observed no certified food protection manager on staff."
+    assert (second["category"], second["item_title"]) == ("Training Records", "Food Handler Cards")
+    assert second["rule_description"] == "Cards shall be kept on file. The PIC was unable to provide records."
