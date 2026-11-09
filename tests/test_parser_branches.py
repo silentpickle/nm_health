@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from nm_health.ingest.parser import InspectionReportParser
+from nm_health.ingest.parser import InspectionReportParser, _block_end, _drop_layout_lines
 
 ARCHIVE = Path(__file__).resolve().parent.parent / "data" / "archive"
 ANY_PDF = ARCHIVE / "2026-10-25_2026-10-31_0e0b9708501f.pdf"
@@ -92,3 +92,38 @@ def test_summary_page_index_limit(index: int, *, is_summary: bool, monkeypatch: 
     rows_page = f"{EST_LINE}\n{PERMIT_LINE}\n{HEADER_LINE}\n{ROW_LINE}"
     parsed = parse_pages([*filler, rows_page], monkeypatch)
     assert (parsed["total_inspections"] == 1) is is_summary
+
+
+NEXT_DATE = "Date: 10/29/2026 - #: PT2 - Inspection Result: Approved"
+
+
+@pytest.mark.parametrize(
+    ("before_next_date", "kept"),
+    [
+        pytest.param("  Observed leak.\n", "  Observed leak.\n", id="no_class_line"),
+        pytest.param(
+            "  Observed leak.\n   NEXT CAFE - 1 MAIN ST NE - Approved\nNEXT CAFE - 1 MAIN ST NE\nFood Establishment Class C\n",
+            "  Observed leak.",
+            id="heading_name_and_class",
+        ),
+        pytest.param(
+            "  Observed leak.\nOTHER - 2 MAIN ST\nNEXT CAFE - 1 MAIN ST NE\nFood Establishment Class C\n",
+            "  Observed leak.\nOTHER - 2 MAIN ST",
+            id="unrelated_line_kept",
+        ),
+        pytest.param(
+            "  Observed leak.\nNEXT CAFE - 1 MAIN ST NE\nRetail Food Establishment Class 5\n\n\x0c",
+            "  Observed leak.",
+            id="page_break_before_date",
+        ),
+    ],
+)
+def test_block_end_trims_next_heading(before_next_date: str, kept: str) -> None:
+    """An inspection's text stops before the next block's heading, name and class lines."""
+    text = before_next_date + NEXT_DATE
+    assert text[: _block_end(text, len(before_next_date))] == kept
+
+
+def test_footer_lines_dropped() -> None:
+    """Page footers never reach violation text."""
+    assert _drop_layout_lines("a\n      Page 5 of 44\nb") == "a\nb"

@@ -4,6 +4,36 @@ from typing import Dict, Any, List, Optional  # noqa: F401, UP035
 from pathlib import Path
 from nm_health.ingest.normalizer import normalize_address, normalize_establishment_name, clean_text  # noqa: F401
 
+# Layout lines that are not part of any inspection's text.
+FOOTER_RE = re.compile(r"^\s*Page \d+ of \d+\s*$")
+CLASS_LINE_RE = re.compile(r"^\s*\S.*\bClass\s+\w+\s*$")  # "Retail Food Establishment Class 5"
+
+
+def _drop_layout_lines(page_text: str) -> str:
+    """Remove page footers from a detail page."""
+    return "\n".join(line for line in page_text.split("\n") if not FOOTER_RE.match(line))
+
+
+def _pop_blank(lines: list[str]) -> None:
+    """Drop trailing blank lines (form feeds count as blank)."""
+    while lines and not lines[-1].strip():
+        lines.pop()
+
+
+def _block_end(text: str, next_date_pos: int) -> int:
+    """Where an inspection's text ends: before the next block's heading, name/address and permit-class lines."""
+    lines = text[:next_date_pos].split("\n")
+    _pop_blank(lines)
+    if not lines or not CLASS_LINE_RE.match(lines[-1]):
+        return next_date_pos
+    lines.pop()
+    _pop_blank(lines)
+    name_line = lines.pop().strip() if lines else ""
+    _pop_blank(lines)
+    if name_line and lines and lines[-1].strip().startswith(name_line):
+        lines.pop()  # the "NAME - ADDRESS - <status>" heading above the block
+    return len("\n".join(lines))
+
 
 class InspectionReportParser:
     """
@@ -247,7 +277,7 @@ class InspectionReportParser:
         current_len = 0
         for page_num, text in detail_pages:
             page_offsets.append((current_len, page_num))
-            full_detail_text += text + "\n\x0c"
+            full_detail_text += _drop_layout_lines(text) + "\n\x0c"
             current_len = len(full_detail_text)
 
         def get_page_for_pos(pos: int) -> int:
@@ -269,7 +299,9 @@ class InspectionReportParser:
             block_page = get_page_for_pos(m.start())
 
             start_pos = m.end()
-            end_pos = matches[i + 1].start() if i + 1 < len(matches) else len(full_detail_text)
+            end_pos = (
+                _block_end(full_detail_text, matches[i + 1].start()) if i + 1 < len(matches) else len(full_detail_text)
+            )
             block_text = full_detail_text[start_pos:end_pos]
 
             violations = self._parse_violations(block_text)
