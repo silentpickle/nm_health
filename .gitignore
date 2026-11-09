@@ -1,0 +1,19 @@
+# Secrets never committed
+secrets.env
+
+# Rebuilt from data/archive on every run
+data/*.db
+data/*.db-*
+data/*.log
+data/archive/latest_incoming.pdf
+site/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.DS_Store

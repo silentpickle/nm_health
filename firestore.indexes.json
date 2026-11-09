@@ -1,0 +1,21 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "establishments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "latest_status", "order": "ASCENDING" },
+        { "fieldPath": "latest_inspection_date", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "inspections",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "inspection_status", "order": "ASCENDING" },
+        { "fieldPath": "inspection_date", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

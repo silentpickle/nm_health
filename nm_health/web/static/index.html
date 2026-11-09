@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NM Food Safety Watch | Albuquerque Restaurant Inspection History</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="container header-container">
+      <div class="brand">
+        <span class="brand-icon">🛡️</span>
+        <div>
+          <h1 class="brand-title">NM Food Safety Watch</h1>
+          <p class="brand-subtitle">Albuquerque Food Inspection History & Safety Tracker</p>
+        </div>
+      </div>
+      <div class="header-badges">
+        <span class="source-tag">Source: City of Albuquerque (EHD)</span>
+        <button id="btn-view-reports" class="btn-secondary-outline">📁 Retained PDFs Archive</button>
+        <button id="btn-view-alerts" class="btn-danger-outline">⚠ Recent Action Alerts</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Metrics Strip -->
+  <section class="stats-bar">
+    <div class="container stats-container" id="stats-container">
+      <div class="stat-item">
+        <span class="stat-value" id="stat-establishments">-</span>
+        <span class="stat-label">Restaurants Tracked</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value" id="stat-inspections">-</span>
+        <span class="stat-label">Inspections Recorded</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value text-danger" id="stat-closures">-</span>
+        <span class="stat-label">Closures / Stop-Orders</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value text-warning" id="stat-pest">-</span>
+        <span class="stat-label">Facilities with Pest Records</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value" id="stat-reports">-</span>
+        <span class="stat-label">Weekly Reports Archived</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <main class="container main-content">
+    <!-- Search Section -->
+    <div class="search-card">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input 
+          type="text" 
+          id="search-input" 
+          placeholder="Search by restaurant name, address (e.g. 'Central Ave'), or violation (e.g. 'mice', 'cockroach', 'temp')..."
+          autocomplete="off"
+        />
+        <button id="search-clear" class="btn-clear hidden">✕</button>
+      </div>
+
+      <!-- Filter Chips -->
+      <div class="filter-pills">
+        <span class="filter-label">Filter:</span>
+        <button class="pill active" data-status="">All</button>
+        <button class="pill pill-danger" data-status="Closure">🔴 Closures</button>
+        <button class="pill pill-warning" data-status="Conditional">🟡 Conditional</button>
+        <button class="pill pill-danger" data-status="Unsatisfactory">Unsatisfactory</button>
+        <button class="pill pill-success" data-status="Approved">🟢 Approved</button>
+      </div>
+    </div>
+
+    <!-- Alert Banner -->
+    <div id="alerts-banner" class="alerts-banner hidden">
+      <div class="alerts-banner-header">
+        <div class="alerts-banner-title">
+          <span>⚠️</span>
+          <h3>Recent Health Department Enforcement Actions</h3>
+        </div>
+        <button id="alerts-close" class="btn-icon">✕</button>
+      </div>
+      <div id="alerts-list" class="alerts-list">
+        <!-- Injected via JavaScript -->
+      </div>
+    </div>
+
+    <!-- Results Section -->
+    <div class="results-header">
+      <h2 id="results-count-title">Tracked Restaurants</h2>
+      <span id="results-status-info" class="text-muted">Showing all entries</span>
+    </div>
+
+    <!-- Restaurant Cards Grid -->
+    <div id="results-grid" class="cards-grid">
+      <!-- Injected via JavaScript -->
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="empty-state hidden">
+      <span class="empty-icon">🍽️</span>
+      <h3>No matching food establishments found</h3>
+      <p>Try searching for a different street name, restaurant name, or violation keyword.</p>
+    </div>
+  </main>
+
+  <!-- Detail Modal -->
+  <div id="modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <h2 id="modal-est-name">Restaurant Name</h2>
+          <p id="modal-est-address" class="text-muted">123 Street Name</p>
+        </div>
+        <button id="modal-close" class="btn-icon">✕</button>
+      </div>
+      
+      <div class="modal-body" id="modal-body">
+        <!-- Injected via JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Retained Reports Archive Modal -->
+  <div id="reports-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <h2>📁 Retained Weekly PDF Inspection Reports</h2>
+          <p class="text-muted">All historic weekly PDFs preserved by NM Food Safety Watch replete with download timestamps and cryptographic SHA-256 hashes</p>
+        </div>
+        <button id="reports-modal-close" class="btn-icon">✕</button>
+      </div>
+      
+      <div class="modal-body" id="reports-modal-body">
+        <!-- Injected via JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    <div class="container footer-content">
+      <p>NM Food Safety Watch ingests public weekly inspection reports from the Albuquerque Environmental Health Department to preserve inspection records and give the community long-term transparency.</p>
+      <p class="text-muted">Data updated daily • Automated Archival System</p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

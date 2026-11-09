@@ -1,0 +1,268 @@
+import argparse
+import sys
+import json
+from pathlib import Path
+from datetime import datetime
+
+from nm_health.config import DB_PATH, CABQ_INSPECTION_PDF_URL
+from nm_health.db.local_store import LocalStore
+from nm_health.ingest.fetcher import ReportFetcher
+
+# ANSI Colors for terminal output
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+RED = "\033[91m"
+BOLD = "\033[1m"
+CYAN = "\033[96m"
+DIM = "\033[2m"
+RESET = "\033[0m"
+
+def status_badge(status: str) -> str:
+    s = status or "Unknown"
+    lower = s.lower()
+    if "closure" in lower or "unsatisfactory" in lower or "downgrade" in lower:
+        return f"{RED}{BOLD}● {s}{RESET}"
+    elif "conditional" in lower:
+        return f"{YELLOW}{BOLD}▲ {s}{RESET}"
+    elif "approved" in lower:
+        return f"{GREEN}{BOLD}✔ {s}{RESET}"
+    return f"{DIM}{s}{RESET}"
+
+def cmd_ingest(args):
+    """Ingest a report file or check the live CABQ URL."""
+    store = LocalStore()
+    fetcher = ReportFetcher(store)
+
+    if args.file:
+        file_path = Path(args.file)
+        print(f"{CYAN}Ingesting local file:{RESET} {file_path}")
+        result = fetcher.ingest_file(file_path, force=args.force)
+    else:
+        print(f"{CYAN}Checking CABQ report URL:{RESET} {CABQ_INSPECTION_PDF_URL}")
+        result = fetcher.check_and_ingest(force=args.force)
+
+    if result.get("status") == "already_ingested":
+        print(f"{YELLOW}Notice:{RESET} {result['message']}")
+        print(f"SHA256: {result['sha256']}")
+        return
+
+    print(f"\n{GREEN}{BOLD}Ingestion Successful!{RESET}")
+    print(f"Report ID:             {result.get('report_id')}")
+    print(f"Week Range:            {result.get('week_range')}")
+    print(f"Total Establishments:  {result.get('total_establishments')}")
+    print(f"Total Inspections:     {result.get('total_inspections')}")
+    print(f"Total Violations:      {result.get('total_violations')}")
+    print(f"Archived To:           {result.get('archive_path')}")
+
+    closures = result.get("new_closures", [])
+    if closures:
+        print(f"\n{RED}{BOLD}⚠ Closures / Re-Inspections Required in this report:{RESET}")
+        for c in closures:
+            print(f"  - {c['name']} ({c['address']}): {status_badge(c['status'])} on {c['date']}")
+
+def cmd_search(args):
+    """Search establishments by name, address, or violation keyword."""
+    store = LocalStore()
+    results = store.search_establishments(query=args.query, status=args.status or "", limit=args.limit)
+
+    print(f"\n{BOLD}Search Results for:{RESET} '{args.query}' ({len(results)} found)\n")
+    if not results:
+        print(f"{DIM}No matching establishments found.{RESET}")
+        return
+
+    for est in results:
+        badge = status_badge(est.get("latest_status"))
+        pest_flag = f" {RED}{BOLD}[PEST HISTORY]{RESET}" if est.get("has_pest_history") else ""
+        print(f"{BOLD}[ID: {est['id']}]{RESET} {BOLD}{est['name']}{RESET}{pest_flag}")
+        print(f"   Address:        {est['normalized_address']} ({est['raw_address']})")
+        print(f"   Latest Status:  {badge} (Last Inspection: {est.get('latest_inspection_date') or 'N/A'})")
+        print(f"   Total History:  {est.get('total_inspections', 0)} inspections recorded")
+        print(f"   Lookup command: nm-health lookup {est['id']}")
+        print("-" * 70)
+
+def cmd_lookup(args):
+    """Lookup detailed inspection history for a specific establishment."""
+    store = LocalStore()
+    est_id = None
+    if args.target.isdigit():
+        est_id = int(args.target)
+    else:
+        matches = store.search_establishments(query=args.target, limit=1)
+        if matches:
+            est_id = matches[0]["id"]
+
+    if not est_id:
+        print(f"{RED}Error:{RESET} Could not find establishment matching '{args.target}'")
+        return
+
+    detail = store.get_establishment_detail(est_id)
+    if not detail:
+        print(f"{RED}Error:{RESET} Establishment ID {est_id} not found.")
+        return
+
+    print("=" * 78)
+    print(f"{BOLD}{detail['name']}{RESET}")
+    print(f"Address:        {detail['normalized_address']} (Raw: {detail['raw_address']})")
+    print(f"Latest Status:  {status_badge(detail.get('latest_status'))}")
+    if detail.get("has_pest_history"):
+        print(f"{RED}{BOLD}⚠ Warning: History of pest/rodent/insect violations on record.{RESET}")
+    print("=" * 78)
+
+    # Permits
+    if detail.get("permits"):
+        print(f"\n{CYAN}{BOLD}Permits:{RESET}")
+        for p in detail["permits"]:
+            print(f"  • Permit #{p['permit_number']}: {p['permit_type']} (Status: {p['operational_status']})")
+
+    # Inspections History
+    inspections = detail.get("inspections", [])
+    print(f"\n{CYAN}{BOLD}Chronological Inspection History ({len(inspections)} records):{RESET}")
+    for insp in inspections:
+        badge = status_badge(insp["inspection_status"])
+        print(f"\n  ┌─ {BOLD}{insp['inspection_date']}{RESET} | Status: {badge}")
+        print(f"  │  ID: {insp['inspection_id_num']} | Type: {insp['inspection_type']}")
+        if insp.get("report_filename"):
+            dl_time = insp.get("report_downloaded_at") or "N/A"
+            pg = insp.get("detail_page") or insp.get("summary_page") or 1
+            h = (insp.get("report_sha256") or "")[:16]
+            print(f"  │  Retained PDF:  {GREEN}{insp['report_filename']}{RESET} (Page #{pg})")
+            print(f"  │  Downloaded At: {CYAN}{dl_time}{RESET} | SHA256: {DIM}{h}...{RESET}")
+            print(f"  │  Report Week:   {insp.get('week_start')} to {insp.get('week_end')}")
+
+        violations = insp.get("violations", [])
+        if not violations:
+            print(f"  └─ {GREEN}No violations recorded.{RESET}")
+        else:
+            print(f"  │  Violations ({len(violations)}):")
+            for v in violations:
+                is_pest = v.get("is_pest")
+                pest_tag = f"{RED}{BOLD}[PEST WARNING]{RESET} " if is_pest else ""
+                print(f"  │   • {pest_tag}{BOLD}{v['category']}{RESET}: {v['item_title']}")
+                if v.get("observation"):
+                    obs = v["observation"].replace("\n", " ")
+                    print(f"  │     {DIM}Observation:{RESET} {obs}")
+            print(f"  └─")
+
+def cmd_alerts(args):
+    """Show recent closures and downgrades."""
+    store = LocalStore()
+    alerts = store.get_recent_alerts(limit=args.limit)
+
+    print(f"\n{RED}{BOLD}Recent Health Department Action Alerts ({len(alerts)} items):{RESET}\n")
+    if not alerts:
+        print(f"{GREEN}No recent closures or conditional actions found.{RESET}")
+        return
+
+    for item in alerts:
+        badge = status_badge(item["inspection_status"])
+        print(f"• {BOLD}{item['establishment_name']}{RESET} - {item['normalized_address']}")
+        print(f"  Date: {item['inspection_date']} | Status: {badge} | Type: {item['inspection_type']}")
+        for v in item.get("violations", []):
+            if v.get("is_pest") or "closure" in item["inspection_status"].lower():
+                print(f"  - {BOLD}{v['category']}:{RESET} {v.get('observation', '')[:140]}...")
+        print("-" * 70)
+
+def cmd_stats(args):
+    """Display overall tracking database statistics."""
+    store = LocalStore()
+    stats = store.get_stats()
+
+    print(f"\n{BOLD}NM Health Safety Tracking Statistics:{RESET}")
+    print(f"  Total Ingested Reports:             {stats['total_reports']}")
+    print(f"  Total Establishments Tracked:       {stats['total_establishments']}")
+    print(f"  Total Inspections Recorded:         {stats['total_inspections']}")
+    print(f"  Total Violations Logged:            {stats['total_violations']}")
+    print(f"  Establishments with Pest History:   {RED}{stats['establishments_with_pest_violations']}{RESET}")
+    print(f"  Total Closures / Stop-Orders:       {RED}{stats['total_closures']}{RESET}")
+    print("\nStatus Breakdown:")
+    for status, count in stats.get("status_breakdown", {}).items():
+        print(f"  - {status:35s}: {count}")
+
+def cmd_reports(args):
+    """List all retained weekly PDF reports with download timestamps and integrity hashes."""
+    store = LocalStore()
+    reports = store.get_reports()
+
+    print(f"\n{BOLD}Retained Weekly PDF Inspection Reports ({len(reports)} archived):{RESET}\n")
+    if not reports:
+        print(f"{DIM}No reports archived yet.{RESET}")
+        return
+
+    for rep in reports:
+        print(f"• {BOLD}{rep['filename']}{RESET}")
+        print(f"  Week Covered:    {rep['week_start']} to {rep['week_end']}")
+        print(f"  Downloaded At:   {CYAN}{rep['downloaded_at']}{RESET}")
+        print(f"  Establishments:  {rep['total_establishments']} | Inspections: {rep['total_inspections']}")
+        print(f"  File Size:       {rep['file_size']:,} bytes")
+        print(f"  SHA-256 Hash:    {DIM}{rep['sha256_hash']}{RESET}")
+        print(f"  Local Archive:   {rep['archive_path']}")
+        print("-" * 75)
+
+def cmd_serve(args):
+    """Start local web dashboard."""
+    from nm_health.web.server import run_server
+    run_server(host=args.host, port=args.port)
+
+def cmd_daemon(args):
+    """Run continuous daily polling service."""
+    from nm_health.service.scheduler import run_daemon
+    run_daemon(interval=args.interval)
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="nm-health",
+        description="Albuquerque & New Mexico Food Inspection Tracking & Lookup Service",
+    )
+    subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
+
+    # Ingest
+    p_ingest = subparsers.add_parser("ingest", help="Ingest weekly inspection report")
+    p_ingest.add_argument("--file", "-f", type=str, help="Path to local PDF file")
+    p_ingest.add_argument("--force", action="store_true", help="Force re-ingest if already ingested")
+    p_ingest.set_defaults(func=cmd_ingest)
+
+    # Search
+    p_search = subparsers.add_parser("search", help="Search restaurants by name, address, or violation term")
+    p_search.add_argument("query", type=str, help="Search query (e.g. 'California Del Norte', 'Central Ave', 'roach')")
+    p_search.add_argument("--status", type=str, help="Filter by status (e.g. 'Closure', 'Conditional')")
+    p_search.add_argument("--limit", type=int, default=20, help="Maximum results to return")
+    p_search.set_defaults(func=cmd_search)
+
+    # Lookup
+    p_lookup = subparsers.add_parser("lookup", help="Lookup full inspection history for an establishment")
+    p_lookup.add_argument("target", type=str, help="Establishment ID or name")
+    p_lookup.set_defaults(func=cmd_lookup)
+
+    # Alerts
+    p_alerts = subparsers.add_parser("alerts", help="View recent closures and conditional approvals")
+    p_alerts.add_argument("--limit", type=int, default=20, help="Number of alerts to show")
+    p_alerts.set_defaults(func=cmd_alerts)
+
+    # Reports
+    p_reports = subparsers.add_parser("reports", help="List all retained weekly PDF reports with download dates")
+    p_reports.set_defaults(func=cmd_reports)
+
+    # Stats
+    p_stats = subparsers.add_parser("stats", help="Display tracking database statistics")
+    p_stats.set_defaults(func=cmd_stats)
+
+    # Serve
+    p_serve = subparsers.add_parser("serve", help="Start human-readable web dashboard")
+    p_serve.add_argument("--host", type=str, default="127.0.0.1", help="Host interface")
+    p_serve.add_argument("--port", type=int, default=8000, help="Port number")
+    p_serve.set_defaults(func=cmd_serve)
+
+    # Daemon
+    p_daemon = subparsers.add_parser("daemon", help="Run daily automated background checker")
+    p_daemon.add_argument("--interval", type=int, default=86400, help="Poll interval in seconds (default 86400 / 24h)")
+    p_daemon.set_defaults(func=cmd_daemon)
+
+    args = parser.parse_args()
+    if not args.command:
+        parser.print_help()
+        sys.exit(1)
+
+    args.func(args)
+
+if __name__ == "__main__":
+    main()

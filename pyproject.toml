@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nm-health"
+version = "0.1.0"
+description = "City of Albuquerque / New Mexico Food Inspection History Tracking & Search Service"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.optional-dependencies]
+firebase = ["firebase-admin>=6.0.0"]
+
+[project.scripts]
+nm-health = "nm_health.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["nm_health*"]

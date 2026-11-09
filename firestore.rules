@@ -1,0 +1,279 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Application: Albuquerque Food Inspection Service
+// Project: abq-food-inspections
+//
+// Collection: establishments
+// Document ID: {establishmentId} (slug, e.g. "frontier-restaurant-2400-central-ave-se")
+// Access:
+//   - Read: Public (unauthenticated web clients need to search and view restaurant directory)
+//   - Write: Admin/Backend service only (requires verified admin claim/email)
+// Fields:
+//   - name: string (required, 1..200 chars)
+//   - normalized_name: string (required, 1..200 chars)
+//   - raw_address: string (required, 1..300 chars)
+//   - normalized_address: string (required, 1..300 chars)
+//   - street_number: string (optional, 0..50 chars)
+//   - street_name: string (optional, 0..150 chars)
+//   - quadrant: string (optional, 0..10 chars)
+//   - unit: string (optional, 0..50 chars)
+//   - city: string (optional, 1..100 chars)
+//   - state: string (optional, 1..50 chars)
+//   - latest_status: string (optional, 0..100 chars)
+//   - latest_inspection_date: string (optional, 0..25 chars)
+//   - has_pest_history: bool (optional)
+//   - total_inspections: int (optional, >= 0)
+//   - updated_at: timestamp (optional)
+//
+// Subcollection: establishments/{establishmentId}/inspections
+// Document ID: {inspectionId} (e.g. "{inspection_id_num}_{inspection_date}")
+// Access:
+//   - Read: Public (unauthenticated web clients need to view timeline and violation history)
+//   - Write: Admin/Backend service only
+// Fields:
+//   - inspection_id_num: string (required, 1..50 chars, immutable)
+//   - inspection_date: string (required, 1..25 chars, immutable)
+//   - inspection_type: string (optional, 0..100 chars)
+//   - inspection_status: string (required, 1..100 chars)
+//   - has_pest_violation: bool (optional)
+//   - has_critical_violation: bool (optional)
+//   - violation_count: int (optional, >= 0)
+//   - violations: list of maps (optional, <= 100 items)
+//   - report_filename: string (optional, 0..255 chars)
+//   - created_at: timestamp (optional, immutable)
+//
+// Collection: reports
+// Document ID: {reportId} (e.g. sha256_hash)
+// Access:
+//   - Read: Public (metadata of weekly PDF inspection reports)
+//   - Write: Admin/Backend service only
+// Fields:
+//   - sha256_hash: string (required, 1..100 chars, immutable)
+//   - filename: string (required, 1..255 chars)
+//   - source_url: string (optional, 0..500 chars)
+//   - week_start: string (optional, 0..25 chars)
+//   - week_end: string (optional, 0..25 chars)
+//   - raw_title: string (optional, 0..255 chars)
+//   - amendment_notes: string (optional, 0..1000 chars)
+//   - file_size: int (optional, >= 0)
+//   - archive_path: string (optional, 0..255 chars)
+//   - total_establishments: int (optional, >= 0)
+//   - total_inspections: int (optional, >= 0)
+//   - created_at: timestamp (optional, immutable)
+//
+// Collection: alerts
+// Document ID: {alertId}
+// Access:
+//   - Read: Public (immediate public access to critical closures and health warnings)
+//   - Write: Admin/Backend service only
+// Fields:
+//   - establishment_id: string/int (optional)
+//   - establishment_name: string (required, 1..200 chars)
+//   - raw_address: string (optional, 0..300 chars)
+//   - normalized_address: string (required, 1..300 chars)
+//   - inspection_date: string (required, 1..25 chars)
+//   - inspection_type: string (optional, 0..100 chars)
+//   - inspection_status: string (required, 1..100 chars)
+//   - has_pest_violation: bool (optional)
+//   - has_critical_violation: bool (optional)
+//   - violation_count: int (optional, >= 0)
+//   - violations: list of maps (optional, <= 50 items)
+//   - created_at: timestamp (optional, immutable)
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Global Default Deny
+    // ===============================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ===============================================================
+    // Common Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.get('admin', false) == true ||
+        request.auth.token.get('role', '') == 'admin' ||
+        (
+          request.auth.token.get('email_verified', false) == true &&
+          request.auth.token.get('email', '').matches('.*@cabq\\.gov$')
+        )
+      );
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidEstablishment(data) {
+      let allowedKeys = [
+        'name', 'normalized_name', 'raw_address', 'normalized_address',
+        'street_number', 'street_name', 'quadrant', 'unit', 'city', 'state',
+        'latest_status', 'latest_inspection_date', 'has_pest_history',
+        'total_inspections', 'updated_at'
+      ];
+      let requiredKeys = ['name', 'normalized_name', 'raw_address', 'normalized_address'];
+
+      return hasRequiredFields(requiredKeys) &&
+             hasOnlyAllowedFields(allowedKeys) &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 200 &&
+             data.normalized_name is string && data.normalized_name.size() >= 1 && data.normalized_name.size() <= 200 &&
+             data.raw_address is string && data.raw_address.size() >= 1 && data.raw_address.size() <= 300 &&
+             data.normalized_address is string && data.normalized_address.size() >= 1 && data.normalized_address.size() <= 300 &&
+             (!('street_number' in data) || (data.street_number is string && data.street_number.size() <= 50)) &&
+             (!('street_name' in data) || (data.street_name is string && data.street_name.size() <= 150)) &&
+             (!('quadrant' in data) || (data.quadrant is string && data.quadrant.size() <= 10)) &&
+             (!('unit' in data) || (data.unit is string && data.unit.size() <= 50)) &&
+             (!('city' in data) || (data.city is string && data.city.size() <= 100)) &&
+             (!('state' in data) || (data.state is string && data.state.size() <= 50)) &&
+             (!('latest_status' in data) || (data.latest_status is string && data.latest_status.size() <= 100)) &&
+             (!('latest_inspection_date' in data) || (data.latest_inspection_date is string && data.latest_inspection_date.size() <= 25)) &&
+             (!('has_pest_history' in data) || (data.has_pest_history is bool)) &&
+             (!('total_inspections' in data) || (data.total_inspections is int && data.total_inspections >= 0)) &&
+             (!('updated_at' in data) || (data.updated_at is timestamp));
+    }
+
+    function isValidInspection(data) {
+      let allowedKeys = [
+        'inspection_id_num', 'inspection_date', 'inspection_type',
+        'inspection_status', 'has_pest_violation', 'has_critical_violation',
+        'violation_count', 'violations', 'report_filename', 'created_at'
+      ];
+      let requiredKeys = ['inspection_id_num', 'inspection_date', 'inspection_status'];
+
+      return hasRequiredFields(requiredKeys) &&
+             hasOnlyAllowedFields(allowedKeys) &&
+             data.inspection_id_num is string && data.inspection_id_num.size() >= 1 && data.inspection_id_num.size() <= 50 &&
+             data.inspection_date is string && data.inspection_date.size() >= 1 && data.inspection_date.size() <= 25 &&
+             data.inspection_status is string && data.inspection_status.size() >= 1 && data.inspection_status.size() <= 100 &&
+             (!('inspection_type' in data) || (data.inspection_type is string && data.inspection_type.size() <= 100)) &&
+             (!('has_pest_violation' in data) || (data.has_pest_violation is bool)) &&
+             (!('has_critical_violation' in data) || (data.has_critical_violation is bool)) &&
+             (!('violation_count' in data) || (data.violation_count is int && data.violation_count >= 0)) &&
+             (!('report_filename' in data) || (data.report_filename is string && data.report_filename.size() <= 255)) &&
+             (!('violations' in data) || (data.violations is list && data.violations.size() <= 100)) &&
+             (!('created_at' in data) || (data.created_at is timestamp));
+    }
+
+    function isValidReport(data) {
+      let allowedKeys = [
+        'sha256_hash', 'filename', 'source_url', 'week_start', 'week_end',
+        'raw_title', 'amendment_notes', 'file_size', 'archive_path',
+        'total_establishments', 'total_inspections', 'created_at'
+      ];
+      let requiredKeys = ['sha256_hash', 'filename'];
+
+      return hasRequiredFields(requiredKeys) &&
+             hasOnlyAllowedFields(allowedKeys) &&
+             data.sha256_hash is string && data.sha256_hash.size() >= 1 && data.sha256_hash.size() <= 100 &&
+             data.filename is string && data.filename.size() >= 1 && data.filename.size() <= 255 &&
+             (!('source_url' in data) || (data.source_url is string && data.source_url.size() <= 500)) &&
+             (!('week_start' in data) || (data.week_start is string && data.week_start.size() <= 25)) &&
+             (!('week_end' in data) || (data.week_end is string && data.week_end.size() <= 25)) &&
+             (!('raw_title' in data) || (data.raw_title is string && data.raw_title.size() <= 255)) &&
+             (!('amendment_notes' in data) || (data.amendment_notes is string && data.amendment_notes.size() <= 1000)) &&
+             (!('file_size' in data) || (data.file_size is int && data.file_size >= 0)) &&
+             (!('archive_path' in data) || (data.archive_path is string && data.archive_path.size() <= 255)) &&
+             (!('total_establishments' in data) || (data.total_establishments is int && data.total_establishments >= 0)) &&
+             (!('total_inspections' in data) || (data.total_inspections is int && data.total_inspections >= 0)) &&
+             (!('created_at' in data) || (data.created_at is timestamp));
+    }
+
+    function isValidAlert(data) {
+      let allowedKeys = [
+        'establishment_id', 'establishment_name', 'raw_address',
+        'normalized_address', 'inspection_date', 'inspection_type',
+        'inspection_status', 'has_pest_violation', 'has_critical_violation',
+        'violation_count', 'violations', 'created_at'
+      ];
+      let requiredKeys = ['establishment_name', 'normalized_address', 'inspection_date', 'inspection_status'];
+
+      return hasRequiredFields(requiredKeys) &&
+             hasOnlyAllowedFields(allowedKeys) &&
+             data.establishment_name is string && data.establishment_name.size() >= 1 && data.establishment_name.size() <= 200 &&
+             data.normalized_address is string && data.normalized_address.size() >= 1 && data.normalized_address.size() <= 300 &&
+             data.inspection_date is string && data.inspection_date.size() >= 1 && data.inspection_date.size() <= 25 &&
+             data.inspection_status is string && data.inspection_status.size() >= 1 && data.inspection_status.size() <= 100 &&
+             (!('establishment_id' in data) || (data.establishment_id is string && data.establishment_id.size() <= 100) || (data.establishment_id is int)) &&
+             (!('raw_address' in data) || (data.raw_address is string && data.raw_address.size() <= 300)) &&
+             (!('inspection_type' in data) || (data.inspection_type is string && data.inspection_type.size() <= 100)) &&
+             (!('has_pest_violation' in data) || (data.has_pest_violation is bool)) &&
+             (!('has_critical_violation' in data) || (data.has_critical_violation is bool)) &&
+             (!('violation_count' in data) || (data.violation_count is int && data.violation_count >= 0)) &&
+             (!('violations' in data) || (data.violations is list && data.violations.size() <= 50)) &&
+             (!('created_at' in data) || (data.created_at is timestamp));
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    // 1. Establishments Collection
+    match /establishments/{establishmentId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidEstablishment(request.resource.data);
+      allow update: if isAdmin() && isValidEstablishment(request.resource.data);
+      allow delete: if isAdmin();
+
+      // 2. Inspections Subcollection
+      match /inspections/{inspectionId} {
+        allow read: if true;
+        allow create: if isAdmin() && isValidInspection(request.resource.data);
+        allow update: if isAdmin() &&
+                         isValidInspection(request.resource.data) &&
+                         areImmutableFieldsUnchanged(['inspection_id_num', 'inspection_date']);
+        allow delete: if isAdmin();
+      }
+    }
+
+    // Support Collection Group queries across all inspections
+    match /{path=**}/inspections/{inspectionId} {
+      allow read: if true;
+    }
+
+    // 3. Weekly Reports Metadata Collection
+    match /reports/{reportId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidReport(request.resource.data);
+      allow update: if isAdmin() &&
+                       isValidReport(request.resource.data) &&
+                       areImmutableFieldsUnchanged(['sha256_hash', 'created_at']);
+      allow delete: if isAdmin();
+    }
+
+    // 4. Critical Alerts Collection
+    match /alerts/{alertId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidAlert(request.resource.data);
+      allow update: if isAdmin() &&
+                       isValidAlert(request.resource.data) &&
+                       areImmutableFieldsUnchanged(['created_at']);
+      allow delete: if isAdmin();
+    }
+  }
+}
