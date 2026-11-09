@@ -10,7 +10,9 @@ from nm_health.ingest.fetcher import ReportFetcher
 class TestServiceEndToEnd(unittest.TestCase):  # noqa: D101
     @classmethod
     def setUpClass(cls):  # noqa: ANN206, D102
-        cls.sample_pdf = Path(__file__).resolve().parent.parent / "sample_inspection_report.pdf"
+        cls.sample_pdf = (
+            Path(__file__).resolve().parent.parent / "data" / "archive" / "2026-09-20_2026-09-26_4526d9bed974.pdf"
+        )
         cls.temp_dir = tempfile.TemporaryDirectory()
         cls.temp_db = Path(cls.temp_dir.name) / "test.db"
         cls.store = LocalStore(db_path=cls.temp_db)

@@ -5,6 +5,7 @@ from pathlib import Path
 from datetime import datetime  # noqa: F401
 
 from nm_health.config import DB_PATH, CABQ_INSPECTION_PDF_URL  # noqa: F401
+from nm_health.archive_cli import add_commands
 from nm_health.db.local_store import LocalStore
 from nm_health.ingest.fetcher import ReportFetcher
 
@@ -268,6 +269,8 @@ def main():  # noqa: ANN201, D103
     p_daemon = subparsers.add_parser("daemon", help="Run daily automated background checker")
     p_daemon.add_argument("--interval", type=int, default=86400, help="Poll interval in seconds (default 86400 / 24h)")
     p_daemon.set_defaults(func=cmd_daemon)
+
+    add_commands(subparsers)
 
     args = parser.parse_args()
     if not args.command:
