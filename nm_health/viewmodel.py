@@ -46,7 +46,8 @@ FEED_TIME_FORMAT = "%H:%M"
 SYNTHETIC_ID_PREFIX = "legacy-"  # made up by legacy_parser; meaningless to readers
 
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
-PHONE = re.compile(r"\(?\b\d{3}\)?[-. ]?\d{3}[-. ]\d{4}\b")
+# An area code in parentheses or followed by a separator, so inspection IDs ("RT-FOODEST-102027-2026") never match.
+PHONE = re.compile(r"(?:\(\d{3}\)\s?|\b\d{3}[-. ])\d{3}[-. ]\d{4}\b")
 QUOTE_LABELS = ("Pest Type", "Pest Condition", "Number of Pests Present", "Location")
 QUOTE_INSTRUCTION = re.compile(r"\s+(?:instructed|instruct|advised|discussed)\b.*$", re.IGNORECASE)
 # Where the form's stock sentence ends and the labelled fields (shown separately) begin.

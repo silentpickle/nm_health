@@ -108,6 +108,11 @@ def report(start: str, end: str) -> Report:
             "Sanitizer at 400ppm on 11/03/26; chicken at 135 F; permit PT0144025; 2026-10-29.",
             id="nothing_else",
         ),
+        pytest.param(
+            "Re-inspection RT-FOODEST-102027-2026 follows COM-FOODES-101632-2026.",
+            "Re-inspection RT-FOODEST-102027-2026 follows COM-FOODES-101632-2026.",
+            id="inspection_ids_kept",
+        ),
     ],
 )
 def test_redact(text: str, expected: str) -> None:
