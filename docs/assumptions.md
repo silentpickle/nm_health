@@ -15,6 +15,24 @@ a person judges the disagreements.
 | With no time, a same-day failure came before the pass | `untimed_order` | Lists the days where this guess decides the order |
 | The PDF and the feed agree on each inspection's status | `feed_status` | Status of every inspection found in both |
 
+## A second opinion from any LLM
+
+The audit only checks what we thought to write a rule for. `uv run nm-health spotcheck` prints a packet for a model to
+read instead: a prompt, this document, and for six sampled places (`[spotcheck] places` in config.toml) every statement
+the site makes, numbered, with the city's records for those places: the status-feed rows and each inspection's
+summary rows and details from the weekly PDF, with emails and phone numbers removed. The sample always includes a
+place reopened after a closure, one closed today, one with roaches or rodents, one with several results in a day and an
+ordinary one, preferring places whose inspector notes are on file, so the claims can be checked against the PDF.
+
+No API key is involved: copy it into any chat you're signed in to and read the answer.
+
+```bash
+uv run nm-health spotcheck | pbcopy
+```
+
+The sample changes daily; `--seed N` repeats a packet (the seed is printed at its top) and `--places N` changes the
+size. A packet of six places is about 50 KB.
+
 ## Results on 2026-11-10 (whole archive, 2020–2026)
 
 - `operational_status`: 219 of 220 permits agree, including 8 Unsatisfactory permits the city lists Open. The one

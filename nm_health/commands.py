@@ -7,7 +7,7 @@ import sys
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
-from nm_health import audit, feed
+from nm_health import audit, feed, spotcheck
 from nm_health import settings as settings_module
 from nm_health.archive import Archived, archive_current, archive_file
 from nm_health.database import write_database
@@ -86,6 +86,14 @@ def cmd_audit(_args: argparse.Namespace) -> None:
         _say(line)
 
 
+def cmd_spotcheck(args: argparse.Namespace) -> None:
+    """Print a packet to paste into any LLM: what the site says about a few places, and the city's records."""
+    settings = settings_module.load()
+    seed = args.seed if args.seed is not None else feed.today_utc().date().toordinal()
+    count = args.places or settings.spotcheck_places
+    _say(spotcheck.build(settings, window_start(settings), count, seed))
+
+
 def cmd_feed(_args: argparse.Namespace) -> None:
     """Fetch the city's inspection-status feed; keep each year's response if it changed."""
     settings = settings_module.load()
@@ -117,3 +125,8 @@ def add_commands(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser
 
     p_audit = subparsers.add_parser("audit", help="Check the site's assumptions against the PDFs and the feed")
     p_audit.set_defaults(func=cmd_audit)
+
+    p_spot = subparsers.add_parser("spotcheck", help="Print an LLM spot-check packet: site statements + city records")
+    p_spot.add_argument("--places", type=int, help="how many places to sample (default: [spotcheck] places)")
+    p_spot.add_argument("--seed", type=int, help="sample seed, to repeat a packet (default: changes daily)")
+    p_spot.set_defaults(func=cmd_spotcheck)
