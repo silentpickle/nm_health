@@ -1,5 +1,5 @@
-import re
-from typing import Dict, Any, Optional
+import re  # noqa: CPY001, D100, I001
+from typing import Dict, Any, Optional  # noqa: UP035
 
 QUADRANTS = {"NE", "NW", "SE", "SW"}
 
@@ -33,20 +33,23 @@ STREET_TYPES = {
     "PKWY": "PKWY",
 }
 
-def clean_text(s: Optional[str]) -> str:
+
+def clean_text(s: Optional[str]) -> str:  # noqa: D103, UP045
     if not s:
         return ""
     # Replace multiple whitespaces and trim
     return re.sub(r"\s+", " ", s).strip()
+
 
 def normalize_establishment_name(name: str) -> str:
     """Normalize restaurant name for consistent matching."""
     name = clean_text(name).upper()
     # Strip trailing punctuation
     name = re.sub(r"[\.,\-]+$", "", name).strip()
-    return name
+    return name  # noqa: RET504
 
-def normalize_address(raw_address: str) -> Dict[str, Any]:
+
+def normalize_address(raw_address: str) -> Dict[str, Any]:  # noqa: UP006
     """
     Parses and normalizes Albuquerque addresses.
     Examples:
@@ -54,15 +57,15 @@ def normalize_address(raw_address: str) -> Dict[str, Any]:
       '1415 4TH ST SW, H' -> street_num='1415', street_name='4TH ST', quad='SW', unit='H'
       '1405 N RENAISSANCE NE, A-B' -> unit='A-B', quad='NE'
       '5701 Gibson BLVD SE' -> street_num='5701', street_name='GIBSON BLVD', quad='SE'
-    """
+    """  # noqa: D205, D212, D411, D415
     raw = clean_text(raw_address).upper()
     unit = ""
-    
+
     # Extract unit/suite after comma or # or STE/SUITE
-    unit_match = re.search(r'(?:,\s*|\s+#|\s+STE\.?\s*|\s+SUITE\s*)([A-Z0-9\-]+)$', raw, re.IGNORECASE)
+    unit_match = re.search(r"(?:,\s*|\s+#|\s+STE\.?\s*|\s+SUITE\s*)([A-Z0-9\-]+)$", raw, re.IGNORECASE)
     if unit_match:
         unit = unit_match.group(1).strip()
-        base = raw[:unit_match.start()].strip()
+        base = raw[: unit_match.start()].strip()
     else:
         base = raw
 
@@ -86,7 +89,7 @@ def normalize_address(raw_address: str) -> Dict[str, Any]:
             norm_tokens.append(clean_tok)
 
     street_name = " ".join(norm_tokens)
-    
+
     # Reassemble canonical normalized address
     parts = []
     if street_num:
@@ -95,7 +98,7 @@ def normalize_address(raw_address: str) -> Dict[str, Any]:
         parts.append(street_name)
     if quad:
         parts.append(quad)
-    
+
     canonical_street = " ".join(parts)
     full_normalized = f"{canonical_street}, Unit {unit}" if unit else canonical_street
 

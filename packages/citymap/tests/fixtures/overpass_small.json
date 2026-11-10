@@ -1,0 +1,48 @@
+{
+  "version": 0.6,
+  "generator": "hand-written fixture shaped like an Overpass `out geom` response; bbox 35.0,-106.7,35.1,-106.6",
+  "elements": [
+    {"type": "way", "id": 1, "tags": {"highway": "motorway", "ref": "I 25"},
+     "geometry": [{"lat": 35.01, "lon": -106.65}, {"lat": 35.03, "lon": -106.65}]},
+    {"type": "way", "id": 2, "tags": {"highway": "motorway", "ref": "I 25"},
+     "geometry": [{"lat": 35.07, "lon": -106.65}, {"lat": 35.05, "lon": -106.6501}, {"lat": 35.03, "lon": -106.65}]},
+    {"type": "way", "id": 3, "tags": {"highway": "primary", "name": "Central Avenue"},
+     "geometry": [{"lat": 35.05, "lon": -106.75}, {"lat": 35.05, "lon": -106.62}]},
+    {"type": "way", "id": 4, "tags": {"highway": "secondary", "name": "Lomas Boulevard"},
+     "geometry": [{"lat": 35.08, "lon": -106.69}, {"lat": 35.08, "lon": -106.61}]},
+    {"type": "way", "id": 5, "tags": {"highway": "primary"},
+     "geometry": [{"lat": 35.09, "lon": -106.61}, {"lat": 35.0901, "lon": -106.6101}]},
+    {"type": "way", "id": 6, "tags": {"waterway": "river", "name": "Rio Grande", "intermittent": "no"},
+     "geometry": [{"lat": 34.99, "lon": -106.69}, {"lat": 35.05, "lon": -106.68}, null, {"lat": 35.1, "lon": -106.69}]},
+    {"type": "way", "id": 7, "tags": {"waterway": "river", "name": "Dry Arroyo", "intermittent": "yes"},
+     "geometry": [{"lat": 35.02, "lon": -106.62}, {"lat": 35.04, "lon": -106.61}]},
+    {"type": "way", "id": 8, "tags": {"natural": "water", "name": "Big Pond"},
+     "geometry": [{"lat": 35.06, "lon": -106.64}, {"lat": 35.06, "lon": -106.636}, {"lat": 35.064, "lon": -106.636},
+                  {"lat": 35.064, "lon": -106.64}, {"lat": 35.06, "lon": -106.64}]},
+    {"type": "way", "id": 9, "tags": {"natural": "water", "water": "pond"},
+     "geometry": [{"lat": 35.02, "lon": -106.64}, {"lat": 35.02, "lon": -106.6395}, {"lat": 35.0205, "lon": -106.6395},
+                  {"lat": 35.02, "lon": -106.64}]},
+    {"type": "way", "id": 12, "tags": {"natural": "water", "water": "wastewater"},
+     "geometry": [{"lat": 35.03, "lon": -106.63}, {"lat": 35.03, "lon": -106.62}, {"lat": 35.04, "lon": -106.62},
+                  {"lat": 35.03, "lon": -106.63}]},
+    {"type": "relation", "id": 10, "tags": {"type": "multipolygon", "natural": "water", "water": "river", "name": "Rio Grande"},
+     "members": [
+       {"type": "way", "ref": 101, "role": "outer",
+        "geometry": [{"lat": 35.02, "lon": -106.695}, {"lat": 35.02, "lon": -106.685}, {"lat": 35.04, "lon": -106.685}]},
+       {"type": "way", "ref": 102, "role": "outer",
+        "geometry": [{"lat": 35.02, "lon": -106.695}, {"lat": 35.04, "lon": -106.695}, {"lat": 35.04, "lon": -106.685}]},
+       {"type": "way", "ref": 103, "role": "inner",
+        "geometry": [{"lat": 35.03, "lon": -106.69}, {"lat": 35.03, "lon": -106.689}, {"lat": 35.031, "lon": -106.689},
+                     {"lat": 35.03, "lon": -106.69}]},
+       {"type": "node", "ref": 104, "role": "label", "lat": 35.03, "lon": -106.69}
+     ]},
+    {"type": "relation", "id": 11, "tags": {"type": "boundary", "boundary": "administrative", "admin_level": "8", "name": "Testville"},
+     "members": [
+       {"type": "way", "ref": 111, "role": "outer",
+        "geometry": [{"lat": 35.005, "lon": -106.695}, {"lat": 35.005, "lon": -106.605}, {"lat": 35.095, "lon": -106.605}]},
+       {"type": "way", "ref": 112, "role": "outer",
+        "geometry": [{"lat": 35.095, "lon": -106.605}, {"lat": 35.095, "lon": -106.695}, {"lat": 35.005, "lon": -106.695}]},
+       {"type": "node", "ref": 113, "role": "admin_centre", "lat": 35.05, "lon": -106.65}
+     ]}
+  ]
+}

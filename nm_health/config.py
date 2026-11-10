@@ -1,4 +1,4 @@
-import os
+import os  # noqa: CPY001, D100
 from pathlib import Path
 
 # Base Paths

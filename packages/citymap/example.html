@@ -1,0 +1,64 @@
+<!doctype html>
+<!-- Copyright (c) 2026 nm_health contributors -->
+<!-- Serve this folder (e.g. `python3 -m http.server`) and open /example.html: ES modules and fetch need http, not file:. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>citymap example</title>
+    <link rel="stylesheet" href="citymap.css" />
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        margin: 0 auto;
+        max-width: 960px;
+        padding: 16px;
+        font-family: system-ui, sans-serif;
+      }
+      /* Host colours for its own point kinds. */
+      .citymap .pt-good {
+        --cm-point: #2b8a3e;
+      }
+      .citymap .pt-bad {
+        --cm-point: #c92a2a;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>citymap example</h1>
+    <div id="map"></div>
+    <script type="module">
+      import { renderMap } from "./citymap.js";
+
+      const basemap = await (await fetch("data/albuquerque.geojson")).json();
+      const points = [
+        {
+          lat: 35.0844,
+          lng: -106.6504,
+          kind: "good",
+          label: "Old Town",
+          href: "#old-town",
+        },
+        {
+          lat: 35.0853,
+          lng: -106.6056,
+          kind: "bad",
+          label: "Nob Hill",
+          href: "#nob-hill",
+        },
+        {
+          lat: 35.0402,
+          lng: -106.6092,
+          kind: "mystery",
+          label: "Sunport (unknown kind)",
+        },
+      ];
+      renderMap(document.getElementById("map"), basemap, points, {
+        zoom: true,
+        label: "Albuquerque",
+      });
+    </script>
+  </body>
+</html>

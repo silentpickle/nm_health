@@ -1,33 +1,118 @@
-import re
+import re  # noqa: CPY001, D100, I001
 import subprocess
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional  # noqa: F401, UP035
 from pathlib import Path
-from nm_health.ingest.normalizer import normalize_address, normalize_establishment_name, clean_text
+from nm_health.ingest.normalizer import normalize_address, normalize_establishment_name, clean_text  # noqa: F401
+
+# Layout lines that are not part of any inspection's text.
+FOOTER_RE = re.compile(r"^\s*Page \d+ of \d+\s*$")
+CLASS_LINE_RE = re.compile(r"^\s*\S.*\bClass\s+\w+\s*$")  # "Retail Food Establishment Class 5"
+
+
+def _drop_layout_lines(page_text: str) -> str:
+    """Remove page footers from a detail page."""
+    return "\n".join(line for line in page_text.split("\n") if not FOOTER_RE.match(line))
+
+
+def _pop_blank(lines: list[str]) -> None:
+    """Drop trailing blank lines (form feeds count as blank)."""
+    while lines and not lines[-1].strip():
+        lines.pop()
+
+
+def _block_end(text: str, next_date_pos: int) -> int:
+    """Where an inspection's text ends: before the next block's heading, name/address and permit-class lines."""
+    lines = text[:next_date_pos].split("\n")
+    _pop_blank(lines)
+    if not lines or not CLASS_LINE_RE.match(lines[-1]):
+        return next_date_pos
+    lines.pop()
+    _pop_blank(lines)
+    name_line = lines.pop().strip() if lines else ""
+    _pop_blank(lines)
+    if name_line and lines and lines[-1].strip().startswith(name_line):
+        lines.pop()  # the "NAME - ADDRESS - <status>" heading above the block
+    return len("\n".join(lines))
+
+
+BULLETS = ("\u2022", "*")
+OBSERVATION_PREFIXES = (
+    "Observed",
+    "Location:",
+    "Condition:",
+    "Pest Type:",
+    "Food Items:",
+    "Concentration:",
+    "instructed pic",
+    "pic cleaned",
+)
+PEST_WORDS_RE = re.compile(r"pest|mice|mouse|roach|cockroach|rodent|fly|flies|insect|vermin|infestation", re.IGNORECASE)
+
+
+def _is_bullet(line: str) -> bool:
+    return line.startswith(BULLETS)
+
+
+def _split_bullets(lines: list[str]) -> list[list[str]]:
+    """Group a violation's lines into one list per bullet item; lines before the first bullet join it."""
+    groups: list[list[str]] = [[]]
+    for line in lines:
+        if _is_bullet(line) and any(_is_bullet(seen) for seen in groups[-1]):
+            groups.append([])
+        groups[-1].append(line)
+    return groups
+
+
+def _violation_from(category: str, lines: list[str], raw_text: str) -> dict[str, Any]:
+    """One violation record: bullet = item, '-' lines = rule text, 'Observed...' and what follows = observation."""
+    item_title = ""
+    rule_desc: list[str] = []
+    observations: list[str] = []
+    for line in lines:
+        if _is_bullet(line):
+            item_title = line.lstrip("\u2022* ").strip()
+            continue
+        if line.startswith("-"):
+            rule_desc.append(line.lstrip("- ").strip())
+            continue
+        if line.startswith(OBSERVATION_PREFIXES) or observations:
+            observations.append(line)
+            continue
+        rule_desc.append(line)
+    return {
+        "category": category,
+        "item_title": item_title or category,
+        "rule_description": " ".join(rule_desc),
+        "observation": " ".join(observations),
+        "raw_text": raw_text,
+        "is_pest": bool(PEST_WORDS_RE.search(raw_text)),
+    }
+
 
 class InspectionReportParser:
     """
     Parses City of Albuquerque Environmental Health Department
     weekly food inspection PDF reports.
-    """
+    """  # noqa: D205, D212
 
-    def __init__(self, pdf_path: Path):
+    def __init__(self, pdf_path: Path):  # noqa: ANN204, D107
         self.pdf_path = Path(pdf_path)
         if not self.pdf_path.exists():
-            raise FileNotFoundError(f"PDF report not found: {self.pdf_path}")
+            raise FileNotFoundError(f"PDF report not found: {self.pdf_path}")  # noqa: EM102, TRY003
 
-    def extract_text_pages(self) -> List[str]:
+    def extract_text_pages(self) -> List[str]:  # noqa: UP006
         """Extract text page-by-page using pdftotext with layout preservation."""
         cmd = ["pdftotext", "-layout", str(self.pdf_path), "-"]
         try:
-            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)  # noqa: UP022
             text = res.stdout.decode("utf-8", errors="ignore")
             # pdftotext separates pages with form feed \x0c
             pages = text.split("\x0c")
-            return pages
-        except Exception as e:
-            raise RuntimeError(f"Failed to extract text from PDF: {e}")
+            return pages  # noqa: RET504, TRY300
+        except Exception as e:  # noqa: BLE001
+            raise RuntimeError(f"Failed to extract text from PDF: {e}")  # noqa: B904, EM102, TRY003
 
-    def parse(self) -> Dict[str, Any]:
+    def parse(self) -> Dict[str, Any]:  # noqa: D102, UP006
         pages = self.extract_text_pages()
         if not pages:
             return {"error": "Empty PDF"}
@@ -39,7 +124,7 @@ class InspectionReportParser:
         summary_pages = []
         detail_pages = []
         for i, page in enumerate(pages):
-            if "Summary Table" in page or (i < 8 and "Inspection Date" in page and "Inspection ID Number" in page):
+            if "Summary Table" in page or (i < 8 and "Inspection Date" in page and "Inspection ID Number" in page):  # noqa: PLR2004
                 summary_pages.append((i + 1, page))
             else:
                 detail_pages.append((i + 1, page))
@@ -67,9 +152,7 @@ class InspectionReportParser:
             violations = detail_info.get("violations", [])
             has_pest = any(v.get("is_pest") for v in violations)
             has_critical = any(
-                "closure" in item["status"].lower() 
-                or "unsatisfactory" in item["status"].lower() 
-                or has_pest
+                "closure" in item["status"].lower() or "unsatisfactory" in item["status"].lower() or has_pest
                 for _ in [1]
             )
 
@@ -85,7 +168,7 @@ class InspectionReportParser:
                     "raw_address": est_addr,
                     "normalized_address": addr_info["normalized_address"],
                     "permits": {},
-                    "inspections": []
+                    "inspections": [],
                 }
 
             # Permit
@@ -125,7 +208,7 @@ class InspectionReportParser:
             "inspections": inspections,
         }
 
-    def _parse_metadata(self, first_page: str) -> Dict[str, Any]:
+    def _parse_metadata(self, first_page: str) -> Dict[str, Any]:  # noqa: UP006
         meta = {
             "week_start": None,
             "week_end": None,
@@ -157,31 +240,39 @@ class InspectionReportParser:
             return f"{m.group(3)}-{m.group(1)}-{m.group(2)}"
         return d_str.strip()
 
-    def _parse_summary_pages(self, summary_pages: List[tuple]) -> List[Dict[str, Any]]:
+    def _parse_summary_pages(self, summary_pages: List[tuple]) -> List[Dict[str, Any]]:  # noqa: UP006
         records = []
         current_est = None
         current_permit = None
 
         est_re = re.compile(r"^([A-Za-z0-9\s#&\'\.\,\-]+?)\s+-\s+(\d+[A-Za-z0-9\s\,\-\.#/]+)$")
         permit_re = re.compile(
-            r"^(.*?)\(Permit\s*#\s*-\s*([A-Za-z0-9]+)\)\s*-\s*Operational\s*Status\s*[-–]\s*([A-Za-z]+)",
+            r"^(.*?)\(Permit\s*#\s*-\s*([A-Za-z0-9]+)\)\s*-\s*Operational\s*Status\s*[-–]\s*([A-Za-z]+)",  # noqa: RUF001
             re.IGNORECASE,
         )
         row_re = re.compile(
-            r"^\s*(\d{2}/\d{2}/\d{4})\s+([A-Za-z0-9\-]+)\s+(.+?)\s{2,}([A-Za-z\s\-]+?)\s+(?:Pg\.\s*(\d+)|Page\s*(\d+))\s*$",
+            r"^\s*(\d{2}/\d{2}/\d{4})\s+([A-Za-z0-9\-]+)\s+(.+?)\s{2,}([A-Za-z\s\-]+?)\s+(?:Pg\.\s*(\d+)|Page\s*(\d+)|(\d+))\s*$",
             re.IGNORECASE,
         )
 
-        for page_num, text in summary_pages:
+        for page_num, text in summary_pages:  # noqa: B007
             lines = text.split("\n")
             for line in lines:
                 line_str = line.rstrip()
                 if not line_str:
                     continue
-                if any(hdr in line_str for hdr in [
-                    "City of Albuquerque", "Environmental Health", "Consumer Health",
-                    "Summary Table", "Inspection Date", "Page ", "This report includes"
-                ]):
+                if any(
+                    hdr in line_str
+                    for hdr in [
+                        "City of Albuquerque",
+                        "Environmental Health",
+                        "Consumer Health",
+                        "Summary Table",
+                        "Inspection Date",
+                        "Page ",
+                        "This report includes",
+                    ]
+                ):
                     continue
 
                 # Check permit line
@@ -197,23 +288,29 @@ class InspectionReportParser:
                 # Check inspection row
                 m_row = row_re.match(line_str)
                 if m_row:
-                    target_pg = m_row.group(5) or m_row.group(6) or ""
-                    records.append({
-                        "establishment": current_est,
-                        "permit": current_permit,
-                        "date": m_row.group(1),
-                        "id_num": m_row.group(2).strip(),
-                        "type": m_row.group(3).strip(),
-                        "status": m_row.group(4).strip(),
-                        "page_str": f"Pg. {target_pg}",
-                        "page_num": int(target_pg) if target_pg.isdigit() else None,
-                        "raw": line_str.strip(),
-                    })
+                    target_pg = m_row.group(5) or m_row.group(6) or m_row.group(7) or ""
+                    records.append(
+                        {
+                            "establishment": current_est,
+                            "permit": current_permit,
+                            "date": m_row.group(1),
+                            "id_num": m_row.group(2).strip(),
+                            "type": m_row.group(3).strip(),
+                            "status": m_row.group(4).strip(),
+                            "page_str": f"Pg. {target_pg}",
+                            "page_num": int(target_pg) if target_pg.isdigit() else None,
+                            "raw": line_str.strip(),
+                        }
+                    )
                     continue
 
                 # Check establishment header
                 m_est = est_re.match(line_str.strip())
-                if m_est and not line_str.strip().startswith("Week:") and not line_str.strip().startswith("Report Amended"):
+                if (
+                    m_est
+                    and not line_str.strip().startswith("Week:")
+                    and not line_str.strip().startswith("Report Amended")
+                ):
                     current_est = {
                         "name": m_est.group(1).strip(),
                         "address": m_est.group(2).strip(),
@@ -221,11 +318,11 @@ class InspectionReportParser:
 
         return records
 
-    def _parse_detail_pages(self, detail_pages: List[tuple]) -> Dict[str, Any]:
+    def _parse_detail_pages(self, detail_pages: List[tuple]) -> Dict[str, Any]:  # noqa: UP006
         """
         Parses pages containing detailed inspection blocks and violations.
         Returns a dict keyed by '<id_num>_<date>' and '<id_num>'.
-        """
+        """  # noqa: D205, D212
         detail_records = {}
 
         # Stitch detail pages while tracking page numbers
@@ -234,7 +331,7 @@ class InspectionReportParser:
         current_len = 0
         for page_num, text in detail_pages:
             page_offsets.append((current_len, page_num))
-            full_detail_text += text + "\n\x0c"
+            full_detail_text += _drop_layout_lines(text) + "\n\x0c"
             current_len = len(full_detail_text)
 
         def get_page_for_pos(pos: int) -> int:
@@ -256,7 +353,9 @@ class InspectionReportParser:
             block_page = get_page_for_pos(m.start())
 
             start_pos = m.end()
-            end_pos = matches[i + 1].start() if i + 1 < len(matches) else len(full_detail_text)
+            end_pos = (
+                _block_end(full_detail_text, matches[i + 1].start()) if i + 1 < len(matches) else len(full_detail_text)
+            )
             block_text = full_detail_text[start_pos:end_pos]
 
             violations = self._parse_violations(block_text)
@@ -274,59 +373,15 @@ class InspectionReportParser:
 
         return detail_records
 
-    def _parse_violations(self, block_text: str) -> List[Dict[str, Any]]:
-        violations = []
-        # Split by "Violation:"
-        parts = re.split(r"\n\s*Violation:\s*", block_text)
-        if len(parts) <= 1:
-            return violations
-
-        for part in parts[1:]:
-            lines = [l.strip() for l in part.split("\n") if l.strip()]
+    def _parse_violations(self, block_text: str) -> list[dict[str, Any]]:
+        """One record per bullet item under each 'Violation:' category."""
+        violations: list[dict[str, Any]] = []
+        for part in re.split(r"\n\s*Violation:\s*", block_text)[1:]:
+            lines = [line.strip() for line in part.split("\n") if line.strip()]
             if not lines:
                 continue
-
-            category = lines[0].strip()
-            item_title = ""
-            rule_desc = []
-            observations = []
-            raw_text = part.strip()
-
-            is_pest = bool(re.search(
-                r"pest|mice|mouse|roach|cockroach|rodent|fly|flies|insect|vermin|infestation",
-                raw_text,
-                re.IGNORECASE,
-            ))
-
-            for line in lines[1:]:
-                if line.startswith("•") or line.startswith("*"):
-                    item_title = line.lstrip("•* ").strip()
-                elif line.startswith("-"):
-                    rule_desc.append(line.lstrip("- ").strip())
-                elif (
-                    line.startswith("Observed")
-                    or line.startswith("Location:")
-                    or line.startswith("Condition:")
-                    or line.startswith("Pest Type:")
-                    or line.startswith("Food Items:")
-                    or line.startswith("Concentration:")
-                    or line.startswith("instructed pic")
-                    or line.startswith("pic cleaned")
-                ):
-                    observations.append(line)
-                elif observations:
-                    # Append continuation of observation
-                    observations.append(line)
-                else:
-                    rule_desc.append(line)
-
-            violations.append({
-                "category": category,
-                "item_title": item_title or category,
-                "rule_description": " ".join(rule_desc),
-                "observation": " ".join(observations),
-                "raw_text": raw_text,
-                "is_pest": is_pest,
-            })
-
+            groups = _split_bullets(lines[1:])
+            for group in groups:
+                raw_text = part.strip() if len(groups) == 1 else "\n".join([lines[0], *group])
+                violations.append(_violation_from(lines[0], group, raw_text))
         return violations

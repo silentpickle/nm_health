@@ -1,0 +1,77 @@
+[project]
+name = "citymap"
+version = "0.1.0"
+description = "Build a small, self-hosted city basemap (GeoJSON) from OpenStreetMap and draw it as inline SVG"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+citymap = "citymap.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.11.29,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "mypy>=2.4.1",
+    "pytest>=9.2.0",
+    "ruff>=0.17.4",
+    "shellcheck-py>=0.11.0.1",
+]
+
+# --- Static analysis: the house rules (strictest practical ruff, mypy --strict, complexity 15, nesting 2) ---
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+# Vendored from ~/test_qwen/house_walkthrough: kept byte-identical so fixes flow both ways; it is linted there.
+extend-exclude = ["scripts/complexity.py"]
+
+[tool.ruff.lint]
+# Preview is on only for the preview rules named here: CPY001 (copyright header) and PLR1702 (nesting), both house
+# rules. Other preview rules stay off until ruff makes them stable.
+preview = true
+explicit-preview-rules = true
+select = ["ALL"]
+extend-select = ["CPY001", "PLR1702"]
+ignore = [
+    # Conflict with each other: pick one of each pair.
+    "D203",    # one-blank-line-before-class: conflicts with D211 (no blank line), which we keep
+    "D213",    # multi-line-summary-second-line: conflicts with D212 (summary on first line), which we keep
+    # Conflict with `ruff format` (ruff's documented list).
+    "COM812",  # trailing comma: the formatter owns commas
+    "ISC001",  # implicit string concat on one line: the formatter can produce it
+    "E501",    # line length: the formatter owns wrapping; strings it cannot wrap stay readable
+    "W191", "E111", "E114", "E117", "D206", "D300", "Q000", "Q001", "Q002", "Q003",
+]
+
+[tool.ruff.lint.flake8-copyright]
+notice-rgx = "(?i)Copyright \\(c\\) 2026 nm_health contributors"
+
+[tool.ruff.lint.mccabe]
+max-complexity = 15
+
+[tool.ruff.lint.pylint]
+max-args = 5
+max-branches = 12
+max-returns = 6
+max-statements = 50
+max-nested-blocks = 3   # ruff counts the function body as a level; 3 here is house "no deeper than 2"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "S101",    # pytest asserts are the point
+    "INP001",  # tests/ is not a package
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

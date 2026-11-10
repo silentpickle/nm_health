@@ -1,0 +1,51 @@
+# Daily: save the city's weekly inspection report PDF if it is new, and the status feed if it changed. The city overwrites one URL every week, so a
+# missed week is gone for good; checking daily also catches amended re-issues. Archiving never parses (a PDF the
+# parser can't read is still kept). A failed run means nothing was saved that day: GitHub emails the repo owner.
+name: collect
+on:
+  schedule:
+    - cron: '0 15 * * *'   # 08:00 Albuquerque (MST); reports have appeared mid-week
+  workflow_dispatch:
+  pull_request:            # dry run: proves the runner can still reach the city's PDF; never commits
+    paths: [".github/workflows/collect.yml", "nm_health/archive.py", "nm_health/settings.py", "config.toml"]
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: collect
+  cancel-in-progress: false
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      new: ${{ steps.commit.outputs.new }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+      - name: pdftotext / pdfinfo
+        run: sudo apt-get update -q && sudo apt-get install -y -q poppler-utils
+      - run: uv sync --frozen --no-dev
+      - name: Archive this week's report if new
+        run: uv run --no-dev nm-health archive
+      - name: Save the city's inspection-status feed if it changed
+        run: uv run --no-dev nm-health feed
+      - name: Commit new data
+        id: commit
+        if: github.event_name != 'pull_request'
+        run: |
+          if [ -z "$(git status --porcelain data/archive data/feed)" ]; then
+            echo "Report and feed unchanged."; echo "new=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/archive data/feed
+          pdfs="$(git diff --cached --name-only -- '*.pdf' | xargs -r -n1 basename | tr '\n' ' ')"
+          git commit -m "Collect ${pdfs:-status feed changes (no new report)}"
+          git push
+          echo "new=true" >> "$GITHUB_OUTPUT"
+  site:
+    needs: archive
+    if: needs.archive.outputs.new == 'true'
+    uses: ./.github/workflows/site.yml
