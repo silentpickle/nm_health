@@ -13,7 +13,8 @@
     "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,
     "exactOptionalPropertyTypes": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": { "citymap": ["./packages/citymap/citymap.js"] }
   },
   "include": ["nm_health/site_static/**/*.js", "eslint.config.js"]
 }

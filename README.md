@@ -24,7 +24,8 @@ cabq.gov PDF ──daily──▶ data/archive/<week>_<sha>.pdf ──▶ parse 
    inspection (keyed by inspection ID + date: routine inspections reuse the permit number as their ID).
 3. **Tag** each violation from the inspector's observation, not the rule boilerplate. "pests" needs evidence
    (roaches, mice, droppings, "Pest Type:"); door gaps and pest paperwork are "pest_control".
-4. **Publish** (`site.yml`): plain HTML pages, a list of archived weeks, and `data.json`.
+4. **Publish** (`site.yml`): plain HTML pages that read without JavaScript (This week, Places, Map, About, one page
+   per place), a slim `places.json` that `places.js` (search, filters) and `map.js` (packages/citymap) read.
 
 Three report layouts are parsed: the current one (late 2025 on), the early-2025 transitional one, and the
 2021–2024 "Activity Date" one. The last two have no inspection or permit numbers, so their IDs are synthetic.

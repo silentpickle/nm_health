@@ -306,7 +306,7 @@ def group_places(inspections: tuple[Inspection, ...]) -> list[Place]:
     for inspection in inspections:
         by_slug[establishment_slug(inspection.name, inspection.address)].append(inspection)
     places = [build_place(slug, found) for slug, found in by_slug.items()]
-    places.sort(key=lambda p: p.name)
+    places.sort(key=lambda p: p.name.casefold())
     places.sort(key=lambda p: p.latest.date, reverse=True)
     return places
 

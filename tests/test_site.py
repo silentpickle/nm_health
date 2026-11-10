@@ -1,38 +1,50 @@
 # Copyright (c) 2026 nm_health contributors
-"""The site says only what the archive shows, escapes what the PDFs say, and writes every page."""
+"""The static site: which files it writes, what every page carries, escaping, noindex, and the real archive."""
 
+import html
+import json
+import re
+from collections import defaultdict
 from dataclasses import replace
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
 
+from nm_health import feed
+from nm_health.identity import establishment_slug
 from nm_health.model import Inspection, Violation
-from nm_health.rebuild import Rebuilt, Report
-from nm_health.site import (
-    Place,
-    group_places,
-    pest_line,
-    red_line,
-    render_index,
-    render_place,
-    status_level,
-    write_site,
-)
+from nm_health.rebuild import Rebuilt, Report, rebuild
+from nm_health.settings import Settings, load
+from nm_health.site import write_site
 from tests.test_archive import make_settings
 
-PESTS = Violation("Pest Control", "Removing Dead or Trapped", "", "Observed roaches.", ("roaches", "pest_control"))
-OTHER = Violation("Plumbing", "System Maintained in Good Repair", "", "Observed leak.", ())
+TODAY = datetime(2026, 11, 9, 12, tzinfo=UTC)
 REPORT_FILE = "2026-10-25_2026-10-31_abc.pdf"
+REPORT = Report(REPORT_FILE, "abc", "2026-10-25", "2026-10-31", "test", "2026-11-04", "current", 2)
+ROACHES = Violation(
+    "Pest Control",
+    "Controlling Pests, If Present: Treatment",
+    "",
+    "Observed pests. Pest Type: Cockroach",
+    ("roaches", "pest_control"),
+    "live",
+    (("Pest Type", "Cockroach"),),
+)
+PLACES_JSON_LIMIT = 300_000  # bytes
+TOP_PAGES = ("index.html", "places.html", "map.html", "about.html")
+H1 = re.compile(r"<h1\b")
+PDF_LINK = re.compile(r'href="([^"]+\.pdf)"')
 
 
-def visit(day: str, *violations: Violation, status: str = "Approved", inspection_id: str = "PT1") -> Inspection:
-    """One inspection of the test place."""
+def visit(day: str, *violations: Violation, status: str = "Approved", name: str = "TEST CAFE") -> Inspection:
+    """One inspection with notes from the archived report."""
     return Inspection(
-        inspection_id=inspection_id,
+        inspection_id=f"PT-{name[:4]}-{day}",
         date=day,
         kind="Routine Food Establishment Inspection",
         status=status,
-        name="TEST CAFE",
+        name=name,
         address="100 CENTRAL AVE SW",
         permit_number="PT1",
         permit_type="Food Establishment",
@@ -42,119 +54,230 @@ def visit(day: str, *violations: Violation, status: str = "Approved", inspection
     )
 
 
-def place(*inspections: Inspection) -> Place:
-    """The test place with the given inspections (newest first, as group_places orders them)."""
-    (only,) = group_places(inspections)
-    return only
-
-
-@pytest.mark.parametrize(
-    ("inspections", "expected"),
-    [
-        pytest.param(
-            (visit("2026-10-29", OTHER),),
-            ("No pest citations in 1 archived inspection(s) (Oct 29, 2026).", False),
-            id="no_pests_one_date",
-        ),
-        pytest.param(
-            (visit("2026-04-01"), visit("2026-10-29", OTHER)),
-            ("No pest citations in 2 archived inspection(s) (Apr 1, 2026 \u2013 Oct 29, 2026).", False),
-            id="no_pests_range",
-        ),
-        pytest.param(
-            (visit("2026-04-01"), visit("2026-10-29", PESTS)),
-            ("Pests cited on Oct 29, 2026, the latest inspection date in the archive.", True),
-            id="pests_latest",
-        ),
-        pytest.param(
-            (visit("2026-04-01", PESTS), visit("2026-05-01"), visit("2026-10-29")),
-            ("Last pest citation Apr 1, 2026 \u00b7 inspected 2 times since, most recently Oct 29, 2026.", False),
-            id="pests_then_clean",
-        ),
-        pytest.param(
-            (visit("2026-04-01", PESTS), visit("2026-04-02", inspection_id="CAC-1")),
-            ("Last pest citation Apr 1, 2026 \u00b7 inspected 1 time since, most recently Apr 2, 2026.", False),
-            id="one_follow_up",
-        ),
-    ],
-)
-def test_pest_line(inspections: tuple[Inspection, ...], expected: tuple[str, bool]) -> None:
-    """Pest wording is limited to archived inspections and never claims 'pest-free'."""
-    assert pest_line(place(*inspections)) == expected
-
-
-@pytest.mark.parametrize(
-    ("status", "level"),
-    [
-        pytest.param("Unsatisfactory Re-Inspection required", "red", id="unsatisfactory"),
-        pytest.param("Immediate Closure - Imminent Health Hazard", "red", id="closure"),
-        pytest.param("Conditional Approved", "yellow", id="conditional"),
-        pytest.param("Approved", "green", id="approved"),
-        pytest.param("Non-Graded", "gray", id="other"),
-    ],
-)
-def test_status_level(status: str, level: str) -> None:
-    """Red is checked before yellow and green, so 'Conditional' never hides a closure."""
-    assert status_level(status) == level
-
-
-def test_red_line_names_latest_failure() -> None:
-    """The most recent closed/failed inspection is called out; none means no line."""
-    assert red_line(place(visit("2026-10-29"))) is None
-    failed = place(
-        visit("2026-01-05", status="Immediate Closure"),
-        visit("2026-06-05", status="Unsatisfactory Re-Inspection required", inspection_id="PT2"),
-        visit("2026-10-29"),
+def feed_only(day: str, name: str = "FEED DINER") -> Inspection:
+    """An inspection known only from the city's status feed."""
+    return replace(
+        visit(day, name=name, status="Closure Re-Inspection Required"),
+        address="5 MAIN ST NE",
+        report_file="",
+        page=None,
+        has_details=False,
+        violation_count=4,
+        lat=35.08,
+        lng=-106.65,
     )
-    assert red_line(failed) == "Last closed or failed: Jun 5, 2026 (Unsatisfactory Re-Inspection required)."
 
 
-def test_text_from_pdfs_is_escaped(tmp_path: Path) -> None:
-    """Names and observations are text, never markup."""
-    hostile = replace(visit("2026-10-29", replace(OTHER, observation="<script>x()</script>")), name="<b>CAFE</b>")
-    rebuilt = Rebuilt((hostile,), ())
-    html = render_place(place(hostile), rebuilt, make_settings(tmp_path))
-    assert "<script>x()" not in html
-    assert "&lt;script&gt;x()&lt;/script&gt;" in html
-    assert "&lt;b&gt;CAFE&lt;/b&gt;" in html
+@pytest.fixture(autouse=True)
+def fixed_today(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The site's 52-week strips end on a known day."""
+    monkeypatch.setattr(feed, "today_utc", lambda: TODAY)
+
+
+def build(tmp_path: Path, *inspections: Inspection, settings: Settings | None = None) -> Path:
+    """Write the site for these inspections; returns the site folder."""
+    chosen = settings or make_settings(tmp_path)
+    write_site(Rebuilt(inspections, (REPORT,)), chosen)
+    return chosen.site_dir
+
+
+def read(site: Path, name: str) -> str:
+    """One written file's text."""
+    return (site / name).read_text(encoding="utf-8")
+
+
+def pages(site: Path) -> list[Path]:
+    """Every HTML page written."""
+    return sorted(site.rglob("*.html"))
 
 
 def test_write_site_writes_every_page(tmp_path: Path) -> None:
-    """Index, reports list, one page per place, static assets, data.json."""
-    settings = make_settings(tmp_path)
-    other_place = replace(visit("2026-10-28"), name="OTHER DINER", address="5 MAIN ST NE")
-    report = Report(REPORT_FILE, "abc", "2026-10-25", "2026-10-31", "test", "2026-11-04", "current", 2)
-    count = write_site(Rebuilt((visit("2026-10-29", PESTS), other_place), (report,)), settings)
-
-    assert count == len(["TEST CAFE", "OTHER DINER"])
-    written = sorted(p.relative_to(settings.site_dir).as_posix() for p in settings.site_dir.rglob("*") if p.is_file())
+    """Four top pages, one page per place, the static and citymap assets, places.json, robots.txt."""
+    site = build(tmp_path, visit("2026-10-29", ROACHES), feed_only("2026-11-06"))
+    written = sorted(p.relative_to(site).as_posix() for p in site.rglob("*") if p.is_file())
     assert written == [
         ".nojekyll",
-        "data.json",
+        "about.html",
+        "albuquerque.geojson",
+        "citymap.css",
+        "citymap.js",
         "index.html",
-        "place/other-diner-5-main-st-ne.html",
+        "map.html",
+        "map.js",
+        "place/feed-diner-5-main-st-ne.html",
         "place/test-cafe-100-central-ave-sw.html",
-        "reports.html",
-        "search.js",
+        "places.html",
+        "places.js",
+        "places.json",
+        "robots.txt",
+        "shared.js",
         "style.css",
     ]
-    index = (settings.site_dir / "index.html").read_text(encoding="utf-8")
-    assert 'data-flags="pest_control pests roaches"' in index
-    assert "Oct 25, 2026" in (settings.site_dir / "reports.html").read_text(encoding="utf-8")
 
 
-def test_empty_archive_and_synthetic_ids(tmp_path: Path) -> None:
-    """No reports yet says so; IDs made up for old layouts are never shown; a bare category stands alone."""
-    old = visit(
-        "2024-05-08",
-        Violation("S56 Immediate Closure", "", "", "NO WATER", ()),
-        status="Unsatisfactory - Immediate Closure",
-        inspection_id="legacy-2024-x",
+def test_every_page_has_one_h1_lang_title_and_site_name(tmp_path: Path) -> None:
+    """One h1 per page, lang="en", a page title ending in the site name from settings, the name in the header."""
+    settings = replace(make_settings(tmp_path), site_name="Burque <Bites>")
+    site = build(tmp_path, visit("2026-10-29"), settings=settings)
+    for page in pages(site):
+        text = page.read_text(encoding="utf-8")
+        assert len(H1.findall(text)) == 1, page.name
+        assert '<html lang="en">' in text
+        assert re.search(r"<title>[^<]+ \u2013 Burque &lt;Bites&gt;</title>", text), page.name
+        assert '">Burque &lt;Bites&gt;</a>' in text
+    assert "<title>DINER" not in read(site, "index.html")
+
+
+@pytest.mark.parametrize(
+    ("indexable", "robots_meta"),
+    [pytest.param(False, True, id="not_indexable"), pytest.param(True, False, id="indexable_site")],
+)
+def test_noindex_follows_settings(tmp_path: Path, *, indexable: bool, robots_meta: bool) -> None:
+    """Not indexable: every page says noindex and robots.txt disallows all. Indexable: neither."""
+    settings = replace(make_settings(tmp_path), indexable=indexable)
+    site = build(tmp_path, visit("2026-10-29"), settings=settings)
+    meta = '<meta name="robots" content="noindex, nofollow">'
+    assert all((meta in p.read_text(encoding="utf-8")) == robots_meta for p in pages(site))
+    assert (site / "robots.txt").exists() == robots_meta
+    if robots_meta:
+        assert read(site, "robots.txt") == "User-agent: *\nDisallow: /\n"
+
+
+def test_text_from_pdfs_is_escaped(tmp_path: Path) -> None:
+    """Hostile names, addresses and observations are text everywhere, never markup."""
+    hostile = Violation(
+        "Plumbing",
+        "<img src=x onerror=alert(1)>",
+        "",
+        '<script>x()</script> Location: "><b>bold</b>',
+        details=(("Location", '"><b>bold</b>'),),
     )
-    rebuilt = Rebuilt((old,), ())
-    index = render_index(group_places(rebuilt.inspections), rebuilt)
-    assert "No reports archived yet." in index
-    assert 'data-flags="red"' in index
-    html = render_place(place(old), rebuilt, make_settings(tmp_path))
-    assert "legacy-2024-x" not in html
-    assert '<span class="v-title">S56 Immediate Closure</span><p' in html
+    inspection = replace(visit("2026-11-06", hostile, status="Closure Re-Inspection Required"), name="<b>CAFE</b>")
+    site = build(tmp_path, replace(inspection, address="1 <i>A</i> ST"))
+    for page in pages(site):
+        text = page.read_text(encoding="utf-8")
+        assert "<script>x()" not in text
+        assert "<b>" not in text
+        assert "<img src=x" not in text
+    place = read(site, next(p.relative_to(site).as_posix() for p in pages(site) if "place/" in p.as_posix()))
+    assert "&lt;script&gt;x()&lt;/script&gt;" in place
+    assert "&lt;b&gt;CAFE&lt;/b&gt;" in place
+    assert "&lt;b&gt;CAFE&lt;/b&gt;" in read(site, "index.html")
+
+
+def test_email_and_phone_never_published(tmp_path: Path) -> None:
+    """Inspector text on every page and in places.json has email addresses and phone numbers removed."""
+    leak = Violation(
+        "Pest Control",
+        "Controlling Pests",
+        "Call 505-768-2738",
+        "Observed roaches. Send photos to inspector@cabq.gov. Pest Type: Cockroach call 505 768 2738",
+        ("roaches",),
+        "live",
+        (("Pest Type", "Cockroach call 505 768 2738"),),
+    )
+    site = build(tmp_path, visit("2026-10-29", leak))
+    for path in [*pages(site), site / "places.json"]:
+        text = path.read_text(encoding="utf-8")
+        assert "cabq.gov" not in text
+        assert "768" not in text
+    assert "[email removed]" in read(site, "place/test-cafe-100-central-ave-sw.html")
+
+
+def test_place_page_states_what_the_records_show(tmp_path: Path) -> None:
+    """Strip, coverage, the pest quote with reading/status/next approval/jump link, and each inspection's source."""
+    site = build(tmp_path, visit("2026-10-29", ROACHES), visit("2026-09-02", name="TEST CAFE"))
+    text = read(site, "place/test-cafe-100-central-ave-sw.html")
+    assert 'class="strip big" role="img" aria-label="Inspections in the last 52 weeks: Oct 29, 2026: Approved;' in text
+    assert "Inspector notes on file for 2 of 2 inspections." in text
+    assert """<span class="reading" title="This site's reading of the inspector's words">Roaches, live""" in text
+    assert "<q>Pest Type: Cockroach</q>" in text
+    assert "Status that day, as issued by the city: Approved." in text
+    assert "No later approved inspection on record." in text
+    assert '<a class="jump" href="#insp-0">See the inspection</a>' in text
+    assert '<li class="g" id="insp-0">' in text
+    assert f'<a href="https://example.test/pdf/{REPORT_FILE}">Week of Oct 25 report (PDF, p. 3)</a>' in text
+    assert "<summary>Show everything the report says</summary>" in text
+
+
+def test_feed_only_place_and_banner(tmp_path: Path) -> None:
+    """Feed-only inspections say the notes aren't on file; no report covers the newest date, so the banner shows."""
+    site = build(tmp_path, visit("2026-10-29", ROACHES), feed_only("2026-11-06"))
+    place = read(site, "place/feed-diner-5-main-st-ne.html")
+    assert "Inspector notes on file for none of its 1 inspection in this period" in place
+    assert "Inspector notes not on file: the weekly report for this date wasn&#x27;t saved." in place
+    assert "<span>City inspection-status feed</span>" in place
+    index = read(site, "index.html")
+    assert "weekly report for this week isn&#x27;t on file yet" in index
+    assert "Roaches or rodents cited, week of Oct 25" in index
+    assert "Closure or unsatisfactory<span" in index
+    assert ">Closed<" not in index
+
+
+def test_covered_week_has_no_banner(tmp_path: Path) -> None:
+    """When an archived report covers the newest date, no banner and pests come from the same week."""
+    index = read(build(tmp_path, visit("2026-10-29", ROACHES)), "index.html")
+    assert "isn&#x27;t on file yet" not in index
+    assert "Roaches or rodents cited<span" in index
+
+
+def test_places_page_lists_every_place_without_javascript(tmp_path: Path) -> None:
+    """Every place is a plain link with its latest status; the search tools stay hidden until places.js runs."""
+    site = build(tmp_path, visit("2026-10-29"), feed_only("2026-11-06"))
+    text = read(site, "places.html")
+    assert text.count('<a class="row" href="place/') == len(["TEST CAFE", "FEED DINER"])
+    assert '<div class="search" id="tools" hidden>' in text
+    assert '<script type="module" src="places.js"></script>' in text
+
+
+def test_places_json_shape(tmp_path: Path) -> None:
+    """One row per place: slug, names, address, 52-char strip, dated statuses, flags, closure start, coordinates."""
+    site = build(tmp_path, visit("2026-10-29", ROACHES), feed_only("2026-11-06"))
+    data = json.loads(read(site, "places.json"))
+    assert data["statuses"] == [["Closure Re-Inspection Required", "r"], ["Approved", "g"]]
+    assert (data["today"], data["inspections"], data["withNotes"]) == ("2026-11-09", 2, 1)
+    feed_row, cafe_row = data["places"]
+    assert feed_row == [
+        "feed-diner-5-main-st-ne",
+        "FEED DINER",
+        None,
+        "5 MAIN ST NE",
+        "." * 51 + "R",
+        [[3, 0]],
+        0,
+        0,
+        "2026-11-06",
+        [35.08, -106.65],
+    ]
+    assert cafe_row[4] == "." * 50 + "1."
+    assert cafe_row[7] == 1
+
+
+def test_map_and_about_pages(tmp_path: Path) -> None:
+    """The map loads citymap through an import map; About links the reports and the error-report page."""
+    site = build(tmp_path, visit("2026-10-29"))
+    map_html = read(site, "map.html")
+    assert '<script type="importmap">{"imports": {"citymap": "./citymap.js"}}</script>' in map_html
+    assert '<link rel="stylesheet" href="citymap.css">' in map_html
+    about = read(site, "about.html")
+    assert '<a href="https://github.com/silentpickle/nm_health/issues">Report an error</a>' in about
+    assert f'<a href="https://example.test/pdf/{REPORT_FILE}">PDF</a>' in about
+
+
+def test_real_archive(tmp_path: Path) -> None:
+    """The committed archive: places.json under 300 KB, and every place page links each of its PDFs."""
+    settings = replace(load(), site_dir=tmp_path / "site")
+    rebuilt = rebuild(settings, date(2025, 11, 9))
+    count = write_site(rebuilt, settings)
+    site = settings.site_dir
+    assert len(list((site / "place").glob("*.html"))) == count
+    assert (site / "places.json").stat().st_size < PLACES_JSON_LIMIT
+    assert len(json.loads(read(site, "places.json"))["places"]) == count
+    expected: dict[str, set[str]] = defaultdict(set)
+    for inspection in rebuilt.inspections:
+        if inspection.report_file:
+            slug = establishment_slug(inspection.name, inspection.address)
+            expected[slug].add(html.escape(settings.pdf_base_url + inspection.report_file))
+    for slug, links in expected.items():
+        page = read(site, f"place/{slug}.html")
+        assert links <= set(PDF_LINK.findall(page)), slug
