@@ -83,7 +83,15 @@ def test_dragon_sushi_row() -> None:
         lng=-106.55,
         violations=18,
         risk="3",
+        time="11:45",
     )
+
+
+def test_date_only_start_has_no_time() -> None:
+    """An actual start without a time part leaves the time unknown."""
+    record = to_record(row(ticket_detail_entry7="2026-07-13"))
+    assert record is not None
+    assert (record.date, record.time) == ("2026-07-13", None)
 
 
 @pytest.mark.parametrize(

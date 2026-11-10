@@ -158,11 +158,12 @@ def _from_feed(record: FeedRecord) -> Inspection:
         violation_count=record.violations,
         lat=record.lat,
         lng=record.lng,
+        time=record.time,
     )
 
 
 def merge_feed(detailed: list[Inspection], records: list[FeedRecord]) -> list[Inspection]:
-    """Detailed inspections gain the feed's coordinates and count; feed-only inspections are added without text."""
+    """Detailed inspections gain the feed's coordinates, count and time; feed-only ones are added without text."""
     by_key = {(r.number, r.date): r for r in records}
     by_address = {normalized_address(r.address): r for r in records if r.lat is not None}
     merged: list[Inspection] = []
@@ -172,7 +173,7 @@ def merge_feed(detailed: list[Inspection], records: list[FeedRecord]) -> list[In
         if nearby is not None:
             inspection = replace(inspection, lat=nearby.lat, lng=nearby.lng)  # noqa: PLW2901 - enriching the loop item
         if match is not None:
-            inspection = replace(inspection, violation_count=match.violations)  # noqa: PLW2901 - enriching the loop item
+            inspection = replace(inspection, violation_count=match.violations, time=match.time)  # noqa: PLW2901 - enriching the loop item
         merged.append(inspection)
     return merged + [_from_feed(r) for r in by_key.values()]
 

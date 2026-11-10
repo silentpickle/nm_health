@@ -13,7 +13,16 @@ from datetime import date, timedelta
 from nm_health.identity import establishment_slug, normalized_address
 from nm_health.model import Inspection, Violation
 from nm_health.rebuild import Report
-from nm_health.signals import ALL_PESTS, HEADLINE_PESTS, Episode, cleared_on, closure_episodes, is_pass, is_red
+from nm_health.signals import (
+    ALL_PESTS,
+    HEADLINE_PESTS,
+    Episode,
+    chronological,
+    cleared_on,
+    closure_episodes,
+    is_pass,
+    is_red,
+)
 
 WEEKS = 52
 DAYS_PER_WEEK = 7
@@ -285,8 +294,8 @@ def _lat_lng(inspections: tuple[Inspection, ...]) -> tuple[float, float] | None:
 
 
 def build_place(slug: str, inspections: list[Inspection]) -> Place:
-    """One place from its inspections (any order)."""
-    ordered = tuple(_redacted(i) for i in sorted(inspections, key=lambda i: (i.date, i.inspection_id), reverse=True))
+    """One place from its inspections (any order); newest first, same-day ones by the feed's time."""
+    ordered = tuple(_redacted(i) for i in reversed(chronological(tuple(inspections))))
     latest = ordered[0]
     return Place(
         slug=slug,

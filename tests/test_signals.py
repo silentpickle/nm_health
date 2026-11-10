@@ -6,7 +6,7 @@ from dataclasses import replace
 import pytest
 
 from nm_health.model import Inspection, Violation
-from nm_health.signals import Episode, cleared_on, closure_episodes, is_pass, is_red, pest_sightings
+from nm_health.signals import Episode, chronological, cleared_on, closure_episodes, is_pass, is_red, pest_sightings
 
 CLOSED = "Closure Re-Inspection Required"
 FAILED = "Unsatisfactory Re-Inspection required"
@@ -16,6 +16,7 @@ ROACHES_LIVE = Violation("Pest Control", "Controlling Pests", "", "Observed live
 FLIES = Violation("Pest Control", "Insect Control Devices", "", "Observed flies.", ("flies",), "live")
 OTHER = Violation("Plumbing", "Good Repair", "", "Observed leak.")
 EPISODE_DAYS = 39
+FOLLOW_UP = "Corrective Action Compliance"
 
 
 def visit(day: str, status: str, *violations: Violation, number: str = "") -> Inspection:
@@ -108,3 +109,34 @@ def test_cleared_on() -> None:
     )
     assert cleared_on(history, "2026-06-08") == "2026-07-17"
     assert cleared_on(history, "2026-07-17") is None
+
+
+def at(day: str, time: str | None, status: str, number: str, kind: str = "") -> Inspection:
+    """An inspection with the feed's start time."""
+    found = visit(day, status, number=number)
+    return replace(found, time=time, kind=kind or found.kind)
+
+
+def test_same_day_order_follows_the_feed_time() -> None:
+    """Ojos Locos, Oct 9 2026: closed 11:30, approved 16:00, conditional 16:30, whatever the IDs say."""
+    history = (
+        at("2026-10-09", "16:30", CONDITIONAL, "RT-096598"),
+        at("2026-10-09", "16:00", APPROVED, "RT-097595"),
+        at("2026-10-09", "11:30", CLOSED, "RT-097628"),
+    )
+    assert [i.time for i in chronological(history)] == ["11:30", "16:00", "16:30"]
+
+
+def test_same_time_failure_stands() -> None:
+    """Two permits inspected together at 11:10: the closure sorts last, so the place reads closed."""
+    history = (at("2026-01-08", "11:10", CLOSED, "PT-A"), at("2026-01-08", "11:10", APPROVED, "PT-B"))
+    assert [i.status for i in chronological(history)] == [APPROVED, CLOSED]
+
+
+def test_untimed_follow_up_comes_after_the_routine() -> None:
+    """A corrective-action visit the feed doesn't list follows that day's timed routine inspection."""
+    history = (
+        at("2025-12-18", None, APPROVED, "CAC-1", FOLLOW_UP),
+        at("2025-12-18", "10:10", FAILED, "PT-1"),
+    )
+    assert [i.inspection_id for i in chronological(history)] == ["PT-1", "CAC-1"]

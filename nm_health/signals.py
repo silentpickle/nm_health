@@ -12,6 +12,10 @@ from nm_health.model import Inspection
 
 RED_WORDS = ("closure", "unsatisfactory")
 APPROVED_WORD = "approved"  # "Approved" and "Conditional Approved" both reopen a place
+# An untimed corrective-action visit follows the routine inspection it corrects; other untimed visits sort first.
+FOLLOW_UP_WORD = "corrective action"
+START_OF_DAY = ""
+END_OF_DAY = "24:00"
 HEADLINE_PESTS = ("roaches", "rodents")
 ALL_PESTS = ("roaches", "rodents", "flies", "other_pests", "pests_unspecified")
 
@@ -55,16 +59,31 @@ def is_pass(status: str) -> bool:
     return APPROVED_WORD in status.lower() and not is_red(status)
 
 
-def _chronological(inspections: tuple[Inspection, ...]) -> list[Inspection]:
-    """Oldest first; on the same day failures come before passes (a same-day re-inspection reopens)."""
-    return sorted(inspections, key=lambda i: (i.date, not is_red(i.status), i.inspection_id))
+def _clock(inspection: Inspection) -> str:
+    if inspection.time:
+        return inspection.time
+    return END_OF_DAY if FOLLOW_UP_WORD in inspection.kind.lower() else START_OF_DAY
+
+
+def _tie_rank(inspection: Inspection) -> bool:
+    """At one recorded time (several permits inspected together) the failure sorts last, so it stands.
+
+    With no time, a failure sorts first: a same-day re-inspection is what usually follows it.
+    """
+    red = is_red(inspection.status)
+    return red if inspection.time else not red
+
+
+def chronological(inspections: tuple[Inspection, ...]) -> list[Inspection]:
+    """Oldest first: by date, then the feed's start time, then `_tie_rank`."""
+    return sorted(inspections, key=lambda i: (i.date, _clock(i), _tie_rank(i), i.inspection_id))
 
 
 def closure_episodes(inspections: tuple[Inspection, ...]) -> list[Episode]:
     """Every closed/failed run, oldest first."""
     episodes: list[Episode] = []
     start, failed = "", 0
-    for inspection in _chronological(inspections):
+    for inspection in chronological(inspections):
         if is_red(inspection.status):
             start, failed = start or inspection.date, failed + 1
             continue
@@ -95,5 +114,5 @@ def pest_sightings(inspections: tuple[Inspection, ...], kinds: tuple[str, ...] =
 
 def cleared_on(inspections: tuple[Inspection, ...], cited: str) -> str | None:
     """First date after `cited` on which the place passed an inspection: the inspector looked again and passed it."""
-    later = (i for i in _chronological(inspections) if i.date > cited and is_pass(i.status))
+    later = (i for i in chronological(inspections) if i.date > cited and is_pass(i.status))
     return next((i.date for i in later), None)

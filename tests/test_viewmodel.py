@@ -399,3 +399,10 @@ def test_week_without_any_report_or_inspection() -> None:
     assert week is not None
     assert (week.covered, week.pest_report, week.pest_visits) == (False, None, ())
     assert select_week([], ()) is None
+
+
+def test_same_day_reopening_is_the_latest() -> None:
+    """Naan & Dosa, Oct 27 2026: closed 1:06 pm, conditional at 2:07 pm; the ID order would say closed."""
+    closed = replace(visit("2026-10-27", status=CLOSED, number="PT9"), time="13:06")
+    reopened = replace(visit("2026-10-27", status=CONDITIONAL, number="PT1"), time="14:07")
+    assert place(closed, reopened).latest.status == CONDITIONAL
