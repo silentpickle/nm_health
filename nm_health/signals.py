@@ -89,6 +89,11 @@ def is_open(status: str) -> bool:
     return (is_pass(status) or is_red(status)) and not is_closed(status)
 
 
+def is_follow_up(inspection: Inspection) -> bool:
+    """A corrective-action visit: its notes recap what was corrected since an earlier inspection, not new findings."""
+    return FOLLOW_UP_WORD in inspection.kind.lower()
+
+
 def _clock(inspection: Inspection) -> str:
     if inspection.time:
         return inspection.time

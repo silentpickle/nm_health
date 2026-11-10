@@ -23,6 +23,7 @@ from nm_health.signals import (
     closed_spells,
     closure_episodes,
     is_closed,
+    is_follow_up,
     is_open,
     is_pass,
     is_red,
@@ -209,8 +210,8 @@ def has_headline_pest(kinds: tuple[str, ...]) -> bool:
 
 
 def cites_headline_pests(inspection: Inspection) -> bool:
-    """Any violation in the inspection cites roaches or rodents."""
-    return any(has_headline_pest(v.tags) for v in inspection.violations)
+    """Any violation in the inspection cites roaches or rodents (a follow-up's recap of earlier findings doesn't)."""
+    return not is_follow_up(inspection) and any(has_headline_pest(v.tags) for v in inspection.violations)
 
 
 def public_id(inspection: Inspection) -> str:
@@ -296,6 +297,7 @@ def _citations(inspections: tuple[Inspection, ...]) -> tuple[PestCitation, ...]:
             status=inspection.status,
         )
         for index, inspection in enumerate(inspections)
+        if not is_follow_up(inspection)
         for v in inspection.violations
         if any(tag in ALL_PESTS for tag in v.tags)
     ]

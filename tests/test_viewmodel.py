@@ -16,6 +16,7 @@ from nm_health.viewmodel import (
     Place,
     build_place,
     cell_code,
+    cites_headline_pests,
     clock,
     closed_text,
     closure_end,
@@ -220,6 +221,15 @@ def test_closure_lines_ended_and_open() -> None:
     assert closure_end(old) == f"Next inspection: {CONDITIONAL}, Mar 9, 2026."
     assert closure_start(new) == f"Oct 1, 2026: {CLOSED}"
     assert closure_end(new) is None
+
+
+def test_corrective_action_recap_is_not_a_pest_citation() -> None:
+    """California Del Norte, Sep 25 2026: a follow-up's notes recap the closure's mice; they aren't new citations."""
+    recap = replace(visit("2026-09-25", ROACHES), kind="Corrective Action Compliance")
+    recapped = place(visit("2026-09-21", ROACHES, status=CLOSED), recap)
+    assert [c.date for c in recapped.pests] == ["2026-09-21"]
+    assert not cites_headline_pests(recap)
+    assert recapped.inspections[0].violations == recap.violations  # still listed on the timeline
 
 
 def test_pest_citations_name_reading_status_and_next_approval() -> None:
