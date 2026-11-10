@@ -16,7 +16,7 @@ from datetime import date
 from pathlib import Path
 
 from nm_health.feed import FeedRecord, load_records
-from nm_health.model import Inspection
+from nm_health.model import Inspection, Violation
 from nm_health.rebuild import rebuild, report_text
 from nm_health.settings import ROOT, Settings
 from nm_health.signals import is_closed
@@ -30,9 +30,12 @@ from nm_health.viewmodel import (
     group_places,
     other_pest_kinds,
     pest_reading,
+    plural,
     redact,
     reopened_flag,
+    row_flag,
     status_today,
+    violation_title,
     when_text,
 )
 
@@ -116,15 +119,25 @@ def choose(places: list[Place], count: int, seed: int) -> list[Sample]:
 # ---------- What the site says ----------
 
 
+def _cited(v: Violation) -> str:
+    title = violation_title(v)
+    return title if title == v.category else f"{title} ({v.category})"
+
+
+def _notes(inspection: Inspection) -> str:
+    """What the site says it knows about an inspection's violations, naming each one listed."""
+    if not inspection.has_details:
+        count = inspection.violation_count
+        listed = "an unknown number of violations" if count is None else plural(count, "violation", "violations")
+        return f"known only from the status feed, which lists {listed}"
+    listed = plural(len(inspection.violations), "violation", "violations")
+    names = "; ".join(_cited(v) for v in inspection.violations)
+    return f"{listed} listed in the weekly report: {names}" if names else f"{listed} listed in the weekly report"
+
+
 def _timeline_claim(inspection: Inspection) -> str:
-    notes = (
-        f"{len(inspection.violations)} violations listed in the weekly report"
-        if inspection.has_details
-        else "known only from the status feed"
-    )
-    return (
-        f"Inspection {when_text(inspection.date, inspection.time)}: {inspection.status} ({inspection.kind}); {notes}."
-    )
+    when = when_text(inspection.date, inspection.time)
+    return f"Inspection {when}: {inspection.status} ({inspection.kind}); {_notes(inspection)}."
 
 
 def _closure_claims(place: Place) -> list[str]:
@@ -145,7 +158,7 @@ def _pest_claims(place: Place) -> list[str]:
 
 def claims(place: Place) -> list[str]:
     """Everything the site states about the place, in the order a reader meets it."""
-    flag = reopened_flag(place)
+    flag = row_flag(place)
     return [
         f"Name and address: {place.name}, {place.address}.",
         f"Status today: {status_today(place)}.",
@@ -218,7 +231,15 @@ def _pdf_section(place: Place, sources: Sources) -> list[str]:
 
 def _feed_line(record: FeedRecord) -> str:
     count = "unknown" if record.violations is None else str(record.violations)
-    return f"- {record.number} {MIDDOT} {record.date} {record.time or '(no time)'} {MIDDOT} {record.kind} {MIDDOT} {record.status} {MIDDOT} violations: {count}"
+    fields = (
+        record.number,
+        f"{record.name}, {record.address}",
+        f"{record.date} {record.time or '(no time)'}",
+        record.kind,
+        record.status,
+        f"violations: {count}",
+    )
+    return "- " + f" {MIDDOT} ".join(fields)
 
 
 def _feed_section(place: Place, sources: Sources) -> list[str]:

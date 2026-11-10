@@ -120,7 +120,16 @@ def test_claims_cover_status_closure_pests_and_every_inspection() -> None:
     assert '2026-10-01: Roaches, live, quoting the inspector: "Observed live roaches."' in found
     assert found[-1] == (
         "Inspection Oct 1, 2026: Closure Re-Inspection Required (Routine Food Establishment Inspection); "
-        "1 violations listed in the weekly report."
+        "1 violation listed in the weekly report: Controlling Pests (Pest Control)."
+    )
+
+
+def test_feed_only_claim_gives_the_feed_count() -> None:
+    """An inspection known only from the feed says how many violations the feed lists."""
+    feed_only = replace(visit("2026-10-02", APPROVED, "F"), has_details=False, report_file="", violation_count=1)
+    assert claims(place("FEED", feed_only))[-1] == (
+        "Inspection Oct 2, 2026: Approved (Routine Food Establishment Inspection); "
+        "known only from the status feed, which lists 1 violation."
     )
 
 
@@ -169,6 +178,6 @@ def test_packet_holds_prompt_rules_statements_and_redacted_records() -> None:
     assert f"--seed {SEED}" in text
     assert "## Place 1: NAAN & DOSA (picked for the test)" in text
     assert "1.2. Status today: Open · Approved, per the Oct 28, 2026, 3:00 pm inspection." in text
-    assert "- CAC-1 · 2026-10-28 15:00 · Corrective · Approved · violations: 0" in text
+    assert "- CAC-1 · NAAN & DOSA, 6501 WYOMING · 2026-10-28 15:00 · Corrective · Approved · violations: 0" in text
     assert "Call [phone removed]." in text
     assert "505-768-2738" not in text
