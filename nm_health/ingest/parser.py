@@ -249,7 +249,7 @@ class InspectionReportParser:
 
         est_re = re.compile(r"^([A-Za-z0-9\s#&\'\.\,\-]+?)\s+-\s+(\d+[A-Za-z0-9\s\,\-\.#/]+)$")
         permit_re = re.compile(
-            r"^(.*?)\(Permit\s*#\s*-\s*([A-Za-z0-9]+)\)\s*-\s*Operational\s*Status\s*[-–]\s*([A-Za-z]+)",  # noqa: RUF001
+            r"^(.*?)\(Permit\s*#\s*-\s*([A-Za-z0-9-]+)\)\s*-\s*Operational\s*Status\s*[-–]\s*([A-Za-z]+)",  # noqa: RUF001
             re.IGNORECASE,
         )
         row_re = re.compile(

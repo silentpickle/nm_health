@@ -215,9 +215,9 @@
    "name": "SPANISH TRAILS WELLNESS & REHABILITATION LLC",
    "normalized_address": "1610 RENAISSANCE BLVD NE",
    "permits": {
-    "PT0044139": {
+    "FOODEST-2025-016331": {
      "operational_status": "Open",
-     "permit_number": "PT0044139",
+     "permit_number": "FOODEST-2025-016331",
      "permit_type": "Food Establishment"
     }
    },
@@ -253,9 +253,9 @@
    "name": "LJC Enterprise DBA Firehouse Subs",
    "normalized_address": "1720 UNSER BLVD NW",
    "permits": {
-    "PT0110579": {
+    "FOODEST-2025-017538": {
      "operational_status": "Open",
-     "permit_number": "PT0110579",
+     "permit_number": "FOODEST-2025-017538",
      "permit_type": "Food Establishment"
     },
     "PT0153231": {
@@ -405,10 +405,10 @@
    "name": "MOM AND POP PIZZA SHOP",
    "normalized_address": "2220 UNSER BLVD NW",
    "permits": {
-    "PT0158715": {
+    "FOODEST-2026-005624": {
      "operational_status": "Open",
-     "permit_number": "PT0158715",
-     "permit_type": "Food Processor"
+     "permit_number": "FOODEST-2026-005624",
+     "permit_type": "Food Establishment"
     }
    },
    "raw_address": "2220 UNSER BLVD NW"
@@ -570,9 +570,9 @@
    "name": "NMR DBA Dunkin Donuts - Wyoming, LLC",
    "normalized_address": "4201 WYOMING BLVD NE",
    "permits": {
-    "PT0160266": {
+    "FOODEST-2026-011352": {
      "operational_status": "Open",
-     "permit_number": "PT0160266",
+     "permit_number": "FOODEST-2026-011352",
      "permit_type": "Food Establishment"
     }
    },
@@ -834,9 +834,9 @@
    "name": "LFL BUSINESS LLC DBA Love For Life",
    "normalized_address": "7534 BEAR CANYON RD NE",
    "permits": {
-    "PT0111689": {
+    "FOODEST-2026-014301": {
      "operational_status": "Open",
-     "permit_number": "PT0111689",
+     "permit_number": "FOODEST-2026-014301",
      "permit_type": "Food Establishment"
     }
    },
@@ -2482,7 +2482,7 @@
    "inspection_status": "Conditional Approved",
    "inspection_type": "Corrective Action Compliance",
    "operational_status": "Open",
-   "permit_number": "PT0111689",
+   "permit_number": "FOODEST-2026-014301",
    "permit_type": "Food Establishment",
    "raw_summary_line": "09/23/2026        CAC-Food-090605-2026        Corrective Action Compliance                 Conditional Approved               Pg. 22",
    "summary_page": 22,
@@ -2665,7 +2665,7 @@
    "inspection_status": "Approved",
    "inspection_type": "Routine Food Establishment Inspection",
    "operational_status": "Open",
-   "permit_number": "PT0110579",
+   "permit_number": "FOODEST-2025-017538",
    "permit_type": "Food Establishment",
    "raw_summary_line": "09/24/2026      RT-FOODEST-070926-2026    Routine Food Establishment Inspection              Approved                  Pg. 24",
    "summary_page": 24,
@@ -3312,8 +3312,8 @@
    "inspection_status": "Approved",
    "inspection_type": "Routine Food Establishment Inspection",
    "operational_status": "Open",
-   "permit_number": "PT0158715",
-   "permit_type": "Food Processor",
+   "permit_number": "FOODEST-2026-005624",
+   "permit_type": "Food Establishment",
    "raw_summary_line": "09/25/2026      RT-FOODEST-091705-2026    Routine Food Establishment Inspection              Approved                  Pg. 31",
    "summary_page": 31,
    "violation_count": 4,
@@ -3440,7 +3440,7 @@
    "inspection_status": "Approved",
    "inspection_type": "Routine Food Establishment Inspection",
    "operational_status": "Open",
-   "permit_number": "PT0160266",
+   "permit_number": "FOODEST-2026-011352",
    "permit_type": "Food Establishment",
    "raw_summary_line": "09/24/2026      RT-FOODEST-075330-2026    Routine Food Establishment Inspection              Approved                  Pg. 32",
    "summary_page": 32,
@@ -4345,7 +4345,7 @@
    "inspection_status": "Approved",
    "inspection_type": "Routine Food Establishment Inspection",
    "operational_status": "Open",
-   "permit_number": "PT0044139",
+   "permit_number": "FOODEST-2025-016331",
    "permit_type": "Food Establishment",
    "raw_summary_line": "09/24/2026      RT-FOODEST-116687-2025    Routine Food Establishment Inspection                 Approved                      Pg. 41",
    "summary_page": 41,
