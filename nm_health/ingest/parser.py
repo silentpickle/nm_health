@@ -35,6 +35,8 @@ def _block_end(text: str, next_date_pos: int) -> int:
     return len("\n".join(lines))
 
 
+# A violation's heading line; the PDF sometimes prints a stray ". " before it.
+VIOLATION_HEADING = re.compile(r"\n[\s.]*Violation:\s*")
 BULLETS = ("\u2022", "*")
 OBSERVATION_PREFIXES = (
     "Observed",
@@ -376,7 +378,7 @@ class InspectionReportParser:
     def _parse_violations(self, block_text: str) -> list[dict[str, Any]]:
         """One record per bullet item under each 'Violation:' category."""
         violations: list[dict[str, Any]] = []
-        for part in re.split(r"\n\s*Violation:\s*", block_text)[1:]:
+        for part in VIOLATION_HEADING.split(block_text)[1:]:
             lines = [line.strip() for line in part.split("\n") if line.strip()]
             if not lines:
                 continue

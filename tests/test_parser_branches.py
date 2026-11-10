@@ -149,6 +149,22 @@ def test_each_bullet_is_its_own_violation() -> None:
     assert second["rule_description"] == "Cards shall be kept on file. The PIC was unable to provide records."
 
 
+# California Del Norte, Sep 25 2026: the PDF prints a stray ". " before the only "Violation:" heading.
+DOTTED_HEADING_BLOCK = (
+    "\n. Violation: Result of a Complaint\n"
+    " \u2022 Complaint\n"
+    "  - This inspection is the result of a complaint received by the Department.\n"
+    "Observed equipment food-contact surface with the buildup of soil residues.\n"
+)
+
+
+def test_dotted_violation_heading_kept() -> None:
+    """A "Violation:" heading with a stray leading dot still starts a violation."""
+    (violation,) = InspectionReportParser(ANY_PDF)._parse_violations(DOTTED_HEADING_BLOCK)  # noqa: SLF001 - pinning a private helper
+    assert (violation["category"], violation["item_title"]) == ("Result of a Complaint", "Complaint")
+    assert violation["observation"] == "Observed equipment food-contact surface with the buildup of soil residues."
+
+
 def test_bare_page_number_column(monkeypatch: pytest.MonkeyPatch) -> None:
     """Some weeks print the summary's page column as '4' instead of 'Pg. 4'; those rows still count."""
     bare_row = "  10/06/2025     PT0142645     Routine Food Establishment Inspection     Approved     4"
