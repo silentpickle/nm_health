@@ -21,10 +21,16 @@ import {
 
 const PAGE_SIZE = 60;
 const ALL = "all";
+/** Latest levels that mean "passed again": approved or conditional (viewmodel.level). */
+const OPEN_AGAIN = new Set(["g", "y"]);
 /** @type {Record<string, (place: Place) => boolean>} */
 const FILTERS = {
   all: () => true,
   red: (place) => place.closure !== "",
+  reopened: (place) =>
+    place.closure !== "" &&
+    !place.closureInForce &&
+    OPEN_AGAIN.has(place.history[0]?.level ?? ""),
   pests: (place) => place.pests,
   employee: (place) => place.employee,
 };
@@ -51,7 +57,9 @@ function flags(place) {
   if (place.pests) {
     out.push(el("span", { class: "flag", text: PEST_FLAG_TEXT }));
   }
-  if (place.closure && latest?.level !== "r") {
+  if (place.reopened) {
+    out.push(el("span", { class: "flag", text: place.reopened }));
+  } else if (place.closure && latest?.level !== "r") {
     out.push(
       el("span", {
         class: "flag",

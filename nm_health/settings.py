@@ -11,6 +11,7 @@ DEFAULT_SITE_NAME = "Food Inspection History"
 DEFAULT_REPORT_ERROR_URL = "https://github.com/silentpickle/nm_health/issues"
 DEFAULT_WINDOW_DAYS = 365
 DEFAULT_FEED_LOOKBACK_DAYS = 2200
+DEFAULT_SPOTCHECK_PLACES = 6
 
 
 @dataclass(frozen=True)
@@ -39,6 +40,8 @@ class Settings:
     # Feed records are filtered by creation date, which can precede the inspection by years.
     feed_lookback_days: int = DEFAULT_FEED_LOOKBACK_DAYS
     feed_raw_dir: Path = ROOT / "data" / "feed" / "raw"
+    # Places sampled into an LLM spot-check packet (nm-health spotcheck).
+    spotcheck_places: int = DEFAULT_SPOTCHECK_PLACES
 
 
 def load(path: Path = CONFIG_PATH) -> Settings:
@@ -71,4 +74,5 @@ def load(path: Path = CONFIG_PATH) -> Settings:
         ),
         feed_lookback_days=int(feed["lookback_days"]),
         feed_raw_dir=base / str(feed["raw_dir"]),
+        spotcheck_places=int(data.get("spotcheck", {}).get("places", DEFAULT_SPOTCHECK_PLACES)),
     )

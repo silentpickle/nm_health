@@ -25,6 +25,8 @@ NOT_DONE_STATUS = "Requested"
 VOLATILE_PREFIX = ":"  # Socrata row metadata (:id, :version, :updated_at...) changes without the data changing
 TIMESTAMP_FORMAT = "%Y%m%dT%H%M%SZ"
 ISO_DATE_LEN = len("2026-01-01")
+TIME_START = len("2026-01-01T")
+TIME_END = len("2026-01-01T16:30")
 # The feed's numbered columns (from the SoQL query it echoes back).
 NUMBER, COMPANY, STATUS, RISK, ACTUAL_START, VIOLATIONS, DBA = (
     "ticket_detail_entry0",
@@ -56,6 +58,7 @@ class FeedRecord:
     lng: float | None
     violations: int | None
     risk: str | None
+    time: str | None = None  # "HH:MM", the actual start's local time
 
 
 def query_url(settings: Settings, start: date, end: date) -> str:
@@ -174,6 +177,7 @@ def to_record(row: dict[str, Any]) -> FeedRecord | None:
         lng=lng,
         violations=_violations(row),
         risk=str(row.get(RISK)) if row.get(RISK) else None,
+        time=started[TIME_START:TIME_END] or None,
     )
 
 

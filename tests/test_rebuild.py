@@ -145,6 +145,7 @@ def feed_record(number: str, day: str, status: str = "Approved", violations: int
         lng=-106.65,
         violations=violations,
         risk="3",
+        time="14:20",
     )
 
 
@@ -157,6 +158,7 @@ def test_merge_feed() -> None:
     )
     enriched, feed_only = merged
     assert (enriched.lat, enriched.lng, enriched.violation_count, enriched.has_details) == (35.08, -106.65, 1, True)
+    assert (enriched.time, feed_only.time) == ("14:20", "14:20")
     assert (feed_only.inspection_id, feed_only.status, feed_only.violation_count) == ("RT-9", "Closure", 28)
     assert (feed_only.has_details, feed_only.violations, feed_only.report_file) == (False, (), "")
 
@@ -165,7 +167,7 @@ def test_unmatched_inspection_gets_coordinates_by_address() -> None:
     """A follow-up the feed doesn't carry still lands on the map via its address."""
     follow_up = replace(inspection("Approved", "r.pdf"), inspection_id="CAC-1")
     (enriched, _feed_only) = merge_feed([follow_up], [feed_record("RT-9", "2026-06-08")])
-    assert (enriched.lat, enriched.violation_count) == (35.08, None)
+    assert (enriched.lat, enriched.violation_count, enriched.time) == (35.08, None, None)
 
 
 def test_amended_status_and_dba_and_window(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -365,6 +365,12 @@ h2 .n {
   font-size: 0.88rem;
   overflow-wrap: anywhere;
 }
+.notice .today {
+  font-size: 0.86rem;
+  font-weight: 600;
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
+}
 
 ul.rows {
   list-style: none;
@@ -467,6 +473,20 @@ ul.rows a.row:hover {
   font: 500 0.95rem var(--font-data);
   color: var(--muted);
   overflow-wrap: anywhere;
+}
+.place-head .today {
+  margin: 8px 0 0;
+  font-weight: 600;
+}
+.place-head .today .lbl {
+  font: 500 0.78rem var(--font-data);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-right: 6px;
+}
+.fact .closed {
+  font-weight: 600;
 }
 .record {
   display: grid;

@@ -7,9 +7,9 @@
    "name": "El Branco Restaurant",
    "normalized_address": "100 COORS AVE SW",
    "permits": {
-    "PT0161484": {
+    "FOODEST-2025-012746": {
      "operational_status": "Open",
-     "permit_number": "PT0161484",
+     "permit_number": "FOODEST-2025-012746",
      "permit_type": "Food Establishment"
     }
    },
@@ -43,9 +43,9 @@
    "name": "Unser Bakery LLC",
    "normalized_address": "10850 UNSER BLVD NW",
    "permits": {
-    "PT0044348": {
+    "FOODEST-2026-013798": {
      "operational_status": "Open",
-     "permit_number": "PT0044348",
+     "permit_number": "FOODEST-2026-013798",
      "permit_type": "Food Establishment"
     }
    },
@@ -226,9 +226,9 @@
    "name": "Cafe es Amor LLC",
    "normalized_address": "2209 CENTRAL AVE, Unit B",
    "permits": {
-    "PT0154377": {
+    "FOODEST-2025-00848": {
      "operational_status": "Open",
-     "permit_number": "PT0154377",
+     "permit_number": "FOODEST-2025-00848",
      "permit_type": "Food Establishment"
     }
    },
@@ -373,9 +373,9 @@
    "name": "El Pollo Loco",
    "normalized_address": "3811 ELLISON DR NW",
    "permits": {
-    "PT0149096": {
+    "FOODEST-2026-014302": {
      "operational_status": "Open",
-     "permit_number": "PT0149096",
+     "permit_number": "FOODEST-2026-014302",
      "permit_type": "Food Establishment"
     }
    },
@@ -569,9 +569,9 @@
    "name": "AN BE LLC DBA Saigon Restaurant",
    "normalized_address": "6001 SAN MATEO BLVD NE, Unit D4",
    "permits": {
-    "PT0043786": {
+    "FOODEST-2025-015369": {
      "operational_status": "Open",
-     "permit_number": "PT0043786",
+     "permit_number": "FOODEST-2025-015369",
      "permit_type": "Food Establishment"
     }
    },
@@ -668,9 +668,9 @@
    "name": "Fuddruckers",
    "normalized_address": "6600 MENAUL BLVD NE",
    "permits": {
-    "PT0117679": {
+    "FOODEST-2026-012330": {
      "operational_status": "Open",
-     "permit_number": "PT0117679",
+     "permit_number": "FOODEST-2026-012330",
      "permit_type": "Food Establishment"
     },
     "PT0124507": {
@@ -1082,7 +1082,7 @@
    "inspection_status": "Approved",
    "inspection_type": "Corrective Action Compliance",
    "operational_status": "Open",
-   "permit_number": "PT0043786",
+   "permit_number": "FOODEST-2025-015369",
    "permit_type": "Food Establishment",
    "raw_summary_line": "10/29/2026       CAC-Food-102487-2026         Corrective Action Compliance                    Approved                      Pg. 8",
    "summary_page": 8,
@@ -1101,7 +1101,7 @@
    "inspection_status": "Conditional Approved",
    "inspection_type": "Routine Food Establishment Inspection",
    "operational_status": "Open",
-   "permit_number": "PT0043786",
+   "permit_number": "FOODEST-2025-015369",
    "permit_type": "Food Establishment",
    "raw_summary_line": "10/29/2026      RT-FOODEST-105944-2025    Routine Food Establishment Inspection          Conditional Approved               Pg. 8",
    "summary_page": 8,
@@ -1586,7 +1586,7 @@
    "inspection_status": "Approved",
    "inspection_type": "Complaint Food Establishment Inspection",
    "operational_status": "Open",
-   "permit_number": "PT0154377",
+   "permit_number": "FOODEST-2025-00848",
    "permit_type": "Food Establishment",
    "raw_summary_line": "10/27/2026      COM-FOODES-101445-2026   Complaint Food Establishment Inspection        Approved            Pg. 13",
    "summary_page": 13,
@@ -2190,7 +2190,7 @@
    "inspection_status": "Conditional Approved",
    "inspection_type": "Routine Food Establishment Inspection",
    "operational_status": "Open",
-   "permit_number": "PT0149096",
+   "permit_number": "FOODEST-2026-014302",
    "permit_type": "Food Establishment",
    "raw_summary_line": "10/26/2026      RT-FOODEST-100811-2026    Routine Food Establishment Inspection    Conditional Approved     Pg. 20",
    "summary_page": 20,
@@ -2526,7 +2526,7 @@
    "inspection_status": "Approved",
    "inspection_type": "Corrective Action Compliance",
    "operational_status": "Open",
-   "permit_number": "PT0117679",
+   "permit_number": "FOODEST-2026-012330",
    "permit_type": "Food Establishment",
    "raw_summary_line": "10/28/2026       CAC-Food-101800-2026         Corrective Action Compliance                      Approved                     Pg. 23",
    "summary_page": 23,
@@ -2681,7 +2681,7 @@
    "inspection_status": "Unsatisfactory Re-Inspection required",
    "inspection_type": "Routine Food Establishment Inspection",
    "operational_status": "Open",
-   "permit_number": "PT0161484",
+   "permit_number": "FOODEST-2025-012746",
    "permit_type": "Food Establishment",
    "raw_summary_line": "10/30/2026      RT-FOODEST-086384-2025    Routine Food Establishment Inspection    Unsatisfactory Re-Inspection required     Pg. 26",
    "summary_page": 26,
@@ -4360,7 +4360,7 @@
    "inspection_status": "Approved",
    "inspection_type": "Corrective Action Compliance",
    "operational_status": "Open",
-   "permit_number": "PT0044348",
+   "permit_number": "FOODEST-2026-013798",
    "permit_type": "Food Establishment",
    "raw_summary_line": "10/27/2026        CAC-Food-101510-2026                   Corrective Action Compliance                               Approved                           Pg. 43",
    "summary_page": 43,

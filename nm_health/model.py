@@ -44,3 +44,5 @@ class Inspection:
     lng: float | None = None
     # The status an earlier report gave before a later (amended) report changed it.
     amended_from: str | None = None
+    # Local start time "HH:MM" from the status feed; None when the feed doesn't list this inspection.
+    time: str | None = None

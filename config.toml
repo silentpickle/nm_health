@@ -58,5 +58,9 @@ clone_dir = "~/Library/Application Support/nm-health-collector/repo"
 hour = 9
 minute = 0
 
+[spotcheck]
+# Places sampled into the LLM spot-check packet (uv run nm-health spotcheck): one per hard case, the rest at random.
+places = 6
+
 [secrets]
 # None. The collector reads only public pages.

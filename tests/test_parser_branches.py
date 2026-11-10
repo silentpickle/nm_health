@@ -63,6 +63,22 @@ def test_row_without_permit_and_detail_matched_by_id(monkeypatch: pytest.MonkeyP
     assert inspection["violations"][0]["observation"] == "Observed leak at hand sink."
 
 
+def test_hyphenated_permit_number_read(monkeypatch: pytest.MonkeyPatch) -> None:
+    """FROST, Jan 2026: 'FOODEST-2025-00423' is read, not the permit of the place listed before it."""
+    frost_row = (
+        "  01/08/2026     RT-FOODEST-000191-2026     Routine Food Establishment Inspection     Approved     Pg. 2"
+    )
+    summary = (
+        f"Summary Table\n{EST_LINE}\n{HEADER_LINE}\n{PERMIT_LINE}\n{ROW_LINE}\n\n"
+        f"FROST - 2201 Q ST NE\n{HEADER_LINE}\n"
+        "Food Establishment (Permit # - FOODEST-2025-00423) - Operational Status \u2013 Open\n"
+        f"{frost_row}"
+    )
+    parsed = parse_pages([summary], monkeypatch)
+    permits = {i["inspection_id_num"]: i["permit_number"] for i in parsed["inspections"]}
+    assert permits == {"PT0000001": "PT0000001", "RT-FOODEST-000191-2026": "FOODEST-2025-00423"}
+
+
 def test_metadata_title_without_amendment(monkeypatch: pytest.MonkeyPatch) -> None:
     """A first page with a Media Report title and no amendment line."""
     first = "Summary Table\nMedia Report 10.25.2026-10.31.2026\nWeek: October 25, 2026 to October 31, 2026"
@@ -147,6 +163,22 @@ def test_each_bullet_is_its_own_violation() -> None:
     assert first["observation"] == "Observed no certified food protection manager on staff."
     assert (second["category"], second["item_title"]) == ("Training Records", "Food Handler Cards")
     assert second["rule_description"] == "Cards shall be kept on file. The PIC was unable to provide records."
+
+
+# California Del Norte, Sep 25 2026: the PDF prints a stray ". " before the only "Violation:" heading.
+DOTTED_HEADING_BLOCK = (
+    "\n. Violation: Result of a Complaint\n"
+    " \u2022 Complaint\n"
+    "  - This inspection is the result of a complaint received by the Department.\n"
+    "Observed equipment food-contact surface with the buildup of soil residues.\n"
+)
+
+
+def test_dotted_violation_heading_kept() -> None:
+    """A "Violation:" heading with a stray leading dot still starts a violation."""
+    (violation,) = InspectionReportParser(ANY_PDF)._parse_violations(DOTTED_HEADING_BLOCK)  # noqa: SLF001 - pinning a private helper
+    assert (violation["category"], violation["item_title"]) == ("Result of a Complaint", "Complaint")
+    assert violation["observation"] == "Observed equipment food-contact surface with the buildup of soil residues."
 
 
 def test_bare_page_number_column(monkeypatch: pytest.MonkeyPatch) -> None:

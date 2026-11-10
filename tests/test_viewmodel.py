@@ -16,6 +16,9 @@ from nm_health.viewmodel import (
     Place,
     build_place,
     cell_code,
+    cites_headline_pests,
+    clock,
+    closed_text,
     closure_end,
     closure_start,
     coverage_line,
@@ -29,7 +32,10 @@ from nm_health.viewmodel import (
     quote_for,
     recent_text,
     redact,
+    reopened_flag,
+    row_flag,
     select_week,
+    status_today,
     strip_cells,
     strip_code,
     strip_label,
@@ -103,6 +109,11 @@ def report(start: str, end: str) -> Report:
             "Sanitizer at 400ppm on 11/03/26; chicken at 135 F; permit PT0144025; 2026-10-29.",
             "Sanitizer at 400ppm on 11/03/26; chicken at 135 F; permit PT0144025; 2026-10-29.",
             id="nothing_else",
+        ),
+        pytest.param(
+            "Re-inspection RT-FOODEST-102027-2026 follows COM-FOODES-101632-2026.",
+            "Re-inspection RT-FOODEST-102027-2026 follows COM-FOODES-101632-2026.",
+            id="inspection_ids_kept",
         ),
     ],
 )
@@ -211,6 +222,15 @@ def test_closure_lines_ended_and_open() -> None:
     assert closure_end(old) == f"Next inspection: {CONDITIONAL}, Mar 9, 2026."
     assert closure_start(new) == f"Oct 1, 2026: {CLOSED}"
     assert closure_end(new) is None
+
+
+def test_corrective_action_recap_is_not_a_pest_citation() -> None:
+    """California Del Norte, Sep 25 2026: a follow-up's notes recap the closure's mice; they aren't new citations."""
+    recap = replace(visit("2026-09-25", ROACHES), kind="Corrective Action Compliance")
+    recapped = place(visit("2026-09-21", ROACHES, status=CLOSED), recap)
+    assert [c.date for c in recapped.pests] == ["2026-09-21"]
+    assert not cites_headline_pests(recap)
+    assert recapped.inspections[0].violations == recap.violations  # still listed on the timeline
 
 
 def test_pest_citations_name_reading_status_and_next_approval() -> None:
@@ -399,3 +419,160 @@ def test_week_without_any_report_or_inspection() -> None:
     assert week is not None
     assert (week.covered, week.pest_report, week.pest_visits) == (False, None, ())
     assert select_week([], ()) is None
+
+
+# ---------- Status today and closures ----------
+
+
+def timed(day: str, time: str | None, status: str, number: str) -> Inspection:
+    """An inspection with the feed's start time."""
+    return replace(visit(day, status=status, number=number), time=time)
+
+
+# A reopening inspection has a new-style ID with no permit number; an old-style ID is the permit number itself.
+SAME_DAY_REOPEN = tuple(
+    replace(i, permit_number="PT0156723")  # the report files both under the place's one permit
+    for i in (
+        timed("2026-10-27", "13:06", CLOSED, "PT0156723"),
+        timed("2026-10-27", "14:07", CONDITIONAL, "RT-FOODEST-101632-2026"),
+    )
+)
+
+
+@pytest.mark.parametrize(
+    ("time", "expected"),
+    [
+        pytest.param("16:30", "4:30 pm", id="afternoon_pm"),
+        pytest.param("12:00", "12:00 pm", id="noon_pm"),
+        pytest.param("00:05", "12:05 am", id="midnight_am"),
+        pytest.param("09:15", "9:15 am", id="morning_am"),
+    ],
+)
+def test_clock(time: str, expected: str) -> None:
+    """24-hour feed times read as 12-hour clock times."""
+    assert clock(time) == expected
+
+
+def test_same_day_reopening_is_the_latest() -> None:
+    """Naan & Dosa, Oct 27 2026: closed 1:06 pm, conditional at 2:07 pm; the ID order would say closed."""
+    reopened = place(*SAME_DAY_REOPEN)
+    assert reopened.latest.status == CONDITIONAL
+    assert status_today(reopened) == "Open \u00b7 Conditional Approved, per the Oct 27, 2026, 2:07 pm inspection"
+    assert reopened_flag(reopened) == "Closed and reopened Oct 27"
+    (run,) = reopened.closures
+    (spell,) = run.closed
+    assert closed_text(spell) == "Closed and reopened the same day (1:06 pm \u2192 2:07 pm): Conditional Approved."
+
+
+@pytest.mark.parametrize(
+    ("inspections", "expected"),
+    [
+        pytest.param(
+            (visit("2026-10-03", status=CLOSED), visit("2026-10-05", status=CLOSED)),
+            "Closed since Oct 3, 2026 \u00b7 Closure Re-Inspection Required, per the Oct 5, 2026 inspection",
+            id="closed_since",
+        ),
+        pytest.param(
+            (visit("2026-10-03", status=FAILED),),
+            "Open \u00b7 Unsatisfactory Re-Inspection required, per the Oct 3, 2026 inspection",
+            id="unsatisfactory_open",
+        ),
+        pytest.param(
+            (visit("2026-10-03", status="Non-Graded"),),
+            "Non-Graded, per the Oct 3, 2026 inspection",
+            id="other_unstated",
+        ),
+    ],
+)
+def test_status_today(inspections: tuple[Inspection, ...], expected: str) -> None:
+    """Closed since the closure began; open for any other graded result; neither for anything else."""
+    assert status_today(place(*inspections)) == expected
+
+
+def test_status_today_names_a_same_time_record() -> None:
+    """Two permits inspected together at 11:30: the closure stands, and the other result is named."""
+    together = place(
+        timed("2026-09-17", "11:30", CONDITIONAL, "RT-FOODEST-1"), timed("2026-09-17", "11:30", CLOSED, "RT-FOODEST-2")
+    )
+    assert status_today(together) == (
+        "Closed since Sep 17, 2026, 11:30 am \u00b7 Closure Re-Inspection Required, per the Sep 17, 2026, 11:30 am "
+        "inspection (another record at the same time: Conditional Approved)"
+    )
+
+
+def test_closure_lasting_days_and_still_closed() -> None:
+    """Closed Oct 3, reopened Oct 9: 6 days. A closure with nothing after it says no reopening is on record."""
+    reopened = place(visit("2026-10-03", status=CLOSED), visit("2026-10-09", status=APPROVED))
+    (spell,) = reopened.spells
+    assert closed_text(spell) == "Closed 6 days: Oct 3 to Oct 9, 2026, reopened as Approved."
+    assert reopened_flag(reopened) == "Closed 6 days, reopened Oct 9"
+    still = place(visit("2026-11-03", status=CLOSED))
+    assert closed_text(still.spells[0]) == "Closed Nov 3, 2026. No reopening inspection on record."
+    assert reopened_flag(still) == ""
+
+
+@pytest.mark.parametrize(
+    "inspections",
+    [
+        pytest.param((visit("2026-10-03", status=FAILED), visit("2026-10-09")), id="unsatisfactory_only"),
+        pytest.param((visit("2026-10-03", status=CLOSED), visit("2026-10-09", status=FAILED)), id="still_red"),
+        pytest.param((visit("2026-10-09"),), id="never_red"),
+    ],
+)
+def test_no_reopened_flag(inspections: tuple[Inspection, ...]) -> None:
+    """No closure, or the place still carries a red result: no "reopened" flag."""
+    assert reopened_flag(place(*inspections)) == ""
+
+
+def permit_visit(day: str, time: str, status: str, permit: str, kind: str | None = None) -> Inspection:
+    """A timed inspection of one named permit."""
+    found = replace(visit(day, status=status, number=f"RT-{permit}"), time=time, permit_number=permit)
+    return replace(found, permit_type=kind)
+
+
+def test_status_today_two_food_permits_close_the_whole_place() -> None:
+    """Saint Martins, Aug 13 2026: one food permit approved at 9:55, another closed at 10:55: the place is closed."""
+    center = place(
+        permit_visit("2026-08-13", "09:55", APPROVED, "PT0157951"),
+        permit_visit("2026-08-13", "10:55", CLOSED, "PT0054778"),
+    )
+    assert center.closure_in_force
+    assert status_today(center) == (
+        "Closed since Aug 13, 2026, 10:55 am \u00b7 by permit: Closure Re-Inspection Required (permit PT0054778, "
+        "Aug 13, 2026, 10:55 am); Approved (permit PT0157951, Aug 13, 2026, 9:55 am)"
+    )
+    assert row_flag(center) == ""
+
+
+def test_status_today_food_service_closed_retail_open() -> None:
+    """Drury Inn, Jun 15 2026: the retail permit approved, the food permit closed: only food service is closed."""
+    retail = replace(permit_visit("2026-06-15", "07:15", APPROVED, "PT0140689"), kind="Routine Retail Food Inspection")
+    hotel = place(retail, permit_visit("2026-06-15", "08:00", CLOSED, "PT0051883"))
+    assert status_today(hotel) == (
+        "Food service closed since Jun 15, 2026, 8:00 am, retail open \u00b7 by permit: Closure Re-Inspection "
+        "Required (permit PT0051883, Jun 15, 2026, 8:00 am); Approved (permit PT0140689, Jun 15, 2026, 7:15 am)"
+    )
+    assert row_flag(hotel) == "Food service closed, retail open"
+    assert reopened_flag(hotel) == ""
+
+
+def test_status_today_by_permit_when_open() -> None:
+    """Two permits, both open with different results: listed by permit, newest first."""
+    store = place(
+        permit_visit("2026-10-27", "09:30", CONDITIONAL, "PT-DELI"),
+        permit_visit("2026-10-27", "11:30", APPROVED, "PT-MEAT"),
+    )
+    assert not store.closure_in_force
+    assert status_today(store) == (
+        "Open \u00b7 by permit: Approved (permit PT-MEAT, Oct 27, 2026, 11:30 am); "
+        "Conditional Approved (permit PT-DELI, Oct 27, 2026, 9:30 am)"
+    )
+
+
+def test_status_today_one_line_when_permits_agree() -> None:
+    """Two permits with the same result read as one status, as before."""
+    store = place(
+        permit_visit("2026-10-27", "09:30", APPROVED, "PT-DELI"),
+        permit_visit("2026-10-27", "11:30", APPROVED, "PT-MEAT"),
+    )
+    assert status_today(store) == "Open \u00b7 Approved, per the Oct 27, 2026, 11:30 am inspection"

@@ -1,0 +1,63 @@
+# What the site assumes, and how to check it
+
+The site turns two city sources into statements like "Status today: Open" and "Closed 6 days, reopened Oct 9". Those
+rest on assumptions about how the city records inspections. The unit tests prove the code does what we intend; they
+can't prove the intent matches the city. `uv run nm-health audit` checks that against the real archive and feed and
+prints, for each assumption, how many cases it looked at and the ones that disagree. It reports and never fails:
+a person judges the disagreements.
+
+| Assumption | Check | What it compares |
+|---|---|---|
+| Only a Closure means closed; an Unsatisfactory place stays open (red sticker) | `operational_status` | Each PDF permit line's own "Operational Status – Open/Closed" against the latest result listed under it |
+| The feed's start time is when the inspection happened | `feed_times` | Flags times of exactly 00:00, a likely placeholder |
+| Results at the same minute are separate permits, so the failure stands | `same_minute` | Permit numbers of same-minute records with a failure among them |
+| Each permit's latest result stays in force until that permit is inspected again; an inspection with no permit number (most re-inspections since late 2025) replaces every earlier result; a closure on any permit closes the whole place unless only food service is closed and retail is open | `same_minute` (partly) | Permits are known from the PDF's summary table or an old-style ID that is the permit number; the feed names no permit |
+| An untimed corrective-action visit came after that day's routine inspection | `follow_up_order` | Feed times, when both sides have one |
+| With no time, a same-day failure came before the pass | `untimed_order` | Lists the days where this guess decides the order |
+| The PDF and the feed agree on each inspection's status | `feed_status` | Status of every inspection found in both |
+
+## A second opinion from any LLM
+
+The audit only checks what we thought to write a rule for. `uv run nm-health spotcheck` prints a packet for a model to
+read instead: a prompt, this document, and for six sampled places (`[spotcheck] places` in config.toml) every statement
+the site makes, numbered, with the city's records for those places: the status-feed rows and each inspection's
+summary rows and details from the weekly PDF, with emails and phone numbers removed. The sample always includes a
+place reopened after a closure, one closed today, one with roaches or rodents, one with several results in a day and an
+ordinary one, preferring places whose inspector notes are on file, so the claims can be checked against the PDF.
+
+No API key is involved: copy it into any chat you're signed in to and read the answer.
+
+```bash
+uv run nm-health spotcheck | pbcopy
+```
+
+The sample changes daily; `--seed N` repeats a packet (the seed is printed at its top) and `--places N` changes the
+size. A packet of six places is about 50 KB.
+
+## Results on 2026-11-10 (whole archive, 2020–2026)
+
+- `operational_status`: 219 of 220 permits agree, including 8 Unsatisfactory permits the city lists Open. The one
+  that disagrees (Bravo Cucina, Dec 2025) was closed on Dec 17 and reopened on Dec 22 per our records. The weekly PDF
+  for Dec 14–20 already says Open, so its Operational Status seems to reflect when the PDF was generated, not the
+  week's end.
+- `feed_times`: 372 of 13,508 times are 00:00, all from 2020 to Oct 2025. None fall in the site's 12-month window yet.
+  Ordering still treats 00:00 as a real time; if one appears in the window, treat it as unknown.
+- `same_minute`: 30 same-minute groups with a failure. 11 are confirmed separate permits; 19 can't be confirmed
+  because a feed-only record has no permit number. None are the same permit.
+- `follow_up_order`: can't be checked. None of the 48 corrective-action visits has a feed time.
+- `untimed_order`: 3 of 1,668 same-day groups depend on the guess. One is in the window: Golden Pride Legacy LLC,
+  Sep 21, 2026 (Approved and Unsatisfactory, neither timed), which the site reads as failed, then approved.
+- `feed_status`: all 290 inspections in both sources agree.
+
+Places can hold several permits at once, one per operation: 275 of 317 places with more than one known permit had
+different permits inspected on the same day (Albertsons #911 holds PT0043512 to PT0043515: deli, bakery, meat). Status
+today keeps each permit's latest result, and a closure on any permit closes the whole place, with one exception the
+city's own reports show: when only the food-service side (Food Establishment) is closed and the retail side (packaged
+goods) is open, it reads "Food service closed, retail open" (Quick Track 93, Jan 2026: food permit Closed, retail permit
+Open; Drury Inn, Jun 2026). Permits come from an old-style inspection ID, which is the permit number, else the PDF's
+summary table; the ID wins because the table now and then files a row under the wrong permit (5 of 173 rows: Quick Track
+93, Allsup's #102460, Sergio's Bakery).
+
+Not checked: that a place's name and address identify one place, that an inspection with no permit number re-inspected
+what failed before it, and that no reopening inspection is missing from the records (a missing one would make a closure
+look longer than it was).
