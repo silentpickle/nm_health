@@ -1,0 +1,34 @@
+# What the site assumes, and how to check it
+
+The site turns two city sources into statements like "Status today: Open" and "Closed 6 days, reopened Oct 9". Those
+rest on assumptions about how the city records inspections. The unit tests prove the code does what we intend; they
+can't prove the intent matches the city. `uv run nm-health audit` checks that against the real archive and feed and
+prints, for each assumption, how many cases it looked at and the ones that disagree. It reports and never fails:
+a person judges the disagreements.
+
+| Assumption | Check | What it compares |
+|---|---|---|
+| Only a Closure means closed; an Unsatisfactory place stays open (red sticker) | `operational_status` | Each PDF permit line's own "Operational Status – Open/Closed" against the latest result listed under it |
+| The feed's start time is when the inspection happened | `feed_times` | Flags times of exactly 00:00, a likely placeholder |
+| Results at the same minute are separate permits, so the failure stands | `same_minute` | Permit numbers of same-minute records with a failure among them |
+| An untimed corrective-action visit came after that day's routine inspection | `follow_up_order` | Feed times, when both sides have one |
+| With no time, a same-day failure came before the pass | `untimed_order` | Lists the days where this guess decides the order |
+| The PDF and the feed agree on each inspection's status | `feed_status` | Status of every inspection found in both |
+
+## Results on 2026-11-10 (whole archive, 2020–2026)
+
+- `operational_status`: 219 of 220 permits agree, including 8 Unsatisfactory permits the city lists Open. The one
+  that disagrees (Bravo Cucina, Dec 2025) was closed on Dec 17 and reopened on Dec 22 per our records. The weekly PDF
+  for Dec 14–20 already says Open, so its Operational Status seems to reflect when the PDF was generated, not the
+  week's end.
+- `feed_times`: 372 of 13,508 times are 00:00, all from 2020 to Oct 2025. None fall in the site's 12-month window yet.
+  Ordering still treats 00:00 as a real time; if one appears in the window, treat it as unknown.
+- `same_minute`: 30 same-minute groups with a failure. 11 are confirmed separate permits; 19 can't be confirmed
+  because a feed-only record has no permit number. None are the same permit.
+- `follow_up_order`: can't be checked. None of the 48 corrective-action visits has a feed time.
+- `untimed_order`: 3 of 1,668 same-day groups depend on the guess. One is in the window: Golden Pride Legacy LLC,
+  Sep 21, 2026 (Approved and Unsatisfactory, neither timed), which the site reads as failed, then approved.
+- `feed_status`: all 290 inspections in both sources agree.
+
+Not checked: that a place's name and address identify one place, and that no reopening inspection is missing from
+the records (a missing one would make a closure look longer than it was).

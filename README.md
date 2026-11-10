@@ -45,6 +45,7 @@ uv run nm-health archive              # save this week's PDF if it's new
 uv run nm-health backfill-wayback     # recover older weeks from the Internet Archive
 uv run nm-health ingest               # rebuild data/nm_health.db from the archive
 uv run nm-health site                 # render site/ (open site/index.html)
+uv run nm-health audit                # check our assumptions against the PDFs and feed (docs/assumptions.md)
 uv run nm-health search "pho"         # CLI lookups against the database
 uv run nm-health lookup "Little Bear Coffee"
 ```
@@ -62,6 +63,7 @@ uv run nm-health lookup "Little Bear Coffee"
 | `nm_health/legacy_parser.py` | 2021–2024 and early-2025 layouts. |
 | `nm_health/tags.py` | One small rule per tag. |
 | `nm_health/rebuild.py`, `database.py`, `site.py` | Archive → inspections → SQLite / static site. |
+| `nm_health/audit.py` | Checks the site's assumptions against the city's records ([docs/assumptions.md](docs/assumptions.md)). |
 | `scripts/checks.sh` | The gate: ruff (all rules), mypy, complexity, shellcheck, ESLint/tsc/Prettier, pytest. Pre-commit and CI run it. |
 
 Not affiliated with the City of Albuquerque.
