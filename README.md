@@ -22,8 +22,10 @@ cabq.gov PDF ──daily──▶ data/archive/<week>_<sha>.pdf ──▶ parse 
    re-issues are kept beside the original.
 2. **Rebuild**: parse every archived PDF, oldest week first. The later report wins when two state the same
    inspection (keyed by inspection ID + date: routine inspections reuse the permit number as their ID).
-3. **Tag** each violation from the inspector's observation, not the rule boilerplate. "pests" needs evidence
-   (roaches, mice, droppings, "Pest Type:"); door gaps and pest paperwork are "pest_control".
+3. **Tag** each violation from the inspector's observation, not the rule boilerplate: roaches, rodents, flies,
+   other pests, each marked live / dead / droppings / not stated (the inspector's Pest Type and Pest Condition
+   fields first). Door gaps and pest paperwork are "pest_control". The status feed adds coordinates, counts and
+   every inspection whose weekly report wasn't saved (status only).
 4. **Publish** (`site.yml`): plain HTML pages that read without JavaScript (This week, Places, Map, About, one page
    per place), a slim `places.json` that `places.js` (search, filters) and `map.js` (packages/citymap) read.
 
