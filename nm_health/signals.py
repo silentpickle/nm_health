@@ -11,6 +11,7 @@ from datetime import date
 from nm_health.model import Inspection
 
 RED_WORDS = ("closure", "unsatisfactory")
+CLOSURE_WORD = "closure"  # only a closure shuts the doors: an unsatisfactory place stays open under a red sticker
 APPROVED_WORD = "approved"  # "Approved" and "Conditional Approved" both reopen a place
 # An untimed corrective-action visit follows the routine inspection it corrects; other untimed visits sort first.
 FOLLOW_UP_WORD = "corrective action"
@@ -38,6 +39,25 @@ class Episode:
 
 
 @dataclass(frozen=True)
+class ClosedSpell:
+    """From a closure to the inspection that reopened the place (any graded result that isn't a closure)."""
+
+    start: str
+    start_time: str | None
+    end: str | None  # None while still closed
+    end_time: str | None
+    end_status: str | None
+    closures: int  # closure results in a row
+
+    @property
+    def days(self) -> int | None:
+        """Calendar days from the closure to the reopening inspection (0 = reopened the same day)."""
+        if self.end is None:
+            return None
+        return (date.fromisoformat(self.end) - date.fromisoformat(self.start)).days
+
+
+@dataclass(frozen=True)
 class PestSighting:
     """One violation's pest evidence."""
 
@@ -57,6 +77,16 @@ def is_red(status: str) -> bool:
 def is_pass(status: str) -> bool:
     """Approved or conditionally approved (and not red)."""
     return APPROVED_WORD in status.lower() and not is_red(status)
+
+
+def is_closed(status: str) -> bool:
+    """The place was ordered closed."""
+    return CLOSURE_WORD in status.lower()
+
+
+def is_open(status: str) -> bool:
+    """A graded result that lets the place operate: approved, conditional or unsatisfactory."""
+    return (is_pass(status) or is_red(status)) and not is_closed(status)
 
 
 def _clock(inspection: Inspection) -> str:
@@ -93,6 +123,34 @@ def closure_episodes(inspections: tuple[Inspection, ...]) -> list[Episode]:
     if failed:
         episodes.append(Episode(start, None, failed, None))
     return episodes
+
+
+def _spell(closure: Inspection, reopening: Inspection | None, closures: int) -> ClosedSpell:
+    return ClosedSpell(
+        start=closure.date,
+        start_time=closure.time,
+        end=reopening.date if reopening else None,
+        end_time=reopening.time if reopening else None,
+        end_status=reopening.status if reopening else None,
+        closures=closures,
+    )
+
+
+def closed_spells(inspections: tuple[Inspection, ...]) -> list[ClosedSpell]:
+    """Every closure and what reopened it, oldest first; the last may still be closed."""
+    spells: list[ClosedSpell] = []
+    first: Inspection | None = None
+    closures = 0
+    for inspection in chronological(inspections):
+        if is_closed(inspection.status):
+            first, closures = first or inspection, closures + 1
+            continue
+        if first is not None and is_open(inspection.status):
+            spells.append(_spell(first, inspection, closures))
+            first, closures = None, 0
+    if first is not None:
+        spells.append(_spell(first, None, closures))
+    return spells
 
 
 def pest_sightings(inspections: tuple[Inspection, ...], kinds: tuple[str, ...] = ALL_PESTS) -> list[PestSighting]:

@@ -1,14 +1,14 @@
 # Copyright (c) 2026 nm_health contributors
 """What the site shows, as plain values: places, strip cells, coverage and pest lines, and the week's inspections.
 
-Statuses are always the city's own words. Nothing here infers a duration or a clean record from what an inspection
-did not cite. Every inspector text the site publishes passes through `redact` (email addresses and phone numbers).
+Statuses are always the city's own words. Nothing here infers a clean record from what an inspection did not cite, and
+the only durations are between two inspections on record (a closure and the inspection that reopened the place). Every inspector text the site publishes passes through `redact` (email addresses and phone numbers).
 """
 
 import re
 from collections import defaultdict
 from dataclasses import dataclass, replace
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from nm_health.identity import establishment_slug, normalized_address
 from nm_health.model import Inspection, Violation
@@ -16,10 +16,14 @@ from nm_health.rebuild import Report
 from nm_health.signals import (
     ALL_PESTS,
     HEADLINE_PESTS,
+    ClosedSpell,
     Episode,
     chronological,
     cleared_on,
+    closed_spells,
     closure_episodes,
+    is_closed,
+    is_open,
     is_pass,
     is_red,
 )
@@ -37,6 +41,8 @@ REDACTED_EMAIL = "[email removed]"
 REDACTED_PHONE = "[phone removed]"
 ELLIPSIS = "\u2026"
 MIDDOT = "\u00b7"
+RIGHT_ARROW = "\u2192"
+FEED_TIME_FORMAT = "%H:%M"
 SYNTHETIC_ID_PREFIX = "legacy-"  # made up by legacy_parser; meaningless to readers
 
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
@@ -161,6 +167,17 @@ def short_date(iso: str) -> str:
     return f"{day:%b} {day.day}"
 
 
+def clock(time: str) -> str:
+    """'16:30' -> '4:30 pm'."""
+    parsed = datetime.strptime(time, FEED_TIME_FORMAT)  # noqa: DTZ007 - a wall-clock time with no date or zone
+    return f"{parsed:%I:%M %p}".lstrip("0").lower()
+
+
+def when_text(iso: str, time: str | None) -> str:
+    """'Oct 29, 2026, 4:30 pm', or just the date when the time isn't known."""
+    return f"{nice_date(iso)}, {clock(time)}" if time else nice_date(iso)
+
+
 def plural(count: int, one: str, many: str) -> str:
     """'1 inspection', '3 inspections'."""
     return f"{count} {one if count == 1 else many}"
@@ -220,10 +237,11 @@ class PestCitation:
 
 @dataclass(frozen=True)
 class ClosureRun:
-    """A closure episode with the status that started it."""
+    """A closure-or-unsatisfactory episode, the status that started it, and the closures inside it."""
 
     episode: Episode
     start_status: str
+    closed: tuple[ClosedSpell, ...] = ()  # oldest first
 
 
 @dataclass(frozen=True)
@@ -238,6 +256,7 @@ class Place:
     inspections: tuple[Inspection, ...]
     closures: tuple[ClosureRun, ...]  # oldest first
     pests: tuple[PestCitation, ...]  # newest first
+    spells: tuple[ClosedSpell, ...] = ()  # every closure and what reopened it, oldest first
 
     @property
     def latest(self) -> Inspection:
@@ -282,11 +301,18 @@ def _citations(inspections: tuple[Inspection, ...]) -> tuple[PestCitation, ...]:
     return tuple(sorted(found, key=lambda c: c.date, reverse=True))
 
 
-def _closures(inspections: tuple[Inspection, ...]) -> tuple[ClosureRun, ...]:
+def _within(spell: ClosedSpell, episode: Episode) -> bool:
+    return episode.start <= spell.start and (episode.end is None or spell.start <= episode.end)
+
+
+def _closures(inspections: tuple[Inspection, ...], spells: tuple[ClosedSpell, ...]) -> tuple[ClosureRun, ...]:
     def start_status(episode: Episode) -> str:
         return next(i.status for i in inspections if i.date == episode.start and is_red(i.status))
 
-    return tuple(ClosureRun(e, start_status(e)) for e in closure_episodes(inspections))
+    def run(episode: Episode) -> ClosureRun:
+        return ClosureRun(episode, start_status(episode), tuple(s for s in spells if _within(s, episode)))
+
+    return tuple(run(e) for e in closure_episodes(inspections))
 
 
 def _lat_lng(inspections: tuple[Inspection, ...]) -> tuple[float, float] | None:
@@ -296,6 +322,7 @@ def _lat_lng(inspections: tuple[Inspection, ...]) -> tuple[float, float] | None:
 def build_place(slug: str, inspections: list[Inspection]) -> Place:
     """One place from its inspections (any order); newest first, same-day ones by the feed's time."""
     ordered = tuple(_redacted(i) for i in reversed(chronological(tuple(inspections))))
+    spells = tuple(closed_spells(ordered))
     latest = ordered[0]
     return Place(
         slug=slug,
@@ -304,8 +331,9 @@ def build_place(slug: str, inspections: list[Inspection]) -> Place:
         address=normalized_address(latest.address),
         lat_lng=_lat_lng(ordered),
         inspections=ordered,
-        closures=_closures(ordered),
+        closures=_closures(ordered, spells),
         pests=_citations(ordered),
+        spells=spells,
     )
 
 
@@ -435,6 +463,66 @@ def closure_end(run: ClosureRun) -> str | None:
     if run.episode.end is None:
         return None
     return f"Next inspection: {run.episode.end_status}, {nice_date(run.episode.end)}."
+
+
+def status_today(place: Place) -> str:
+    """'Open · Approved, per the Nov 3, 2026, 2:30 pm inspection' or 'Closed since Oct 28, 2026 · Closure ...'.
+
+    The latest result on record is the placard on the door until the next inspection.
+    """
+    latest = place.latest
+    per = f"per the {when_text(latest.date, latest.time)} inspection{_also(place)}"
+    if is_closed(latest.status) and place.spells:
+        since = place.spells[-1]
+        return f"Closed since {when_text(since.start, since.start_time)} {MIDDOT} {latest.status}, {per}"
+    state = f"Open {MIDDOT} " if is_open(latest.status) else ""
+    return f"{state}{latest.status}, {per}"
+
+
+def _also(place: Place) -> str:
+    """' (another record at the same time: Conditional Approved)' when two permits were inspected together."""
+    latest = place.latest
+    if latest.time is None:
+        return ""
+    others = {
+        i.status
+        for i in place.inspections[1:]
+        if (i.date, i.time) == (latest.date, latest.time) and i.status != latest.status
+    }
+    if not others:
+        return ""
+    noun = "record" if len(others) == 1 else "records"
+    return f" (another {noun} at the same time: {', '.join(sorted(others))})"
+
+
+def _span(start: str | None, end: str | None) -> str:
+    """' (11:30 am → 4:00 pm)' when both times are known."""
+    if start is None or end is None:
+        return ""
+    return f" ({clock(start)} {RIGHT_ARROW} {clock(end)})"
+
+
+def closed_text(spell: ClosedSpell) -> str:
+    """How long a closure lasted, measured between the closure and the inspection that reopened the place."""
+    if spell.end is None:
+        return f"Closed {when_text(spell.start, spell.start_time)}. No reopening inspection on record."
+    if spell.days == 0:
+        return f"Closed and reopened the same day{_span(spell.start_time, spell.end_time)}: {spell.end_status}."
+    days = plural(spell.days or 0, "day", "days")
+    return f"Closed {days}: {short_date(spell.start)} to {nice_date(spell.end)}, reopened as {spell.end_status}."
+
+
+def reopened_flag(place: Place) -> str:
+    """'Closed 6 days, reopened Oct 9' for the latest closure-or-unsatisfactory run, when the place is open again."""
+    if not place.closures or not is_open(place.latest.status) or is_red(place.latest.status):
+        return ""
+    ended = [s for s in place.closures[-1].closed if s.end is not None]
+    if not ended:
+        return ""
+    spell = ended[-1]
+    if spell.days == 0:
+        return f"Closed and reopened {short_date(spell.start)}"
+    return f"Closed {plural(spell.days or 0, 'day', 'days')}, reopened {short_date(spell.end or spell.start)}"
 
 
 def feed_only_text(inspection: Inspection) -> str:

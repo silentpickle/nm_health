@@ -16,7 +16,7 @@ from nm_health.rebuild import Rebuilt
 from nm_health.settings import ROOT, Settings
 from nm_health.site_html import PLACE_DIR, SiteData, page_html, site_data
 from nm_health.site_pages import about_page, map_page, place_page, places_page, week_page
-from nm_health.viewmodel import ARIA_LIST_MAX, Place, level, strip_cells, strip_code
+from nm_health.viewmodel import ARIA_LIST_MAX, Place, level, reopened_flag, strip_cells, strip_code
 
 STATIC_DIR = Path(__file__).resolve().parent / "site_static"
 STATIC_FILES = ("style.css", "shared.js", "places.js", "map.js")
@@ -66,6 +66,7 @@ def _place_row(place: Place, today: date, statuses: dict[str, int]) -> list[obje
         _flags(place),
         closure,
         _lat_lng(place),
+        reopened_flag(place),
     ]
 
 
@@ -74,7 +75,7 @@ def places_json(data: SiteData) -> str:
 
     Each place is [slug, name, legal name, address, strip code (52 chars), [[days before today, status index], ...]
     newest first (up to 8), how many more inspections, flags (1 roaches/rodents, 2 employee items), latest closure start or "",
-    [lat, lng] or null]. `statuses` lists [status, level] by index.
+    [lat, lng] or null, reopened flag text or "" (viewmodel.reopened_flag)]. `statuses` lists [status, level] by index.
     """
     statuses: dict[str, int] = {}
     rows = [_place_row(p, data.today, statuses) for p in data.places]

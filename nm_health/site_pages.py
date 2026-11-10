@@ -29,6 +29,7 @@ from nm_health.viewmodel import (
     Place,
     Week,
     amended_text,
+    closed_text,
     closure_end,
     closure_start,
     coverage_line,
@@ -43,14 +44,22 @@ from nm_health.viewmodel import (
     select_week,
     short_date,
     source_label,
+    status_today,
     thousands,
     unique_places,
     violation_lead,
     violation_title,
+    when_text,
 )
 
 PAGE_SIZE = 60  # rows shown before "Show more" (places.js pages the same way)
-FILTERS = (("all", "All"), ("red", RED_GROUP), ("pests", "Roaches or rodents"), ("employee", "Employee items"))
+FILTERS = (
+    ("all", "All"),
+    ("red", RED_GROUP),
+    ("reopened", "Open again after a red result"),
+    ("pests", "Roaches or rodents"),
+    ("employee", "Employee items"),
+)
 NO_JS_MAP = "The map needs JavaScript."
 MAP_NOTE = (
     "Each dot is a place inspected in the last 12 months, coloured by its latest status as issued by the city. "
@@ -242,7 +251,8 @@ def _pest_fact(citation: PestCitation) -> str:
 def _closure_fact(run: ClosureRun) -> str:
     end = closure_end(run)
     after = esc(end) if end else f'<span class="open">{NO_LATER_APPROVAL}</span>'
-    return _fact(RED_GROUP, f'{esc(closure_start(run))}<div class="quiet">{after}</div>')
+    closed = "".join(f'<div class="closed">{esc(closed_text(spell))}</div>' for spell in run.closed)
+    return _fact(RED_GROUP, f'{esc(closure_start(run))}{closed}<div class="quiet">{after}</div>')
 
 
 def _other_pests_fact(place: Place) -> str:
@@ -309,7 +319,8 @@ def _timeline_item(data: SiteData, inspection: Inspection, index: int) -> str:
     amend = f'<div class="amend">{esc(amended)}</div>' if amended else ""
     return (
         f'<li class="{level(inspection.status)}" id="insp-{index}">'
-        f'<div class="when"><span class="d">{nice_date(inspection.date)}</span>{chip(inspection.status)}</div>'
+        f'<div class="when"><span class="d">{when_text(inspection.date, inspection.time)}</span>'
+        f"{chip(inspection.status)}</div>"
         f'<div class="src">{esc(kind_line(inspection))}{_source(data, inspection)}</div>'
         f"{amend}{_inspection_body(inspection)}</li>"
     )
@@ -319,7 +330,8 @@ def _place_head(place: Place) -> str:
     legal = f" {MIDDOT} {place.legal_name}" if place.legal_name else ""
     return (
         f'<div class="place-head"><a href="../places.html">{LEFT_ARROW} All places</a>'
-        f'<h1 class="view">{esc(place.name)}</h1><div class="addr">{esc(place.address + legal)}</div></div>'
+        f'<h1 class="view">{esc(place.name)}</h1><div class="addr">{esc(place.address + legal)}</div>'
+        f'<p class="today"><span class="lbl">Status today</span> {esc(status_today(place))}</p></div>'
     )
 
 

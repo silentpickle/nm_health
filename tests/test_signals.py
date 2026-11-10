@@ -6,7 +6,19 @@ from dataclasses import replace
 import pytest
 
 from nm_health.model import Inspection, Violation
-from nm_health.signals import Episode, chronological, cleared_on, closure_episodes, is_pass, is_red, pest_sightings
+from nm_health.signals import (
+    ClosedSpell,
+    Episode,
+    chronological,
+    cleared_on,
+    closed_spells,
+    closure_episodes,
+    is_closed,
+    is_open,
+    is_pass,
+    is_red,
+    pest_sightings,
+)
 
 CLOSED = "Closure Re-Inspection Required"
 FAILED = "Unsatisfactory Re-Inspection required"
@@ -17,6 +29,7 @@ FLIES = Violation("Pest Control", "Insect Control Devices", "", "Observed flies.
 OTHER = Violation("Plumbing", "Good Repair", "", "Observed leak.")
 EPISODE_DAYS = 39
 FOLLOW_UP = "Corrective Action Compliance"
+SIX_DAYS = 6
 
 
 def visit(day: str, status: str, *violations: Violation, number: str = "") -> Inspection:
@@ -111,6 +124,21 @@ def test_cleared_on() -> None:
     assert cleared_on(history, "2026-07-17") is None
 
 
+@pytest.mark.parametrize(
+    ("status", "closed", "open_"),
+    [
+        pytest.param(CLOSED, True, False, id="closure_closed"),
+        pytest.param(FAILED, False, True, id="unsatisfactory_open"),
+        pytest.param(CONDITIONAL, False, True, id="conditional_open"),
+        pytest.param(APPROVED, False, True, id="approved_open"),
+        pytest.param("Non-Graded", False, False, id="other_neither"),
+    ],
+)
+def test_closed_and_open(status: str, *, closed: bool, open_: bool) -> None:
+    """Only a closure shuts the place: an unsatisfactory place operates under a red sticker."""
+    assert (is_closed(status), is_open(status)) == (closed, open_)
+
+
 def at(day: str, time: str | None, status: str, number: str, kind: str = "") -> Inspection:
     """An inspection with the feed's start time."""
     found = visit(day, status, number=number)
@@ -140,3 +168,25 @@ def test_untimed_follow_up_comes_after_the_routine() -> None:
         at("2025-12-18", "10:10", FAILED, "PT-1"),
     )
     assert [i.inspection_id for i in chronological(history)] == ["PT-1", "CAC-1"]
+
+
+def test_closed_spells() -> None:
+    """Reopened under a red sticker the same day; closed twice then reopened 6 days later; still closed."""
+    history = (
+        at("2026-09-23", "11:00", CLOSED, "A"),
+        at("2026-09-23", "15:00", FAILED, "B"),
+        at("2026-10-01", "09:00", APPROVED, "C"),
+        at("2026-10-03", "10:00", CLOSED, "D"),
+        at("2026-10-05", "10:00", CLOSED, "E"),
+        at("2026-10-09", "12:00", CONDITIONAL, "F"),
+        at("2026-11-03", "09:15", CLOSED, "G"),
+    )
+    same_day, six_days, current = closed_spells(history)
+    assert same_day == ClosedSpell("2026-09-23", "11:00", "2026-09-23", "15:00", FAILED, 1)
+    assert (same_day.days, six_days.days, six_days.closures, six_days.end_status) == (0, SIX_DAYS, 2, CONDITIONAL)
+    assert (current.start, current.end, current.days) == ("2026-11-03", None, None)
+
+
+def test_no_spell_without_a_closure() -> None:
+    """Unsatisfactory then approved is a red episode but never a closure."""
+    assert closed_spells((visit("2026-01-02", FAILED), visit("2026-01-09", APPROVED))) == []

@@ -16,6 +16,8 @@ from nm_health.viewmodel import (
     Place,
     build_place,
     cell_code,
+    clock,
+    closed_text,
     closure_end,
     closure_start,
     coverage_line,
@@ -29,7 +31,9 @@ from nm_health.viewmodel import (
     quote_for,
     recent_text,
     redact,
+    reopened_flag,
     select_week,
+    status_today,
     strip_cells,
     strip_code,
     strip_label,
@@ -401,8 +405,95 @@ def test_week_without_any_report_or_inspection() -> None:
     assert select_week([], ()) is None
 
 
+# ---------- Status today and closures ----------
+
+
+def timed(day: str, time: str | None, status: str, number: str) -> Inspection:
+    """An inspection with the feed's start time."""
+    return replace(visit(day, status=status, number=number), time=time)
+
+
+SAME_DAY_REOPEN = (timed("2026-10-27", "13:06", CLOSED, "PT9"), timed("2026-10-27", "14:07", CONDITIONAL, "PT1"))
+
+
+@pytest.mark.parametrize(
+    ("time", "expected"),
+    [
+        pytest.param("16:30", "4:30 pm", id="afternoon_pm"),
+        pytest.param("12:00", "12:00 pm", id="noon_pm"),
+        pytest.param("00:05", "12:05 am", id="midnight_am"),
+        pytest.param("09:15", "9:15 am", id="morning_am"),
+    ],
+)
+def test_clock(time: str, expected: str) -> None:
+    """24-hour feed times read as 12-hour clock times."""
+    assert clock(time) == expected
+
+
 def test_same_day_reopening_is_the_latest() -> None:
     """Naan & Dosa, Oct 27 2026: closed 1:06 pm, conditional at 2:07 pm; the ID order would say closed."""
-    closed = replace(visit("2026-10-27", status=CLOSED, number="PT9"), time="13:06")
-    reopened = replace(visit("2026-10-27", status=CONDITIONAL, number="PT1"), time="14:07")
-    assert place(closed, reopened).latest.status == CONDITIONAL
+    reopened = place(*SAME_DAY_REOPEN)
+    assert reopened.latest.status == CONDITIONAL
+    assert status_today(reopened) == "Open \u00b7 Conditional Approved, per the Oct 27, 2026, 2:07 pm inspection"
+    assert reopened_flag(reopened) == "Closed and reopened Oct 27"
+    (run,) = reopened.closures
+    (spell,) = run.closed
+    assert closed_text(spell) == "Closed and reopened the same day (1:06 pm \u2192 2:07 pm): Conditional Approved."
+
+
+@pytest.mark.parametrize(
+    ("inspections", "expected"),
+    [
+        pytest.param(
+            (visit("2026-10-03", status=CLOSED), visit("2026-10-05", status=CLOSED)),
+            "Closed since Oct 3, 2026 \u00b7 Closure Re-Inspection Required, per the Oct 5, 2026 inspection",
+            id="closed_since",
+        ),
+        pytest.param(
+            (visit("2026-10-03", status=FAILED),),
+            "Open \u00b7 Unsatisfactory Re-Inspection required, per the Oct 3, 2026 inspection",
+            id="unsatisfactory_open",
+        ),
+        pytest.param(
+            (visit("2026-10-03", status="Non-Graded"),),
+            "Non-Graded, per the Oct 3, 2026 inspection",
+            id="other_unstated",
+        ),
+    ],
+)
+def test_status_today(inspections: tuple[Inspection, ...], expected: str) -> None:
+    """Closed since the closure began; open for any other graded result; neither for anything else."""
+    assert status_today(place(*inspections)) == expected
+
+
+def test_status_today_names_a_same_time_record() -> None:
+    """Two permits inspected together at 11:30: the closure stands, and the other result is named."""
+    together = place(timed("2026-09-17", "11:30", CONDITIONAL, "PT1"), timed("2026-09-17", "11:30", CLOSED, "PT2"))
+    assert status_today(together) == (
+        "Closed since Sep 17, 2026, 11:30 am \u00b7 Closure Re-Inspection Required, per the Sep 17, 2026, 11:30 am "
+        "inspection (another record at the same time: Conditional Approved)"
+    )
+
+
+def test_closure_lasting_days_and_still_closed() -> None:
+    """Closed Oct 3, reopened Oct 9: 6 days. A closure with nothing after it says no reopening is on record."""
+    reopened = place(visit("2026-10-03", status=CLOSED), visit("2026-10-09", status=APPROVED))
+    (spell,) = reopened.spells
+    assert closed_text(spell) == "Closed 6 days: Oct 3 to Oct 9, 2026, reopened as Approved."
+    assert reopened_flag(reopened) == "Closed 6 days, reopened Oct 9"
+    still = place(visit("2026-11-03", status=CLOSED))
+    assert closed_text(still.spells[0]) == "Closed Nov 3, 2026. No reopening inspection on record."
+    assert reopened_flag(still) == ""
+
+
+@pytest.mark.parametrize(
+    "inspections",
+    [
+        pytest.param((visit("2026-10-03", status=FAILED), visit("2026-10-09")), id="unsatisfactory_only"),
+        pytest.param((visit("2026-10-03", status=CLOSED), visit("2026-10-09", status=FAILED)), id="still_red"),
+        pytest.param((visit("2026-10-09"),), id="never_red"),
+    ],
+)
+def test_no_reopened_flag(inspections: tuple[Inspection, ...]) -> None:
+    """No closure, or the place still carries a red result: no "reopened" flag."""
+    assert reopened_flag(place(*inspections)) == ""

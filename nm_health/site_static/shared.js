@@ -5,7 +5,7 @@
 /** @typedef {[number, number]} VisitRow  [days before places.json's "today", index into statuses] */
 /**
  * One place in places.json (see nm_health/site.py places_json).
- * @typedef {[string, string, string | null, string, string, VisitRow[], number, number, string, [number, number] | null]} PlaceRow
+ * @typedef {[string, string, string | null, string, string, VisitRow[], number, number, string, [number, number] | null, string]} PlaceRow
  */
 /** @typedef {{ today: string, statuses: [string, string][], inspections: number, withNotes: number, places: PlaceRow[] }} PlacesFile */
 /** @typedef {{ date: Date, status: string, level: string }} Visit */
@@ -22,6 +22,7 @@
  * @property {boolean} employee employee items cited
  * @property {string} closure latest closure or unsatisfactory start, or ""
  * @property {[number, number] | null} latLng
+ * @property {string} reopened e.g. "Closed 6 days, reopened Oct 9" when open again after a red result, else ""
  */
 /** @typedef {{ inspections: number, withNotes: number, places: Place[] }} Places */
 
@@ -176,6 +177,7 @@ function decode(file, row) {
     flags,
     closure,
     latLng,
+    reopened,
   ] = row;
   const history = visits.map(([daysAgo, index]) => {
     const date = day(file.today);
@@ -195,6 +197,7 @@ function decode(file, row) {
     employee: (flags & FLAG_EMPLOYEE) !== 0,
     closure,
     latLng,
+    reopened,
   };
 }
 

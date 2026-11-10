@@ -231,7 +231,7 @@ def test_places_page_lists_every_place_without_javascript(tmp_path: Path) -> Non
 
 
 def test_places_json_shape(tmp_path: Path) -> None:
-    """One row per place: slug, names, address, 52-char strip, dated statuses, flags, closure start, coordinates."""
+    """One row per place: slug, names, address, strip, statuses, flags, closure start, coordinates, reopened."""
     site = build(tmp_path, visit("2026-10-29", ROACHES), feed_only("2026-11-06"))
     data = json.loads(read(site, "places.json"))
     assert data["statuses"] == [["Closure Re-Inspection Required", "r"], ["Approved", "g"]]
@@ -248,6 +248,7 @@ def test_places_json_shape(tmp_path: Path) -> None:
         0,
         "2026-11-06",
         [35.08, -106.65],
+        "",
     ]
     assert cafe_row[4] == "." * 50 + "1."
     assert cafe_row[7] == 1
@@ -281,3 +282,20 @@ def test_real_archive(tmp_path: Path) -> None:
     for slug, links in expected.items():
         page = read(site, f"place/{slug}.html")
         assert links <= set(PDF_LINK.findall(page)), slug
+
+
+def test_same_day_reopening_shows_status_today(tmp_path: Path) -> None:
+    """Closed 1:06 pm, conditional 2:07 pm: the card, the row and the place page all say it's open again."""
+    closed = replace(visit("2026-11-06", status="Closure Re-Inspection Required"), inspection_id="PT9", time="13:06")
+    reopened = replace(visit("2026-11-06", status="Conditional Approved"), inspection_id="PT1", time="14:07")
+    site = build(tmp_path, closed, reopened)
+    today = "Open \u00b7 Conditional Approved, per the Nov 6, 2026, 2:07 pm inspection"
+    index = read(site, "index.html")
+    assert f'<span class="today">Status today: {html.escape(today)}</span>' in index
+    assert '<span class="flag">Closed and reopened Nov 6</span>' in index
+    page = read(site, "place/test-cafe-100-central-ave-sw.html")
+    assert f'<span class="lbl">Status today</span> {html.escape(today)}</p>' in page
+    assert "Closed and reopened the same day (1:06 pm \u2192 2:07 pm): Conditional Approved." in page
+    assert '<span class="d">Nov 6, 2026, 2:07 pm</span>' in page
+    assert json.loads(read(site, "places.json"))["places"][0][-1] == "Closed and reopened Nov 6"
+    assert 'data-f="reopened"' in read(site, "places.html")
