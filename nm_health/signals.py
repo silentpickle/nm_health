@@ -5,6 +5,7 @@ Absence proves nothing (inspectors never certify a place pest-free), so nothing 
 inspection did NOT cite.
 """
 
+import re
 from dataclasses import dataclass
 from datetime import date
 
@@ -16,6 +17,8 @@ APPROVED_WORD = "approved"  # "Approved" and "Conditional Approved" both reopen 
 # An untimed corrective-action visit follows the routine inspection it corrects; other untimed visits sort first.
 FOLLOW_UP_WORD = "corrective action"
 START_OF_DAY = ""
+# Routine inspections from before the late-2025 numbering reuse the permit number as their ID.
+PERMIT_ID = re.compile(r"PT\d+")
 END_OF_DAY = "24:00"
 HEADLINE_PESTS = ("roaches", "rodents")
 ALL_PESTS = ("roaches", "rodents", "flies", "other_pests", "pests_unspecified")
@@ -128,6 +131,34 @@ def closure_episodes(inspections: tuple[Inspection, ...]) -> list[Episode]:
     if failed:
         episodes.append(Episode(start, None, failed, None))
     return episodes
+
+
+def permit_of(inspection: Inspection) -> str | None:
+    """The permit an inspection covers: an old-style ID that is the permit number, else the PDF's summary table.
+
+    The ID wins: the summary table occasionally files a row under the wrong permit (Quick Track 93, Jan 2026).
+    """
+    if PERMIT_ID.fullmatch(inspection.inspection_id):
+        return inspection.inspection_id
+    return inspection.permit_number
+
+
+def _supersedes(later: str | None, earlier: str | None) -> bool:
+    """A later inspection replaces an earlier result unless both name different permits.
+
+    One with no permit number is usually the re-inspection of whatever failed, so it replaces everything before it.
+    """
+    return later is None or earlier is None or later == earlier
+
+
+def standing(inspections: tuple[Inspection, ...]) -> list[Inspection]:
+    """The results still in force, oldest first: each permit's latest, as far as the records tell permits apart."""
+    current: list[Inspection] = []
+    for inspection in chronological(inspections):
+        permit = permit_of(inspection)
+        current = [i for i in current if not _supersedes(permit, permit_of(i))]
+        current.append(inspection)
+    return current
 
 
 def _spell(closure: Inspection, reopening: Inspection | None, closures: int) -> ClosedSpell:

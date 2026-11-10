@@ -17,7 +17,9 @@ from nm_health.signals import (
     is_open,
     is_pass,
     is_red,
+    permit_of,
     pest_sightings,
+    standing,
 )
 
 CLOSED = "Closure Re-Inspection Required"
@@ -190,3 +192,46 @@ def test_closed_spells() -> None:
 def test_no_spell_without_a_closure() -> None:
     """Unsatisfactory then approved is a red episode but never a closure."""
     assert closed_spells((visit("2026-01-02", FAILED), visit("2026-01-09", APPROVED))) == []
+
+
+def of(day: str, time: str, status: str, number: str, permit: str | None) -> Inspection:
+    """A timed inspection of one permit (None: the record names no permit)."""
+    return replace(at(day, time, status, number), permit_number=permit)
+
+
+@pytest.mark.parametrize(
+    ("inspection", "expected"),
+    [
+        pytest.param(of("2026-10-27", "09:30", APPROVED, "RT-RET-1", "PT0043512"), "PT0043512", id="pdf_permit"),
+        pytest.param(of("2026-01-08", "11:10", CLOSED, "PT0160314", None), "PT0160314", id="old_style_id"),
+        pytest.param(of("2026-01-23", "09:30", APPROVED, "RT-FOODEST-1", None), None, id="new_style_unknown"),
+        pytest.param(of("2026-01-08", "11:10", APPROVED, "PT0160314", "PT0160313"), "PT0160314", id="id_beats_row"),
+    ],
+)
+def test_permit_of(inspection: Inspection, expected: str | None) -> None:
+    """An old-style ID that is the permit number, else the PDF's permit (it misfiles rows now and then)."""
+    assert permit_of(inspection) == expected
+
+
+def test_standing_keeps_each_known_permit() -> None:
+    """Albertsons-style: the deli closed at 9:30 still stands after the meat counter passes at 11:30."""
+    deli = of("2026-10-27", "09:30", CLOSED, "RT-1", "PT-DELI")
+    meat = of("2026-10-27", "11:30", APPROVED, "RT-2", "PT-MEAT")
+    assert standing((meat, deli)) == [deli, meat]
+
+
+def test_standing_untagged_reinspection_replaces_everything() -> None:
+    """Quick Track 93: closed under PT0160314, then an inspection with no permit number approves; only it stands."""
+    closed = of("2026-01-08", "11:10", CLOSED, "PT0160314", None)
+    passed = of("2026-01-08", "11:10", APPROVED, "PT0160313", None)
+    reinspection = of("2026-01-23", "09:30", APPROVED, "RT-FOODEST-1", None)
+    assert standing((closed, passed, reinspection)) == [reinspection]
+
+
+def test_standing_same_permit_replaces_itself_and_untagged() -> None:
+    """A later result for a permit replaces that permit's and any untagged earlier result, not another permit's."""
+    untagged = of("2026-03-01", "09:00", FAILED, "RT-0", None)
+    first = of("2026-03-02", "09:00", CLOSED, "RT-1", "PT1")
+    other = of("2026-03-02", "10:00", APPROVED, "RT-2", "PT2")
+    again = of("2026-03-05", "09:00", CONDITIONAL, "RT-3", "PT1")
+    assert standing((untagged, first, other, again)) == [other, again]

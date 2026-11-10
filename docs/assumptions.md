@@ -11,6 +11,7 @@ a person judges the disagreements.
 | Only a Closure means closed; an Unsatisfactory place stays open (red sticker) | `operational_status` | Each PDF permit line's own "Operational Status – Open/Closed" against the latest result listed under it |
 | The feed's start time is when the inspection happened | `feed_times` | Flags times of exactly 00:00, a likely placeholder |
 | Results at the same minute are separate permits, so the failure stands | `same_minute` | Permit numbers of same-minute records with a failure among them |
+| Each permit's latest result stays in force until that permit is inspected again; an inspection with no permit number (most re-inspections since late 2025) replaces every earlier result; a closure on any permit closes the whole place unless only food service is closed and retail is open | `same_minute` (partly) | Permits are known from the PDF's summary table or an old-style ID that is the permit number; the feed names no permit |
 | An untimed corrective-action visit came after that day's routine inspection | `follow_up_order` | Feed times, when both sides have one |
 | With no time, a same-day failure came before the pass | `untimed_order` | Lists the days where this guess decides the order |
 | The PDF and the feed agree on each inspection's status | `feed_status` | Status of every inspection found in both |
@@ -48,5 +49,15 @@ size. A packet of six places is about 50 KB.
   Sep 21, 2026 (Approved and Unsatisfactory, neither timed), which the site reads as failed, then approved.
 - `feed_status`: all 290 inspections in both sources agree.
 
-Not checked: that a place's name and address identify one place, and that no reopening inspection is missing from
-the records (a missing one would make a closure look longer than it was).
+Places can hold several permits at once, one per operation: 275 of 317 places with more than one known permit had
+different permits inspected on the same day (Albertsons #911 holds PT0043512 to PT0043515: deli, bakery, meat). Status
+today keeps each permit's latest result, and a closure on any permit closes the whole place, with one exception the
+city's own reports show: when only the food-service side (Food Establishment) is closed and the retail side (packaged
+goods) is open, it reads "Food service closed, retail open" (Quick Track 93, Jan 2026: food permit Closed, retail permit
+Open; Drury Inn, Jun 2026). Permits come from an old-style inspection ID, which is the permit number, else the PDF's
+summary table; the ID wins because the table now and then files a row under the wrong permit (5 of 173 rows: Quick Track
+93, Allsup's #102460, Sergio's Bakery).
+
+Not checked: that a place's name and address identify one place, that an inspection with no permit number re-inspected
+what failed before it, and that no reopening inspection is missing from the records (a missing one would make a closure
+look longer than it was).

@@ -27,6 +27,8 @@ from nm_health.signals import (
     is_open,
     is_pass,
     is_red,
+    permit_of,
+    standing,
 )
 
 WEEKS = 52
@@ -78,6 +80,10 @@ EMPLOYEE_TAG = "employee_items"
 # Status levels: r = closure or unsatisfactory, y = conditional, g = approved, n = any other status.
 LEVEL_RED, LEVEL_CONDITIONAL, LEVEL_APPROVED, LEVEL_OTHER, LEVEL_NONE = "r", "y", "g", "n", ""
 CONDITIONAL_WORD = "conditional"
+# A place's permits fall on two sides: retail (packaged goods) and food service (everything prepared on site).
+RETAIL_WORD = "retail"
+SIDE_RETAIL = "retail"
+SIDE_FOOD = "food service"
 # A week's cell shows its worst status. Any status outranks "no inspection".
 LEVEL_RANK = {LEVEL_NONE: 0, LEVEL_OTHER: 1, LEVEL_APPROVED: 2, LEVEL_CONDITIONAL: 3, LEVEL_RED: 4}
 # One character per strip cell (places.json; places.js decodes it with the same table).
@@ -259,6 +265,12 @@ class Place:
     closures: tuple[ClosureRun, ...]  # oldest first
     pests: tuple[PestCitation, ...]  # newest first
     spells: tuple[ClosedSpell, ...] = ()  # every closure and what reopened it, oldest first
+    standing: tuple[Inspection, ...] = ()  # results still in force, one per permit as far as known, oldest first
+
+    @property
+    def closure_in_force(self) -> bool:
+        """Some permit's result in force is a closure."""
+        return any(is_closed(i.status) for i in self.standing)
 
     @property
     def latest(self) -> Inspection:
@@ -337,6 +349,7 @@ def build_place(slug: str, inspections: list[Inspection]) -> Place:
         closures=_closures(ordered, spells),
         pests=_citations(ordered),
         spells=spells,
+        standing=tuple(standing(ordered)),
     )
 
 
@@ -473,6 +486,8 @@ def status_today(place: Place) -> str:
 
     The latest result on record is the placard on the door until the next inspection.
     """
+    if len({i.status for i in place.standing}) > 1:
+        return _status_by_permit(place)
     latest = place.latest
     per = f"per the {when_text(latest.date, latest.time)} inspection{_also(place)}"
     if is_closed(latest.status) and place.spells:
@@ -480,6 +495,46 @@ def status_today(place: Place) -> str:
         return f"Closed since {when_text(since.start, since.start_time)} {MIDDOT} {latest.status}, {per}"
     state = f"Open {MIDDOT} " if is_open(latest.status) else ""
     return f"{state}{latest.status}, {per}"
+
+
+def _permit_label(inspection: Inspection) -> str:
+    permit = permit_of(inspection)
+    if permit is None:
+        return "permit not stated"
+    return f"{inspection.permit_type} {permit}" if inspection.permit_type else f"permit {permit}"
+
+
+def side(inspection: Inspection) -> str:
+    """'retail' for a retail permit (packaged goods), else 'food service' (kitchen, hot-dog roller, mobile unit)."""
+    text = f"{inspection.permit_type or ''} {inspection.kind}".lower()
+    return SIDE_RETAIL if RETAIL_WORD in text else SIDE_FOOD
+
+
+def split_side(place: Place) -> str | None:
+    """The one side that is closed while the other side's permits are all open (a convenience store's food counter).
+
+    Any other closure closes the whole place: two food permits at one place, or a closure on both sides.
+    """
+    closed = {side(i) for i in place.standing if is_closed(i.status)}
+    still_open = {side(i) for i in place.standing if not is_closed(i.status)}
+    if len(closed) != 1 or not still_open or closed & still_open:
+        return None
+    return next(iter(closed))
+
+
+def _status_by_permit(place: Place) -> str:
+    """'Closed since Aug 13, 2026, 10:55 am · by permit: Closure ... (permit PT1, ...); Approved (permit PT2, ...)'."""
+    parts = "; ".join(f"{i.status} ({_permit_label(i)}, {when_text(i.date, i.time)})" for i in reversed(place.standing))
+    closures = [i for i in place.standing if is_closed(i.status)]
+    if not closures:
+        state = f"Open {MIDDOT} " if all(is_open(i.status) for i in place.standing) else ""
+        return f"{state}by permit: {parts}"
+    since = when_text(closures[0].date, closures[0].time)
+    closed_side = split_side(place)
+    if closed_side is None:
+        return f"Closed since {since} {MIDDOT} by permit: {parts}"
+    open_side = SIDE_RETAIL if closed_side == SIDE_FOOD else SIDE_FOOD
+    return f"{closed_side.capitalize()} closed since {since}, {open_side} open {MIDDOT} by permit: {parts}"
 
 
 def _also(place: Place) -> str:
@@ -515,9 +570,20 @@ def closed_text(spell: ClosedSpell) -> str:
     return f"Closed {days}: {short_date(spell.start)} to {nice_date(spell.end)}, reopened as {spell.end_status}."
 
 
+def row_flag(place: Place) -> str:
+    """A list row's status flag: 'Food service closed, retail open', else the reopened flag, else ''."""
+    closed_side = split_side(place)
+    if closed_side is None:
+        return reopened_flag(place)
+    open_side = SIDE_RETAIL if closed_side == SIDE_FOOD else SIDE_FOOD
+    return f"{closed_side.capitalize()} closed, {open_side} open"
+
+
 def reopened_flag(place: Place) -> str:
     """'Closed 6 days, reopened Oct 9' for the latest closure-or-unsatisfactory run, when the place is open again."""
     if not place.closures or not is_open(place.latest.status) or is_red(place.latest.status):
+        return ""
+    if place.closure_in_force:
         return ""
     ended = [s for s in place.closures[-1].closed if s.end is not None]
     if not ended:

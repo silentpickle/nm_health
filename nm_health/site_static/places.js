@@ -28,7 +28,9 @@ const FILTERS = {
   all: () => true,
   red: (place) => place.closure !== "",
   reopened: (place) =>
-    place.closure !== "" && OPEN_AGAIN.has(place.history[0]?.level ?? ""),
+    place.closure !== "" &&
+    !place.closureInForce &&
+    OPEN_AGAIN.has(place.history[0]?.level ?? ""),
   pests: (place) => place.pests,
   employee: (place) => place.employee,
 };

@@ -16,7 +16,7 @@ from nm_health.identity import establishment_slug
 from nm_health.model import Inspection, Violation
 from nm_health.rebuild import Rebuilt, Report, rebuild
 from nm_health.settings import Settings, load
-from nm_health.site import write_site
+from nm_health.site import FLAG_CLOSURE_IN_FORCE, write_site
 from tests.test_archive import make_settings
 
 TODAY = datetime(2026, 11, 9, 12, tzinfo=UTC)
@@ -245,7 +245,7 @@ def test_places_json_shape(tmp_path: Path) -> None:
         "." * 51 + "R",
         [[3, 0]],
         0,
-        0,
+        FLAG_CLOSURE_IN_FORCE,
         "2026-11-06",
         [35.08, -106.65],
         "",
@@ -286,8 +286,18 @@ def test_real_archive(tmp_path: Path) -> None:
 
 def test_same_day_reopening_shows_status_today(tmp_path: Path) -> None:
     """Closed 1:06 pm, conditional 2:07 pm: the card, the row and the place page all say it's open again."""
-    closed = replace(visit("2026-11-06", status="Closure Re-Inspection Required"), inspection_id="PT9", time="13:06")
-    reopened = replace(visit("2026-11-06", status="Conditional Approved"), inspection_id="PT1", time="14:07")
+    closed = replace(
+        visit("2026-11-06", status="Closure Re-Inspection Required"),
+        inspection_id="PT0156723",
+        time="13:06",
+        permit_number="PT0156723",
+    )
+    reopened = replace(
+        visit("2026-11-06", status="Conditional Approved"),
+        inspection_id="RT-FOODEST-101632-2026",
+        time="14:07",
+        permit_number="PT0156723",
+    )
     site = build(tmp_path, closed, reopened)
     today = "Open \u00b7 Conditional Approved, per the Nov 6, 2026, 2:07 pm inspection"
     index = read(site, "index.html")

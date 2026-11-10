@@ -33,6 +33,7 @@ from nm_health.viewmodel import (
     recent_text,
     redact,
     reopened_flag,
+    row_flag,
     select_week,
     status_today,
     strip_cells,
@@ -428,7 +429,14 @@ def timed(day: str, time: str | None, status: str, number: str) -> Inspection:
     return replace(visit(day, status=status, number=number), time=time)
 
 
-SAME_DAY_REOPEN = (timed("2026-10-27", "13:06", CLOSED, "PT9"), timed("2026-10-27", "14:07", CONDITIONAL, "PT1"))
+# A reopening inspection has a new-style ID with no permit number; an old-style ID is the permit number itself.
+SAME_DAY_REOPEN = tuple(
+    replace(i, permit_number="PT0156723")  # the report files both under the place's one permit
+    for i in (
+        timed("2026-10-27", "13:06", CLOSED, "PT0156723"),
+        timed("2026-10-27", "14:07", CONDITIONAL, "RT-FOODEST-101632-2026"),
+    )
+)
 
 
 @pytest.mark.parametrize(
@@ -483,7 +491,9 @@ def test_status_today(inspections: tuple[Inspection, ...], expected: str) -> Non
 
 def test_status_today_names_a_same_time_record() -> None:
     """Two permits inspected together at 11:30: the closure stands, and the other result is named."""
-    together = place(timed("2026-09-17", "11:30", CONDITIONAL, "PT1"), timed("2026-09-17", "11:30", CLOSED, "PT2"))
+    together = place(
+        timed("2026-09-17", "11:30", CONDITIONAL, "RT-FOODEST-1"), timed("2026-09-17", "11:30", CLOSED, "RT-FOODEST-2")
+    )
     assert status_today(together) == (
         "Closed since Sep 17, 2026, 11:30 am \u00b7 Closure Re-Inspection Required, per the Sep 17, 2026, 11:30 am "
         "inspection (another record at the same time: Conditional Approved)"
@@ -512,3 +522,57 @@ def test_closure_lasting_days_and_still_closed() -> None:
 def test_no_reopened_flag(inspections: tuple[Inspection, ...]) -> None:
     """No closure, or the place still carries a red result: no "reopened" flag."""
     assert reopened_flag(place(*inspections)) == ""
+
+
+def permit_visit(day: str, time: str, status: str, permit: str, kind: str | None = None) -> Inspection:
+    """A timed inspection of one named permit."""
+    found = replace(visit(day, status=status, number=f"RT-{permit}"), time=time, permit_number=permit)
+    return replace(found, permit_type=kind)
+
+
+def test_status_today_two_food_permits_close_the_whole_place() -> None:
+    """Saint Martins, Aug 13 2026: one food permit approved at 9:55, another closed at 10:55: the place is closed."""
+    center = place(
+        permit_visit("2026-08-13", "09:55", APPROVED, "PT0157951"),
+        permit_visit("2026-08-13", "10:55", CLOSED, "PT0054778"),
+    )
+    assert center.closure_in_force
+    assert status_today(center) == (
+        "Closed since Aug 13, 2026, 10:55 am \u00b7 by permit: Closure Re-Inspection Required (permit PT0054778, "
+        "Aug 13, 2026, 10:55 am); Approved (permit PT0157951, Aug 13, 2026, 9:55 am)"
+    )
+    assert row_flag(center) == ""
+
+
+def test_status_today_food_service_closed_retail_open() -> None:
+    """Drury Inn, Jun 15 2026: the retail permit approved, the food permit closed: only food service is closed."""
+    retail = replace(permit_visit("2026-06-15", "07:15", APPROVED, "PT0140689"), kind="Routine Retail Food Inspection")
+    hotel = place(retail, permit_visit("2026-06-15", "08:00", CLOSED, "PT0051883"))
+    assert status_today(hotel) == (
+        "Food service closed since Jun 15, 2026, 8:00 am, retail open \u00b7 by permit: Closure Re-Inspection "
+        "Required (permit PT0051883, Jun 15, 2026, 8:00 am); Approved (permit PT0140689, Jun 15, 2026, 7:15 am)"
+    )
+    assert row_flag(hotel) == "Food service closed, retail open"
+    assert reopened_flag(hotel) == ""
+
+
+def test_status_today_by_permit_when_open() -> None:
+    """Two permits, both open with different results: listed by permit, newest first."""
+    store = place(
+        permit_visit("2026-10-27", "09:30", CONDITIONAL, "PT-DELI"),
+        permit_visit("2026-10-27", "11:30", APPROVED, "PT-MEAT"),
+    )
+    assert not store.closure_in_force
+    assert status_today(store) == (
+        "Open \u00b7 by permit: Approved (permit PT-MEAT, Oct 27, 2026, 11:30 am); "
+        "Conditional Approved (permit PT-DELI, Oct 27, 2026, 9:30 am)"
+    )
+
+
+def test_status_today_one_line_when_permits_agree() -> None:
+    """Two permits with the same result read as one status, as before."""
+    store = place(
+        permit_visit("2026-10-27", "09:30", APPROVED, "PT-DELI"),
+        permit_visit("2026-10-27", "11:30", APPROVED, "PT-MEAT"),
+    )
+    assert status_today(store) == "Open \u00b7 Approved, per the Oct 27, 2026, 11:30 am inspection"

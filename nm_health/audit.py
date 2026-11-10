@@ -19,14 +19,12 @@ from nm_health.feed import FeedRecord, load_records
 from nm_health.model import Inspection
 from nm_health.rebuild import rebuild, report_text
 from nm_health.settings import Settings
-from nm_health.signals import FOLLOW_UP_WORD, chronological, is_closed, is_open, is_red
+from nm_health.signals import FOLLOW_UP_WORD, chronological, is_closed, is_open, is_red, permit_of
 from nm_health.viewmodel import Place, group_places
 
 EXAMPLES_MAX = 8  # disagreements printed per check
 PDF_DATE_FORMAT = "%m/%d/%Y"
 CLOSED_WORD = "closed"
-# Routine inspections from before the late-2025 numbering reuse the permit number as their ID.
-PERMIT_ID = re.compile(r"PT\d+")
 MIDNIGHT = "00:00"  # a feed time of exactly midnight is likely a placeholder, not when the inspector arrived
 YEAR_LEN = len("2026")
 PERMIT_LINE = re.compile(
@@ -218,14 +216,8 @@ def _moments(place: Place) -> list[list[Inspection]]:
     return [group for group in moments.values() if len({is_red(i.status) for i in group}) > 1]
 
 
-def _permit(inspection: Inspection) -> str | None:
-    if inspection.permit_number:
-        return inspection.permit_number
-    return inspection.inspection_id if PERMIT_ID.fullmatch(inspection.inspection_id) else None
-
-
 def _permit_verdict(group: list[Inspection]) -> str:
-    permits = [_permit(i) for i in group]
+    permits = [permit_of(i) for i in group]
     if None in permits:
         return "permit not known for every record"
     return "different permits" if len(set(permits)) == len(permits) else "same permit"

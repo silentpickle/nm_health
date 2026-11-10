@@ -24,8 +24,8 @@ from nm_health.viewmodel import (
     notice_count_text,
     notice_quote,
     recent_text,
-    reopened_flag,
     reports_in_window,
+    row_flag,
     short_date,
     status_today,
     strip_cells,
@@ -213,7 +213,7 @@ def _row_flags(place: Place) -> str:
     flags = []
     if place.headline_pests:
         flags.append('<span class="flag">Roaches or rodents cited</span>')
-    reopened = reopened_flag(place)
+    reopened = row_flag(place)
     if reopened:
         flags.append(f'<span class="flag">{esc(reopened)}</span>')
     elif place.closures and level(place.latest.status) != "r":
