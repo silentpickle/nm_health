@@ -23,7 +23,7 @@
  * @property {string} closure latest closure or unsatisfactory start, or ""
  * @property {[number, number] | null} latLng
  * @property {boolean} closureInForce some permit's result in force is a closure
- * @property {string} reopened status flag, e.g. "Food service closed, retail open" or "Closed 6 days, reopened Oct 9", else ""
+ * @property {string} reopened status flag, e.g. "1 of 2 permits closed" or "Closed 6 days, reopened Oct 9", else ""
  */
 /** @typedef {{ inspections: number, withNotes: number, places: Place[] }} Places */
 

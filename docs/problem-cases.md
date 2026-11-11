@@ -42,9 +42,9 @@ The IDs sort the 11:30 closure last, so the site showed the place as closed. By 
 
 **Saint Martins Center**, 1201 3RD ST NW · site page: `site/place/saint-martins-center-1201-3rd-st-nw.html`
 
-The reverse: the site showed Approved, but the closure came an hour later. Two different permit numbers, both food permits; the site now reads the whole place as closed (see section 6). No later inspection is on record.
+The reverse: the site showed Approved, but the closure came an hour later. Two different permit numbers, both food permits; the site states each permit's result and no place-wide status (see section 6). No later inspection is on record.
 
-**The site says now:** Closed since Aug 13, 2026, 10:55 am · by permit: Closure Re-Inspection Required (permit PT0054778, Aug 13, 2026, 10:55 am); Approved (permit PT0157951, Aug 13, 2026, 9:55 am).
+**The site says now:** By permit: Closure Re-Inspection Required (permit PT0054778, Aug 13, 2026, 10:55 am); Approved (permit PT0157951, Aug 13, 2026, 9:55 am).
 
 | Date | Time | Inspection ID | Permit | Type | Status | Violations | Source |
 |---|---|---|---|---|---|---|---|
@@ -116,9 +116,9 @@ Four records at 9:30 (two Approved, one Unsatisfactory, one Closure, all retail,
 
 **Bosque Brewing**, 10250 COTTONWOOD PARK NW · site page: `site/place/bosque-brewing-10250-cottonwood-park-nw.html`
 
-Both inspections at 9:30 under consecutive permit numbers; one Approved, one Closure. Both are food permits, so the site reads the whole place as closed. No later inspection on record.
+Both inspections at 9:30 under consecutive permit numbers; one Approved, one Closure. The site states each permit's result; no city document says whether one permit's closure closes the other. No later inspection on record.
 
-**The site says now:** Closed since Mar 13, 2026, 9:30 am · by permit: Closure Re-Inspection Required (permit PT0158662, Mar 13, 2026, 9:30 am); Approved (permit PT0158663, Mar 13, 2026, 9:30 am).
+**The site says now:** By permit: Closure Re-Inspection Required (permit PT0158662, Mar 13, 2026, 9:30 am); Approved (permit PT0158663, Mar 13, 2026, 9:30 am).
 
 | Date | Time | Inspection ID | Permit | Type | Status | Violations | Source |
 |---|---|---|---|---|---|---|---|
@@ -239,13 +239,13 @@ Feed records under the other spelling. A Jun 11 retail closure here is followed 
 
 ## 6. Several permits at one place (handled in `9dddd45`)
 
-### Food service closed, retail open
+### A retail permit approved, a food permit closed
 
 **DRURY INN & SUITES ALBUQUERQUE**, 4310 THE 25 WAY NE · site page: `site/place/drury-inn-suites-albuquerque-4310-the-25-way-ne.html`
 
-Retail permit approved 7:15 am, food permit closed 8:00 am. The only place in the window that reads "Food service closed, retail open". No later inspection on record.
+Retail permit approved 7:15 am, food permit closed 8:00 am. The site states each permit's result ("1 of 2 permits closed" in lists) and doesn't infer which side of the business is open. No later inspection on record.
 
-**The site says now:** Food service closed since Jun 15, 2026, 8:00 am, retail open · by permit: Closure Re-Inspection Required (permit PT0051883, Jun 15, 2026, 8:00 am); Approved (permit PT0140689, Jun 15, 2026, 7:15 am).
+**The site says now:** By permit: Closure Re-Inspection Required (permit PT0051883, Jun 15, 2026, 8:00 am); Approved (permit PT0140689, Jun 15, 2026, 7:15 am).
 
 | Date | Time | Inspection ID | Permit | Type | Status | Violations | Source |
 |---|---|---|---|---|---|---|---|
