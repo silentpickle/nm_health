@@ -14,7 +14,15 @@ from nm_health.db.local_store import LocalStore
 from nm_health.feed import FeedRecord
 from nm_health.identity import split_dba, strip_city
 from nm_health.model import Inspection, Violation
-from nm_health.rebuild import LAYOUT_CURRENT, LAYOUT_UNREADABLE, merge_feed, parse_report, read_manifest, rebuild
+from nm_health.rebuild import (
+    LAYOUT_CURRENT,
+    LAYOUT_UNREADABLE,
+    merge_feed,
+    parse_report,
+    permit_line_pages,
+    read_manifest,
+    rebuild,
+)
 from nm_health.settings import Settings
 from tests.test_archive import make_settings
 
@@ -191,3 +199,13 @@ def test_amended_status_and_dba_and_window(tmp_path: Path, monkeypatch: pytest.M
     (only,) = rebuild(settings, date(2025, 11, 9)).inspections
     assert (only.status, only.amended_from) == ("Conditional Approved", "Approved")
     assert (only.name, only.legal_name) == ("TEST CAFE", "ACME LLC")
+
+
+def test_permit_line_pages() -> None:
+    """Each permit's Operational Status line, by the page (1-based) that first prints it; hyphenated numbers too."""
+    text = (
+        "Summary Table\nFood Establishment (Permit # - PT0156723) - Operational Status \u2013 Open\n"
+        "\fFood Establishment (Permit # - FOODEST-2025-00423) - Operational Status - Closed\n"
+        "\fDate: 10/28/2026 - #: PT0156723 - Inspection Result: Approved\n"
+    )
+    assert permit_line_pages(text) == {"PT0156723": 1, "FOODEST-2025-00423": 2}

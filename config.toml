@@ -32,9 +32,6 @@ window_days = 365
 # Where the archived PDFs can be opened from the site (GitHub blob view of data/archive). The site also publishes a
 # byte-for-byte copy of each PDF it cites, under reports/, so a link can open at the cited page.
 pdf_base_url = "https://github.com/silentpickle/nm_health/blob/main/data/archive/"
-# Where each saved feed response can be found (GitHub blob view of data/feed/raw); named in every feed record the
-# site publishes under sources/feed/.
-feed_archive_url = "https://github.com/silentpickle/nm_health/blob/main/data/feed/raw/"
 # The About page's "Report an error" link.
 report_error_url = "https://github.com/silentpickle/nm_health/issues"
 
@@ -65,6 +62,17 @@ minute = 0
 [spotcheck]
 # Places sampled into the LLM spot-check packet (uv run nm-health spotcheck): one per hard case, the rest at random.
 places = 6
+
+[audit]
+# A closure with no reopening inspection on record for this many days is listed for a second opinion.
+long_closure_days = 14
+
+[judge]
+# `nm-health judge` (local only: needs your agy login) asks agy, with a JSON schema, whether a long-closed place is
+# restaurant-only and whether it operates now. Answers are saved here and committed; the audit lists them.
+command = "agy"
+timeout_seconds = 240
+cache = "data/judgements.json"
 
 [secrets]
 # None. The collector reads only public pages.

@@ -27,7 +27,6 @@ from nm_health.signals import (
     is_open,
     is_pass,
     is_red,
-    permit_of,
     standing,
 )
 
@@ -477,55 +476,92 @@ def closure_end(run: ClosureRun) -> str | None:
     return f"Next inspection: {run.episode.end_status}, {nice_date(run.episode.end)}."
 
 
-def status_today(place: Place) -> str:
-    """'Open · Approved, per the Nov 3, 2026, 2:30 pm inspection' or 'Closed since Oct 28, 2026 · Closure ...'.
+# ---------- What the city's reports say ----------
 
-    The latest result on record is the placard on the door until the next inspection.
+
+def stated(inspections: tuple[Inspection, ...], reports: tuple[Report, ...]) -> tuple[Inspection, ...]:
+    """What the site may state: inspections a weekly report on file prints, dated inside the week it covers.
+
+    The status feed has no declaration a reader can open, and an inspection dated outside its report's week is a
+    typo in the report (Simply Sweet by Darci, "1/29/2026" in the Jan 27-31, 2025 report): both stay off the site.
     """
-    if len({i.status for i in place.standing}) > 1:
-        return _status_by_permit(place)
+    weeks = {r.file: (r.week_start, r.week_end) for r in reports}
+    return tuple(i for i in inspections if i.has_details and _in_week(i, weeks.get(i.report_file)))
+
+
+def _in_week(inspection: Inspection, week: tuple[str | None, str | None] | None) -> bool:
+    if week is None:
+        return False
+    first, last = week
+    return (first or inspection.date) <= inspection.date <= (last or inspection.date)
+
+
+def later_records(inspections: tuple[Inspection, ...], places: list[Place]) -> dict[str, Inspection]:
+    """For each place, the newest inspection in the city's records that is newer than anything its reports state."""
+    latest = {p.slug: p.latest.date for p in places}
+    found: dict[str, Inspection] = {}
+    for inspection in inspections:
+        slug = establishment_slug(inspection.name, inspection.address)
+        if slug not in latest or inspection.date <= latest[slug]:
+            continue
+        if slug not in found or inspection.date > found[slug].date:
+            found[slug] = inspection
+    return found
+
+
+Coverage = frozenset[str]  # ISO dates that some weekly report on file covers
+
+
+def covered_days(reports: tuple[Report, ...]) -> Coverage:
+    """Every date inside a weekly report's week, for the reports on file."""
+    days: set[str] = set()
+    for report in reports:
+        if not (report.week_start and report.week_end):
+            continue
+        days.update(_dates(report.week_start, report.week_end))
+    return frozenset(days)
+
+
+def _dates(first: str, last: str) -> list[str]:
+    start, end = date.fromisoformat(first), date.fromisoformat(last)
+    return [(start + timedelta(days=n)).isoformat() for n in range((end - start).days + 1)]
+
+
+def unbroken(first: str, last: str, covered: Coverage) -> bool:
+    """Every day from first to last is in a weekly report on file, so no inspection between them can be missing."""
+    return all(day in covered for day in _dates(first, last))
+
+
+def permit_lines(place: Place) -> list[Inspection]:
+    """The place's permit lines in the latest weekly report that lists it, one per distinct line, as printed."""
+    report = place.latest.report_file
+    found: dict[tuple[str | None, str | None, str], Inspection] = {}
+    for i in place.inspections:
+        if i.report_file == report and i.operational_status:
+            found.setdefault((i.permit_type, i.permit_number, i.operational_status), i)
+    return list(found.values())
+
+
+def permit_line_text(line: Inspection) -> str:
+    """'Food Establishment (Permit # PT0156723): Operational Status - Open', the city's own line reordered (en dash)."""
+    return f"{line.permit_type or 'Permit'} (Permit # {line.permit_number}): Operational Status \u2013 {line.operational_status}"
+
+
+def latest_result_text(place: Place) -> str:
+    """'Latest result in the weekly reports on file: Approved, Oct 28, 2026 (Corrective Action Compliance)'."""
     latest = place.latest
-    per = f"per the {when_text(latest.date, latest.time)} inspection{_also(place)}"
-    if is_closed(latest.status) and place.spells:
-        since = place.spells[-1]
-        return f"Closed since {when_text(since.start, since.start_time)} {MIDDOT} {latest.status}, {per}"
-    state = f"Open {MIDDOT} " if is_open(latest.status) else ""
-    return f"{state}{latest.status}, {per}"
+    return (
+        f"Latest result in the weekly reports on file: {latest.status}, "
+        f"{when_text(latest.date, latest.time)} ({latest.kind})"
+    )
 
 
-def _permit_label(inspection: Inspection) -> str:
-    permit = permit_of(inspection)
-    if permit is None:
-        return "permit not stated"
-    return f"{inspection.permit_type} {permit}" if inspection.permit_type else f"permit {permit}"
-
-
-def _status_by_permit(place: Place) -> str:
-    """'By permit: Closure ... (permit PT1, Aug 13, 2026, 10:55 am); Approved (permit PT2, ...)'.
-
-    Each permit's result exactly as the city recorded it, and no claim about the place as a whole: no city document
-    says whether one permit's closure closes the rest.
-    """
-    parts = "; ".join(f"{i.status} ({_permit_label(i)}, {when_text(i.date, i.time)})" for i in reversed(place.standing))
-    if all(is_open(i.status) for i in place.standing):
-        return f"Open {MIDDOT} by permit: {parts}"
-    return f"By permit: {parts}"
-
-
-def _also(place: Place) -> str:
-    """' (another record at the same time: Conditional Approved)' when two permits were inspected together."""
-    latest = place.latest
-    if latest.time is None:
-        return ""
-    others = {
-        i.status
-        for i in place.inspections[1:]
-        if (i.date, i.time) == (latest.date, latest.time) and i.status != latest.status
-    }
-    if not others:
-        return ""
-    noun = "record" if len(others) == 1 else "records"
-    return f" (another {noun} at the same time: {', '.join(sorted(others))})"
+def later_record_text(later: Inspection) -> str:
+    """A neutral note that the city has a newer inspection whose weekly report isn't on file."""
+    return (
+        f"The city's inspection-status system lists a later inspection on {nice_date(later.date)}. Its weekly report "
+        "isn't on file yet, so this site doesn't state its result."
+    )
 
 
 def _span(start: str | None, end: str | None) -> str:
@@ -535,32 +571,31 @@ def _span(start: str | None, end: str | None) -> str:
     return f" ({clock(start)} {RIGHT_ARROW} {clock(end)})"
 
 
-def closed_text(spell: ClosedSpell) -> str:
-    """How long a closure lasted, measured between the closure and the inspection that reopened the place."""
+def closed_text(spell: ClosedSpell, covered: Coverage) -> str:
+    """How long a closure lasted, stated only when every day between the two inspections is in a report on file."""
+    closed = when_text(spell.start, spell.start_time)
     if spell.end is None:
-        return f"Closed {when_text(spell.start, spell.start_time)}. No reopening inspection on record."
+        return f"Closed {closed}. No reopening inspection in the weekly reports on file."
+    if not unbroken(spell.start, spell.end, covered):
+        return (
+            f"Closed {closed}. The next inspection in the weekly reports on file, "
+            f"{when_text(spell.end, spell.end_time)}, found {spell.end_status}; reports for some days in between "
+            "aren't on file, so it may have reopened sooner."
+        )
     if spell.days == 0:
         return f"Closed and reopened the same day{_span(spell.start_time, spell.end_time)}: {spell.end_status}."
     days = plural(spell.days or 0, "day", "days")
     return f"Closed {days}: {short_date(spell.start)} to {nice_date(spell.end)}, reopened as {spell.end_status}."
 
 
-def row_flag(place: Place) -> str:
-    """A list row's status flag: '1 of 2 permits closed' when the permits differ, else the reopened flag, else ''."""
-    closed = sum(is_closed(i.status) for i in place.standing)
-    if 0 < closed < len(place.standing):
-        return f"{closed} of {plural(len(place.standing), 'permit', 'permits')} closed"
-    return reopened_flag(place)
-
-
-def reopened_flag(place: Place) -> str:
-    """'Closed 6 days, reopened Oct 9' for the latest closure-or-unsatisfactory run, when the place is open again."""
+def reopened_flag(place: Place, covered: Coverage) -> str:
+    """'Closed 6 days, reopened Oct 9': the latest closure, when the reports on file cover every day of it."""
     if not place.closures or not is_open(place.latest.status) or is_red(place.latest.status):
         return ""
     if place.closure_in_force:
         return ""
     ended = [s for s in place.closures[-1].closed if s.end is not None]
-    if not ended:
+    if not ended or not unbroken(ended[-1].start, ended[-1].end or ended[-1].start, covered):
         return ""
     spell = ended[-1]
     if spell.days == 0:

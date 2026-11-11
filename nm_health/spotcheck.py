@@ -11,7 +11,7 @@ import random
 import re
 from collections import Counter
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
@@ -22,19 +22,25 @@ from nm_health.settings import ROOT, Settings
 from nm_health.signals import is_closed
 from nm_health.viewmodel import (
     MIDDOT,
+    Coverage,
     Place,
     closed_text,
     closure_end,
     closure_start,
     coverage_line,
+    covered_days,
     group_places,
+    later_record_text,
+    later_records,
+    latest_result_text,
     other_pest_kinds,
+    permit_line_text,
+    permit_lines,
     pest_reading,
     plural,
     redact,
     reopened_flag,
-    row_flag,
-    status_today,
+    stated,
     violation_title,
     when_text,
 )
@@ -78,6 +84,8 @@ class Sources:
 
     reports: dict[str, str]
     feed: dict[tuple[str, str], FeedRecord]
+    covered: Coverage = frozenset()  # dates a weekly report on file covers
+    later: dict[str, Inspection] = field(default_factory=dict)  # place slug -> newer record, report not on file
 
 
 # ---------- Sampling ----------
@@ -89,8 +97,8 @@ def _several_on_one_day(place: Place) -> bool:
 
 
 SAMPLES: tuple[tuple[str, Callable[[Place], bool]], ...] = (
-    ("reopened after a closure", lambda p: bool(reopened_flag(p))),
-    ("closed today", lambda p: is_closed(p.latest.status)),
+    ("reopened after a closure", lambda p: any(s.end for s in p.spells)),
+    ("latest result is a closure", lambda p: is_closed(p.latest.status)),
     ("roaches or rodents cited", lambda p: p.headline_pests),
     ("several results on one day", _several_on_one_day),
     ("no closure or unsatisfactory result", lambda p: not p.closures),
@@ -140,11 +148,11 @@ def _timeline_claim(inspection: Inspection) -> str:
     return f"Inspection {when}: {inspection.status} ({inspection.kind}); {_notes(inspection)}."
 
 
-def _closure_claims(place: Place) -> list[str]:
+def _closure_claims(place: Place, covered: Coverage) -> list[str]:
     claims: list[str] = []
     for run in place.closures:
         claims.append(f"Closure or unsatisfactory result: {closure_start(run)}.")
-        claims += [closed_text(spell) for spell in run.closed]
+        claims += [closed_text(spell, covered) for spell in run.closed]
         claims.append(closure_end(run) or NO_LATER_APPROVAL)
     return claims
 
@@ -156,15 +164,17 @@ def _pest_claims(place: Place) -> list[str]:
     ]
 
 
-def claims(place: Place) -> list[str]:
+def claims(place: Place, covered: Coverage, later: Inspection | None = None) -> list[str]:
     """Everything the site states about the place, in the order a reader meets it."""
-    flag = row_flag(place)
+    flag = reopened_flag(place, covered)
     return [
         f"Name and address: {place.name}, {place.address}.",
-        f"Status today: {status_today(place)}.",
+        *(f"The city's latest weekly report on file lists: {permit_line_text(line)}." for line in permit_lines(place)),
+        f"{latest_result_text(place)}.",
+        *([later_record_text(later)] if later else []),
         *([f"List flag: {flag}."] if flag else []),
         coverage_line(place),
-        *_closure_claims(place),
+        *_closure_claims(place, covered),
         *_pest_claims(place),
         *(_timeline_claim(i) for i in place.inspections),
     ]
@@ -255,7 +265,8 @@ def _feed_section(place: Place, sources: Sources) -> list[str]:
 def place_section(number: int, sample: Sample, sources: Sources) -> list[str]:
     """One place: why it was picked, its numbered statements, then its records."""
     place = sample.place
-    statements = [f"{number}.{n}. {text}" for n, text in enumerate(claims(place), start=1)]
+    found = claims(place, sources.covered, sources.later.get(place.slug))
+    statements = [f"{number}.{n}. {text}" for n, text in enumerate(found, start=1)]
     return [
         f"## Place {number}: {place.name} ({sample.reason})",
         "",
@@ -295,11 +306,15 @@ def read_assumptions(path: Path = ASSUMPTIONS_DOC) -> str:
 
 
 def build(settings: Settings, since: date, count: int, seed: int) -> str:
-    """Sample places from the site's window and gather their PDF pages and feed rows into one packet."""
-    samples = choose(group_places(rebuild(settings, since).inspections), count, seed)
+    """Sample places the site states (weekly reports on file only) and gather their PDF pages and feed rows."""
+    rebuilt = rebuild(settings, since)
+    places = group_places(stated(rebuilt.inspections, rebuilt.reports))
+    samples = choose(places, count, seed)
     files = sorted({i.report_file for s in samples for i in s.place.inspections if i.report_file})
     sources = Sources(
         reports={f: report_text(settings.archive_dir / f) for f in files},
         feed={(r.number, r.date): r for r in load_records(settings, since)},
+        covered=covered_days(rebuilt.reports),
+        later=later_records(rebuilt.inspections, places),
     )
     return packet(samples, sources, seed, read_assumptions())

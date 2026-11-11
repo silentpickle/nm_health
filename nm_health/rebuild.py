@@ -8,6 +8,7 @@ keyed by (ID, date).
 
 import json
 import logging
+import re
 import subprocess
 from dataclasses import dataclass, replace
 from datetime import date
@@ -23,6 +24,8 @@ from nm_health.settings import Settings
 from nm_health.tags import tagged
 
 LOG = logging.getLogger(__name__)
+PAGE_BREAK = "\f"
+PERMIT_LINE = re.compile(r"\(Permit\s*#\s*-\s*(?P<permit>[A-Za-z0-9-]+)\)\s*-\s*Operational\s*Status", re.IGNORECASE)
 CURRENT_MARKER = "Inspection Result:"
 LAYOUT_CURRENT = "current"
 LAYOUT_LEGACY = "legacy"
@@ -90,7 +93,18 @@ def _from_current(raw: dict[str, Any], report_file: str) -> Inspection:
         report_file=report_file,
         page=raw["detail_page"] or raw["summary_page"],
         violations=tuple(_violation(v) for v in raw["violations"]),
+        # The parser fills a missing permit line with "Open"; only the city's own words are kept.
+        operational_status=raw["operational_status"] if raw["permit_number"] else None,
     )
+
+
+def permit_line_pages(text: str) -> dict[str, int]:
+    """Permit number -> the page (1-based) of the summary table that prints its "Operational Status" line."""
+    pages: dict[str, int] = {}
+    for number, page in enumerate(text.split(PAGE_BREAK), start=1):
+        for match in PERMIT_LINE.finditer(page):
+            pages.setdefault(match["permit"], number)
+    return pages
 
 
 def parse_report(pdf: Path) -> tuple[str, list[Inspection]]:

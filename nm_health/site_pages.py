@@ -39,15 +39,19 @@ from nm_health.viewmodel import (
     coverage_line,
     feed_only_text,
     kind_line,
+    later_record_text,
+    latest_result_text,
     level,
     nice_date,
     other_pest_kinds,
+    permit_line_text,
+    permit_lines,
     pest_reading,
     plural,
     report_text,
     select_week,
     short_date,
-    status_today,
+    source_label,
     thousands,
     unique_places,
     violation_lead,
@@ -65,7 +69,7 @@ FILTERS = (
 )
 NO_JS_MAP = "The map needs JavaScript."
 MAP_NOTE = (
-    "Each dot is a place inspected in the last 12 months, coloured by its latest status as issued by the city. "
+    "Each dot is a place in the weekly reports on file, coloured by its latest status as issued by the city. "
     "Pinch, drag or use + and \u2212 to zoom. Use the Places tab to browse by name."
 )
 MAP_LEGEND = (
@@ -75,7 +79,7 @@ MAP_LEGEND = (
     ("--surface", True, "Roaches or rodents cited in notes on file"),
 )
 NOT_A_CERTIFICATE = "An inspection reports what one inspector found on one day. No citation is not a certification."
-NO_LATER_APPROVAL = "No later approved inspection on record."
+NO_LATER_APPROVAL = "No later approved inspection in the weekly reports on file."
 UP = "../"  # place pages sit one folder below the site root
 ISO_DATE_LEN = len("2026-01-01")
 SHA_SHOWN = 12  # hex digits of a report's SHA-256 shown on the About page
@@ -121,7 +125,7 @@ def _week_body(data: SiteData, week: Week) -> str:
         _cards(red, "None in the city's records for these dates."),
         _pest_section(week),
         heading("Other inspections", len(week.other)),
-        rows_html([row_html(p, data.today) for p in other]),
+        rows_html([row_html(p, data.today, data.covered) for p in other]),
     ]
     return "\n".join(parts)
 
@@ -212,15 +216,18 @@ def _reports_list(data: SiteData) -> str:
 def about_page(data: SiteData) -> Page:
     """about.html: where the data comes from and what it does not say."""
     counts = (
-        f"For this period, {len(data.reports)} weekly reports are on file, so inspector notes exist for "
-        f"{thousands(data.with_notes)} of {thousands(data.total)} inspections. "
-        "The rest show the status and violation count from the feed only."
+        f"For this period, {len(data.reports)} weekly reports are on file, listing {thousands(data.total)} inspections "
+        f"of {thousands(len(data.places))} places. Weeks whose report wasn't saved aren't shown: the site states only "
+        "what a weekly report on file says."
     )
     body = f"""<section class="about">
 <h1 class="view">About this data</h1>
 <h2>Where it comes from</h2>
-<p>The City of Albuquerque publishes one PDF of the week's food inspections and replaces it the next week, and runs a
-public inspection-status feed. This site keeps both and shows the last 12 months.</p>
+<p>The City of Albuquerque publishes one PDF of the week's food inspections and replaces it the next week. This site
+keeps every copy it saves and shows the last 12 months. Every statement links to the page of the report it comes from;
+the copies here are byte-for-byte what the city published.</p>
+<p>The city also runs a public inspection-status feed. This site uses it only to order inspections made on the same
+day and to place dots on the map, and to note when a newer inspection exists whose weekly report isn't on file yet.</p>
 <p>{esc(counts)}</p>
 <h2>What it does not say</h2>
 <p>An inspection reports what one inspector found on one day. No citation is not a certification: inspectors never
@@ -292,7 +299,7 @@ def _closure_cited(place: Place, run: ClosureRun) -> list[Inspection]:
 def _closure_fact(data: SiteData, place: Place, run: ClosureRun) -> str:
     end = closure_end(run)
     after = esc(end) if end else f'<span class="open">{NO_LATER_APPROVAL}</span>'
-    closed = "".join(f'<div class="closed">{esc(closed_text(spell))}</div>' for spell in run.closed)
+    closed = "".join(f'<div class="closed">{esc(closed_text(spell, data.covered))}</div>' for spell in run.closed)
     sources = _sources(data, place, _closure_cited(place, run))
     return _fact(RED_GROUP, f'{esc(closure_start(run))}{closed}<div class="quiet">{after}</div>{sources}')
 
@@ -364,14 +371,33 @@ def _timeline_item(data: SiteData, inspection: Inspection, index: int) -> str:
     )
 
 
+def _permit_line(data: SiteData, line: Inspection) -> str:
+    page = data.permit_pages.get((line.report_file, line.permit_number or ""))
+    href = f"{UP}{REPORTS_DIR}/{esc(line.report_file)}" + (f"#page={page}" if page else "")
+    where = f"p. {page}" if page else "PDF"
+    return f'<li><q>{esc(permit_line_text(line))}</q> <a href="{href}">{where}</a></li>'
+
+
+def _city_status(data: SiteData, place: Place) -> str:
+    """The city's own words from its latest weekly report on file, then the latest result, then any newer record."""
+    latest = place.latest
+    report = source_label(latest, data.week_starts.get(latest.report_file)).split(" (", 1)[0]
+    lines = "".join(_permit_line(data, line) for line in permit_lines(place))
+    later = data.later.get(place.slug)
+    note = f'<p class="quiet">{esc(later_record_text(later))}</p>' if later else ""
+    return (
+        f'<div class="today"><span class="lbl">The city\'s latest weekly report on file</span> {esc(report)}'
+        f"{f'<ul class="permits">{lines}</ul>' if lines else ''}"
+        f"<p>{esc(latest_result_text(place))}</p>{_sources(data, place, [latest])}{note}</div>"
+    )
+
+
 def _place_head(data: SiteData, place: Place) -> str:
     legal = f" {MIDDOT} {place.legal_name}" if place.legal_name else ""
-    cited = list(reversed(place.standing)) or [place.latest]
     return (
         f'<div class="place-head"><a href="../places.html">{LEFT_ARROW} All places</a>'
         f'<h1 class="view">{esc(place.name)}</h1><div class="addr">{esc(place.address + legal)}</div>'
-        f'<p class="today"><span class="lbl">Status today</span> {esc(status_today(place))}</p>'
-        f"{_sources(data, place, cited)}</div>"
+        f"{_city_status(data, place)}</div>"
     )
 
 

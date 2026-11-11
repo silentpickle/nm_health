@@ -7,13 +7,16 @@ import sys
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
-from nm_health import audit, feed, spotcheck
+from nm_health import audit, feed, judge, spotcheck
 from nm_health import settings as settings_module
 from nm_health.archive import Archived, archive_current, archive_file
 from nm_health.database import write_database
 from nm_health.rebuild import rebuild
 from nm_health.site import write_site
+from nm_health.viewmodel import group_places
 from nm_health.wayback import backfill
+
+ERROR_CHARS = 160  # of a failed judgement's error, printed
 
 
 def _say(line: str) -> None:
@@ -94,6 +97,35 @@ def cmd_spotcheck(args: argparse.Namespace) -> None:
     _say(spotcheck.build(settings, window_start(settings), count, seed))
 
 
+def cmd_judge(args: argparse.Namespace) -> None:
+    """Ask agy (local login) about each long closure: restaurant-only? operating now? Saves after each answer."""
+    settings = settings_module.load()
+    today = feed.today_utc().date()
+    places = group_places(rebuild(settings, window_start(settings)).inspections)
+    cases = judge.long_closures(places, today, settings.long_closure_days)
+    cache = judge.load_cache(settings.judge_cache)
+    todo = [c for c in cases if args.refresh or judge.stale(cache, c)]
+    _say(f"{len(cases)} long closures; {len(todo)} to judge")
+    failed = [case.place.name for case in todo if not _judge_one(case, cache, settings, today)]
+    if failed:
+        _say(f"No answer for {len(failed)}, judged next run: {', '.join(failed)}")
+
+
+def _judge_one(
+    case: judge.LongClosure, cache: dict[str, judge.Judgement], settings: settings_module.Settings, today: date
+) -> bool:
+    """Judge one place and save at once; a model that doesn't answer is reported and left for the next run."""
+    try:
+        answer = judge.judge(case, settings.judge_command, settings.judge_timeout_seconds, today)
+    except judge.JudgeError as error:
+        _say(f"{case.place.name}: no answer ({error.__class__.__name__}: {str(error)[:ERROR_CHARS]})")
+        return False
+    cache[case.place.slug] = answer
+    judge.save_cache(settings.judge_cache, cache)
+    _say(f"{case.place.name}: restaurant-only {answer.restaurant_only}; operating now: {answer.operating_now}")
+    return True
+
+
 def cmd_feed(_args: argparse.Namespace) -> None:
     """Fetch the city's inspection-status feed; keep each year's response if it changed."""
     settings = settings_module.load()
@@ -125,6 +157,10 @@ def add_commands(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser
 
     p_audit = subparsers.add_parser("audit", help="Check the site's assumptions against the PDFs and the feed")
     p_audit.set_defaults(func=cmd_audit)
+
+    p_judge = subparsers.add_parser("judge", help="Second opinion on long closures via agy (local login needed)")
+    p_judge.add_argument("--refresh", action="store_true", help="judge every long closure again")
+    p_judge.set_defaults(func=cmd_judge)
 
     p_spot = subparsers.add_parser("spotcheck", help="Print an LLM spot-check packet: site statements + city records")
     p_spot.add_argument("--places", type=int, help="how many places to sample (default: [spotcheck] places)")

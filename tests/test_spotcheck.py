@@ -25,6 +25,7 @@ CLOSED = "Closure Re-Inspection Required"
 REPORT = "2026-10-25_2026-10-31_abc.pdf"
 SEED = 7
 SEEDS_TRIED = 20
+COVERED = frozenset(f"2026-10-{day:02d}" for day in range(1, 32))  # every day of October 2026 is on file
 ROACHES = Violation("Pest Control", "Controlling Pests", "", "Observed live roaches.", ("roaches",), "live")
 TEXT = (
     "NAAN & DOSA - 6501 WYOMING BLVD NE, B\n"
@@ -88,7 +89,7 @@ def test_choose_takes_one_hard_case_each_then_random() -> None:
     picked = choose(places, len(places), SEED)
     reasons = {s.reason: s.place.name for s in picked}
     assert reasons[SAMPLES[0][0]] == "REOPENED"
-    assert reasons["closed today"] == "CLOSED"
+    assert reasons["latest result is a closure"] == "CLOSED"
     assert reasons["roaches or rodents cited"] == "PESTS"
     assert len({s.place.name for s in picked}) == len(picked) == len(places)
     assert RANDOM_REASON in reasons
@@ -112,9 +113,13 @@ def test_choose_prefers_places_with_notes_and_respects_the_count() -> None:
 
 
 def test_claims_cover_status_closure_pests_and_every_inspection() -> None:
-    """Status today, the flag, the closure length, the pest reading and one line per inspection."""
-    found = claims(place("REOPENED", visit("2026-10-01", CLOSED, "A", ROACHES), visit("2026-10-03", APPROVED, "B")))
-    assert found[1] == "Status today: Open · Approved, per the Oct 3, 2026 inspection."
+    """The latest result, the flag, the closure length, the pest reading and one line per inspection."""
+    found = claims(
+        place("REOPENED", visit("2026-10-01", CLOSED, "A", ROACHES), visit("2026-10-03", APPROVED, "B")), COVERED
+    )
+    assert found[1] == (
+        "Latest result in the weekly reports on file: Approved, Oct 3, 2026 (Routine Food Establishment Inspection)."
+    )
     assert "List flag: Closed 2 days, reopened Oct 3." in found
     assert "Closed 2 days: Oct 1 to Oct 3, 2026, reopened as Approved." in found
     assert '2026-10-01: Roaches, live, quoting the inspector: "Observed live roaches."' in found
@@ -127,7 +132,7 @@ def test_claims_cover_status_closure_pests_and_every_inspection() -> None:
 def test_feed_only_claim_gives_the_feed_count() -> None:
     """An inspection known only from the feed says how many violations the feed lists."""
     feed_only = replace(visit("2026-10-02", APPROVED, "F"), has_details=False, report_file="", violation_count=1)
-    assert claims(place("FEED", feed_only))[-1] == (
+    assert claims(place("FEED", feed_only), COVERED)[-1] == (
         "Inspection Oct 2, 2026: Approved (Routine Food Establishment Inspection); "
         "known only from the status feed, which lists 1 violation."
     )
@@ -177,7 +182,8 @@ def test_packet_holds_prompt_rules_statements_and_redacted_records() -> None:
     assert "RULES" in text
     assert f"--seed {SEED}" in text
     assert "## Place 1: NAAN & DOSA (picked for the test)" in text
-    assert "1.2. Status today: Open · Approved, per the Oct 28, 2026, 3:00 pm inspection." in text
+    latest = "Approved, Oct 28, 2026, 3:00 pm (Routine Food Establishment Inspection)."
+    assert f"1.2. Latest result in the weekly reports on file: {latest}" in text
     assert "- CAC-1 · NAAN & DOSA, 6501 WYOMING · 2026-10-28 15:00 · Corrective · Approved · violations: 0" in text
     assert "Call [phone removed]." in text
     assert "505-768-2738" not in text

@@ -1,7 +1,25 @@
 # What the site assumes, and how to check it
 
-The site turns two city sources into statements like "Status today: Open" and "Closed 6 days, reopened Oct 9". Those
-rest on assumptions about how the city records inspections. The unit tests prove the code does what we intend; they
+## The rule: the city's weekly reports make every statement
+
+The public site states only what a City of Albuquerque weekly inspection report on file says, and links every
+statement to the page of that report (a byte-for-byte copy under `reports/`). "Don't shoot the messenger": the city
+makes the declaration, the site repeats it. Incomplete is better than wrong, and the record grows by one report a week.
+
+- An inspection appears only if a weekly report on file prints it, dated inside the week the report covers (one
+  report prints a typo date, "1/29/2026" in its Jan 27-31, 2025 week; it stays off).
+- A place's status is the city's own "Operational Status" line for each permit, quoted from the latest report that
+  lists it, followed by the latest result in the reports on file.
+- The status feed makes no statement. It has no document a reader can open, and it lists routine inspections only:
+  no corrective-action visits (which often reopen a place) and no complaint inspections. The site uses it to order
+  same-day inspections, to place map dots, and to note that a newer inspection exists whose report isn't on file
+  (without stating its result), so a closure is never presented as current when the city has inspected since.
+- A closure's length is stated only when every day between the closure and the reopening inspection is in a report on
+  file; across a gap the site says the place may have reopened sooner.
+
+## Checking the assumptions
+
+The statements rest on assumptions about how the city records inspections. The unit tests prove the code does what we intend; they
 can't prove the intent matches the city. `uv run nm-health audit` checks that against the real archive and feed and
 prints, for each assumption, how many cases it looked at and the ones that disagree. It reports and never fails:
 a person judges the disagreements.
@@ -15,6 +33,8 @@ a person judges the disagreements.
 | An untimed corrective-action visit came after that day's routine inspection | `follow_up_order` | Feed times, when both sides have one |
 | With no time, a same-day failure came before the pass | `untimed_order` | Lists the days where this guess decides the order |
 | The PDF and the feed agree on each inspection's status | `feed_status` | Status of every inspection found in both |
+| A report prints only inspections from the week it covers | `dates_in_week` | Each PDF inspection's date against its report's week (the site skips any outside it) |
+| A closure with no reopening on record for weeks is a missing record, not a months-long closure | `long_closures` | Lists closures in force over `[audit] long_closure_days` (14) with a second opinion from `nm-health judge` |
 
 ## A second opinion from any LLM
 
@@ -34,6 +54,17 @@ uv run nm-health spotcheck | pbcopy
 The sample changes daily; `--seed N` repeats a packet (the seed is printed at its top) and `--places N` changes the
 size. A packet of six places is about 50 KB.
 
+## A second opinion on long closures
+
+A restaurant closed for months is unusual; usually its reopening is in a weekly report we don't hold. `uv run
+nm-health judge` (local only: it needs your `agy` login) asks, for each closure in force over 14 days, two questions
+with typed answers checked against a JSON schema: is the business restaurant-only (yes / no / unsure, with a reason),
+and, from a web search, is it operating now (operating / closed / unknown, with the evidence). Names that say the place
+does more than serve food (hotel, inn, suites, school, academy, gas station, 7-Eleven, grocery...) are answered "no"
+without asking. Answers are saved in `data/judgements.json` (commit it) and asked again only when a new closure is
+recorded. `nm-health audit` lists them under `long_closures`, restaurant-only first. None of this reaches the public
+site: it tells you where to dig.
+
 ## Results on 2026-11-10 (whole archive, 2020–2026)
 
 - `operational_status`: 219 of 220 permits agree, including 8 Unsatisfactory permits the city lists Open. The one
@@ -50,13 +81,11 @@ size. A packet of six places is about 50 KB.
 - `feed_status`: all 290 inspections in both sources agree.
 
 Places can hold several permits at once, one per operation: 275 of 317 places with more than one known permit had
-different permits inspected on the same day (Albertsons #911 holds PT0043512 to PT0043515: deli, bakery, meat). Status
-today keeps each permit's latest result. When those differ, it lists each permit's result exactly as the city recorded
-it and makes no claim about the place as a whole: no city document says whether one permit's closure closes the rest (in
-the city's own reports one place, Quick Track 93, shows its food permit Closed and its retail permit Open). Every
-statement links to the city document behind it. Permits come from an old-style inspection ID, which is the permit
-number, else the PDF's summary table; the ID wins because the table now and then files a row under the wrong permit (5
-of 173 rows: Quick Track 93, Allsup's #102460, Sergio's Bakery).
+different permits inspected on the same day (Albertsons #911 holds PT0043512 to PT0043515: deli, bakery, meat). The site
+quotes each permit's "Operational Status" line as the city printed it in the latest report listing the place, and makes
+no claim about the place as a whole. Permits come from an old-style inspection ID, which is the permit number, else the
+PDF's summary table; the ID wins because the table now and then files a row under the wrong permit (5 of 173 rows: Quick
+Track 93, Allsup's #102460, Sergio's Bakery).
 
 Not checked: that a place's name and address identify one place, that an inspection with no permit number re-inspected
 what failed before it, and that no reopening inspection is missing from the records (a missing one would make a closure

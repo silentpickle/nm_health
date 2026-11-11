@@ -46,3 +46,6 @@ class Inspection:
     amended_from: str | None = None
     # Local start time "HH:MM" from the status feed; None when the feed doesn't list this inspection.
     time: str | None = None
+    # The weekly report's own "Operational Status" (Open / Closed) on the permit line above this inspection's row;
+    # None when the report prints no permit line for it.
+    operational_status: str | None = None

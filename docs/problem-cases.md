@@ -2,7 +2,8 @@
 
 Places whose records tripped up the site while building status today, closure lengths, the audit and the
 spot-check, with every inspection on record and where it comes from, so each can be checked by hand. Generated from
-the archive on 2026-11-10 (inspections since Nov 1, 2025).
+the archive on 2026-11-10 (inspections since Nov 1, 2025). Since then the public site states only what a weekly report
+on file says (docs/assumptions.md), so places known only from the status feed are listed here but not on the site.
 
 **How to check a row**
 
@@ -30,7 +31,7 @@ The site used to order inspections on one day by ID; the feed's start time now d
 
 The IDs sort the 11:30 closure last, so the site showed the place as closed. By time: closed 11:30, approved 4:00 pm, conditional approved 4:30 pm (two records in the afternoon, probably two permits).
 
-**The site says now:** Open · Conditional Approved, per the Oct 9, 2026, 4:30 pm inspection.
+**The public site says now:** Not on the public site: no weekly report on file lists it.
 
 | Date | Time | Inspection ID | Permit | Type | Status | Violations | Source |
 |---|---|---|---|---|---|---|---|
@@ -44,7 +45,7 @@ The IDs sort the 11:30 closure last, so the site showed the place as closed. By 
 
 The reverse: the site showed Approved, but the closure came an hour later. Two different permit numbers, both food permits; the site states each permit's result and no place-wide status (see section 6). No later inspection is on record.
 
-**The site says now:** By permit: Closure Re-Inspection Required (permit PT0054778, Aug 13, 2026, 10:55 am); Approved (permit PT0157951, Aug 13, 2026, 9:55 am).
+**The public site says now:** Not on the public site: no weekly report on file lists it.
 
 | Date | Time | Inspection ID | Permit | Type | Status | Violations | Source |
 |---|---|---|---|---|---|---|---|
@@ -57,7 +58,7 @@ The reverse: the site showed Approved, but the closure came an hour later. Two d
 
 Closure 1:06 pm, re-inspection conditional approved 2:07 pm, corrective-action visit approved the next day. The re-inspection has a new-style ID but the PDF files it under the same permit as the closure.
 
-**The site says now:** Open · Approved, per the Oct 28, 2026 inspection.
+**The public site says now:** The city's latest report on file: “Food Establishment (Permit # PT0156723): Operational Status – Open”. Latest result in the weekly reports on file: Approved, Oct 28, 2026 (Corrective Action Compliance).
 
 | Date | Time | Inspection ID | Permit | Type | Status | Violations | Source |
 |---|---|---|---|---|---|---|---|
@@ -71,7 +72,7 @@ Closure 1:06 pm, re-inspection conditional approved 2:07 pm, corrective-action v
 
 The closure's ID is the permit number; the re-inspection that reopened it names no permit. The site treats an inspection with no permit number as the re-inspection of whatever failed before it (docs/assumptions.md).
 
-**The site says now:** Open · Approved, per the Feb 24, 2026, 2:20 pm inspection.
+**The public site says now:** Not on the public site: no weekly report on file lists it.
 
 | Date | Time | Inspection ID | Permit | Type | Status | Violations | Source |
 |---|---|---|---|---|---|---|---|
@@ -88,7 +89,7 @@ When the feed gives two results the same start time, the site lets the failure s
 
 Two records at 11:30, neither naming a permit: one Closure, one Conditional Approved. The site reads it as closed and names the other result. Worth checking whether this is two permits or one inspection recorded twice. No later inspection on record.
 
-**The site says now:** Closed since Sep 17, 2026, 11:30 am · Closure Re-Inspection Required, per the Sep 17, 2026, 11:30 am inspection (another record at the same time: Conditional Approved).
+**The public site says now:** Not on the public site: no weekly report on file lists it.
 
 | Date | Time | Inspection ID | Permit | Type | Status | Violations | Source |
 |---|---|---|---|---|---|---|---|
@@ -101,7 +102,7 @@ Two records at 11:30, neither naming a permit: one Closure, one Conditional Appr
 
 Four records at 9:30 (two Approved, one Unsatisfactory, one Closure, all retail, none naming a permit), then Approved at 2:00 and 2:15 pm. The site reads it as open again from the afternoon.
 
-**The site says now:** Open · Approved, per the Sep 10, 2026, 2:15 pm inspection.
+**The public site says now:** Not on the public site: no weekly report on file lists it.
 
 | Date | Time | Inspection ID | Permit | Type | Status | Violations | Source |
 |---|---|---|---|---|---|---|---|
@@ -118,7 +119,7 @@ Four records at 9:30 (two Approved, one Unsatisfactory, one Closure, all retail,
 
 Both inspections at 9:30 under consecutive permit numbers; one Approved, one Closure. The site states each permit's result; no city document says whether one permit's closure closes the other. No later inspection on record.
 
-**The site says now:** By permit: Closure Re-Inspection Required (permit PT0158662, Mar 13, 2026, 9:30 am); Approved (permit PT0158663, Mar 13, 2026, 9:30 am).
+**The public site says now:** Not on the public site: no weekly report on file lists it.
 
 | Date | Time | Inspection ID | Permit | Type | Status | Violations | Source |
 |---|---|---|---|---|---|---|---|
@@ -133,7 +134,7 @@ Both inspections at 9:30 under consecutive permit numbers; one Approved, one Clo
 
 The Dec 14–20 report lists the Dec 17 closure under permit PT0082266 with Operational Status Open. The next report shows a corrective-action visit Dec 22 (Unsatisfactory) and approval Dec 24, so the Open was probably as of when the PDF was generated. The only one of 220 permits where the audit disagrees.
 
-**The site says now:** Open · Approved, per the Apr 20, 2026, 2:45 pm inspection.
+**The public site says now:** The city's latest report on file: “Food Establishment (Permit # PT0082266): Operational Status – Open”. Latest result in the weekly reports on file: Approved, Dec 24, 2025, 10:54 am (Routine Food Establishment Inspection).
 
 | Date | Time | Inspection ID | Permit | Type | Status | Violations | Source |
 |---|---|---|---|---|---|---|---|
@@ -151,7 +152,7 @@ The Dec 14–20 report lists the Dec 17 closure under permit PT0082266 with Oper
 
 The Sep 25 corrective-action visit's details start ". Violation: Result of a Complaint"; the dot hid the heading and the visit read 0 violations (found by the LLM spot-check). Once read, its text recaps the Sep 21 mice droppings as cleaned up; corrective-action visits no longer count as pest citations. Also: the summary calls the permit a Retail Food Establishment, but the Sep 25 details say "Mobile Food Unit Class A". Not fixed: "Violation: Result of a Complaint" is the city's tag for a complaint-triggered inspection, not a violation, yet the site counts it as one (one of Sep 21's six, and Sep 25's only one), as the second spot-check pointed out.
 
-**The site says now:** Open · Approved, per the Sep 25, 2026 inspection.
+**The public site says now:** The city's latest report on file: “Retail Food Establishment- EHD (Permit # PT0132485): Operational Status – Open”. Latest result in the weekly reports on file: Approved, Sep 25, 2026 (Corrective Action Compliance).
 
 | Date | Time | Inspection ID | Permit | Type | Status | Violations | Source |
 |---|---|---|---|---|---|---|---|
@@ -164,7 +165,7 @@ The Sep 25 corrective-action visit's details start ". Violation: Result of a Com
 
 The permit line "(Permit # - FOODEST-2025-00423)" didn't match the parser, so FROST's rows took the permit of the place listed before it, and the site said one of two permits was closed. It is one permit: closed Jan 2, Unsatisfactory on the Jan 5 follow-up, approved Jan 8.
 
-**The site says now:** Open · Approved, per the Jan 8, 2026, 11:00 am inspection.
+**The public site says now:** The city's latest report on file: “Food Establishment (Permit # FOODEST-2025-00423): Operational Status – Open”. Latest result in the weekly reports on file: Approved, Jan 8, 2026, 11:00 am (Routine Food Establishment Inspection).
 
 | Date | Time | Inspection ID | Permit | Type | Status | Violations | Source |
 |---|---|---|---|---|---|---|---|
@@ -182,7 +183,7 @@ In these reports a row sits under another permit's line; the details pages show 
 
 Summary, p. 38: "Food Establishment (Permit # - PT0160313) - Operational Status – Closed" with the row for PT0160314 (retail, Approved) under it, and the retail permit's line (Open) with PT0160313's closure row under it. The details confirm PT0160313 is the food permit and was closed. This is also the city's only place, of 42 listed with several permits, with one permit Closed and another Open: the convenience-store case.
 
-**The site says now:** Open · Approved, per the Jan 23, 2026, 9:30 am inspection.
+**The public site says now:** The city's latest report on file: “Retail Food Establishment (Permit # PT0160314): Operational Status – Open”; “Food Establishment (Permit # PT0160313): Operational Status – Closed”. Latest result in the weekly reports on file: Closure Re-Inspection Required, Jan 8, 2026, 11:10 am (Routine Food Establishment Inspection).
 
 | Date | Time | Inspection ID | Permit | Type | Status | Violations | Source |
 |---|---|---|---|---|---|---|---|
@@ -196,7 +197,7 @@ Summary, p. 38: "Food Establishment (Permit # - PT0160313) - Operational Status 
 
 Same report, same swap: each permit line has the other permit's row under it. Both permits passed, so the status reading doesn't change.
 
-**The site says now:** Open · by permit: Approved (Food Establishment PT0161595, Jan 9, 2026); Conditional Approved (Retail Food Establishment PT0161594, Jan 9, 2026).
+**The public site says now:** The city's latest report on file: “Food Establishment (Permit # PT0161594): Operational Status – Open”; “Retail Food Establishment (Permit # PT0161595): Operational Status – Open”. Latest result in the weekly reports on file: Approved, Jan 9, 2026 (Routine Retail Food Inspection).
 
 | Date | Time | Inspection ID | Permit | Type | Status | Violations | Source |
 |---|---|---|---|---|---|---|---|
@@ -209,7 +210,7 @@ Same report, same swap: each permit line has the other permit's row under it. Bo
 
 Dec 28 – Jan 3 report: PT0126278's row sits under PT0126277's line. Separately, this place's records spell the address two ways, so its history is split across two site pages; this page has the PDF records.
 
-**The site says now:** Open · Approved, per the Sep 22, 2026 inspection.
+**The public site says now:** The city's latest report on file: “Food Establishment (Permit # PT0126277): Operational Status – Open”; “Retail Food Establishment (Permit # PT0126278): Operational Status – Open”. Latest result in the weekly reports on file: Approved, Sep 22, 2026 (Corrective Action Compliance).
 
 | Date | Time | Inspection ID | Permit | Type | Status | Violations | Source |
 |---|---|---|---|---|---|---|---|
@@ -228,7 +229,7 @@ Dec 28 – Jan 3 report: PT0126278's row sits under PT0126277's line. Separately
 
 Feed records under the other spelling. A Jun 11 retail closure here is followed only by a Jun 17 food re-inspection with no permit number, which the site lets replace it. Open question: should these two pages be one place?
 
-**The site says now:** Open · Conditional Approved, per the Jun 17, 2026, 10:45 am inspection.
+**The public site says now:** Not on the public site: no weekly report on file lists it.
 
 | Date | Time | Inspection ID | Permit | Type | Status | Violations | Source |
 |---|---|---|---|---|---|---|---|
@@ -245,7 +246,7 @@ Feed records under the other spelling. A Jun 11 retail closure here is followed 
 
 Retail permit approved 7:15 am, food permit closed 8:00 am. The site states each permit's result ("1 of 2 permits closed" in lists) and doesn't infer which side of the business is open. No later inspection on record.
 
-**The site says now:** By permit: Closure Re-Inspection Required (permit PT0051883, Jun 15, 2026, 8:00 am); Approved (permit PT0140689, Jun 15, 2026, 7:15 am).
+**The public site says now:** Not on the public site: no weekly report on file lists it.
 
 | Date | Time | Inspection ID | Permit | Type | Status | Violations | Source |
 |---|---|---|---|---|---|---|---|
@@ -258,7 +259,7 @@ Retail permit approved 7:15 am, food permit closed 8:00 am. The site states each
 
 Deli, bakery and meat permits (PT0043512, PT0043515, PT0043513, consecutive numbers) inspected an hour apart. All passed; the case the second model raised about one permit's closure hiding behind another's pass.
 
-**The site says now:** Open · Approved, per the Oct 27, 2026, 11:30 am inspection.
+**The public site says now:** The city's latest report on file: “Retail Food Establishment (Permit # PT0043513): Operational Status – Open”; “Retail Food Establishment (Permit # PT0043515): Operational Status – Open”; “Retail Food Establishment (Permit # PT0043512): Operational Status – Open”. Latest result in the weekly reports on file: Approved, Oct 27, 2026, 11:30 am (Routine Retail Food Inspection).
 
 | Date | Time | Inspection ID | Permit | Type | Status | Violations | Source |
 |---|---|---|---|---|---|---|---|
@@ -275,7 +276,7 @@ Deli, bakery and meat permits (PT0043512, PT0043515, PT0043513, consecutive numb
 
 Two complaint inspections on Sep 21 under the same permit, with no feed times. The site assumes the failure came first, so it reads approved. ("Golden Pride Legacy LLC" is a legal name shared by four stores; the site keeps them apart by address.)
 
-**The site says now:** Open · Approved, per the Sep 21, 2026 inspection.
+**The public site says now:** The city's latest report on file: “Food Establishment (Permit # PT0043523): Operational Status – Open”. Latest result in the weekly reports on file: Approved, Sep 21, 2026 (Complaint Food Establishment Inspection).
 
 | Date | Time | Inspection ID | Permit | Type | Status | Violations | Source |
 |---|---|---|---|---|---|---|---|
@@ -291,7 +292,7 @@ Two complaint inspections on Sep 21 under the same permit, with no feed times. T
 
 The site counts each bulleted item in the PDF; the city's feed counts the "Violation:" headings (three items under Operation and Maintenance, two under Personal Cleanliness). Not fixed: a choice of which count to show.
 
-**The site says now:** Closed since Oct 28, 2026, 8:05 am · Closure Re-Inspection Required, per the Oct 28, 2026, 8:05 am inspection.
+**The public site says now:** The city's latest report on file: “Food Establishment (Permit # PT0152707): Operational Status – Closed”. Latest result in the weekly reports on file: Closure Re-Inspection Required, Oct 28, 2026, 8:05 am (Routine Food Establishment Inspection).
 
 | Date | Time | Inspection ID | Permit | Type | Status | Violations | Source |
 |---|---|---|---|---|---|---|---|

@@ -12,12 +12,13 @@ the text here, not through the parser, which fills a missing status with "Open":
 import re
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Iterator
-from dataclasses import dataclass
-from datetime import date, datetime
+from dataclasses import dataclass, field
+from datetime import date, datetime, timedelta
 
-from nm_health.feed import FeedRecord, load_records
+from nm_health.feed import FeedRecord, load_records, today_utc
+from nm_health.judge import Judgement, LongClosure, load_cache, long_closures
 from nm_health.model import Inspection
-from nm_health.rebuild import rebuild, report_text
+from nm_health.rebuild import Report, rebuild, report_text
 from nm_health.settings import Settings
 from nm_health.signals import FOLLOW_UP_WORD, chronological, is_closed, is_open, is_red, permit_of
 from nm_health.viewmodel import Place, group_places
@@ -52,6 +53,16 @@ class PermitBlock:
 
 
 @dataclass(frozen=True)
+class Review:
+    """What the long-closure check needs: today, its thresholds, and the saved second opinions."""
+
+    today: date = date.min
+    long_closure_days: int = 14
+    window_days: int = 365
+    judgements: dict[str, Judgement] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class AuditData:
     """Everything the checks read: rebuilt inspections, places, the PDFs' permit blocks and the feed."""
 
@@ -59,6 +70,8 @@ class AuditData:
     places: list[Place]
     blocks: tuple[PermitBlock, ...]
     feed: tuple[FeedRecord, ...]
+    reports: tuple[Report, ...] = ()
+    review: Review = field(default_factory=Review)
 
 
 @dataclass(frozen=True)
@@ -305,6 +318,58 @@ def check_feed_status(data: AuditData) -> CheckResult:
     )
 
 
+def check_dates_in_week(data: AuditData) -> CheckResult:
+    """Is every inspection a weekly report prints dated inside the week the report covers?"""
+    weeks = {r.file: (r.week_start, r.week_end) for r in data.reports if r.week_start and r.week_end}
+    dated = [i for i in data.inspections if i.has_details and i.report_file in weeks]
+    outside = [
+        f"{i.report_file} prints {i.name} on {i.date} (week {weeks[i.report_file][0]} to {weeks[i.report_file][1]})"
+        for i in dated
+        if not weeks[i.report_file][0] <= i.date <= weeks[i.report_file][1]
+    ]
+    return CheckResult(
+        "dates_in_week",
+        "Every inspection a weekly report prints is dated inside the week it covers (the site skips any that aren't)",
+        len(dated),
+        tuple(outside),
+    )
+
+
+def _opinion(case: LongClosure, judgement: Judgement | None) -> str:
+    head = (
+        f"{case.place.name}, {case.place.address}: closed {case.spell.start}, {case.days} days, no reopening on record"
+    )
+    if judgement is None or judgement.closure != case.spell.start:
+        return f"{head}; not judged yet (run nm-health judge)"
+    opinion = f"; operating now: {judgement.operating_now} ({judgement.evidence})" if judgement.evidence else ""
+    return f"{head}; restaurant-only: {judgement.restaurant_only} ({judgement.by}: {judgement.reason}){opinion}"
+
+
+def _verdict(case: LongClosure, judgement: Judgement | None) -> str:
+    if judgement is None or judgement.closure != case.spell.start:
+        return "not judged yet"
+    return f"restaurant-only {judgement.restaurant_only}, operating now: {judgement.operating_now}"
+
+
+def check_long_closures(data: AuditData) -> CheckResult:
+    """Closures in force for weeks: a reopening missing from our records, or a business that shut? Second opinions."""
+    review = data.review
+    since = (review.today - timedelta(days=review.window_days)).isoformat()
+    recent = [p for p in data.places if p.spells and p.spells[-1].start >= since]
+    cases = long_closures(recent, review.today, review.long_closure_days)
+    tally: dict[str, int] = defaultdict(int)
+    for case in cases:
+        tally[_verdict(case, review.judgements.get(case.place.slug))] += 1
+    first = sorted(cases, key=lambda c: _verdict(c, review.judgements.get(c.place.slug)) != "restaurant-only yes")
+    return CheckResult(
+        "long_closures",
+        f"A closure with no reopening on record for {review.long_closure_days}+ days (second opinion: nm-health judge)",
+        len(cases),
+        tuple(_opinion(c, review.judgements.get(c.place.slug)) for c in first),
+        tuple(sorted(tally.items())),
+    )
+
+
 CHECKS: tuple[Callable[[AuditData], CheckResult], ...] = (
     check_operational_status,
     check_follow_up_order,
@@ -312,14 +377,20 @@ CHECKS: tuple[Callable[[AuditData], CheckResult], ...] = (
     check_untimed_order,
     check_feed_times,
     check_feed_status,
+    check_dates_in_week,
+    check_long_closures,
 )
 
 
 def audit_data(
-    inspections: tuple[Inspection, ...], blocks: tuple[PermitBlock, ...], feed: tuple[FeedRecord, ...]
+    inspections: tuple[Inspection, ...],
+    blocks: tuple[PermitBlock, ...],
+    feed: tuple[FeedRecord, ...],
+    reports: tuple[Report, ...] = (),
+    review: Review | None = None,
 ) -> AuditData:
     """Group the inspections into places the way the site does."""
-    return AuditData(inspections, group_places(inspections), blocks, feed)
+    return AuditData(inspections, group_places(inspections), blocks, feed, reports, review or Review())
 
 
 def load(settings: Settings) -> AuditData:
@@ -330,7 +401,14 @@ def load(settings: Settings) -> AuditData:
         for report in rebuilt.reports
         for block in permit_blocks(report_text(settings.archive_dir / report.file), report.file)
     )
-    return audit_data(rebuilt.inspections, blocks, tuple(load_records(settings, date.min)))
+    review = Review(
+        today=today_utc().date(),
+        long_closure_days=settings.long_closure_days,
+        window_days=settings.window_days,
+        judgements=load_cache(settings.judge_cache),
+    )
+    feed = tuple(load_records(settings, date.min))
+    return audit_data(rebuilt.inspections, blocks, feed, rebuilt.reports, review)
 
 
 def run_checks(data: AuditData) -> list[CheckResult]:
