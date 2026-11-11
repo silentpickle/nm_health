@@ -9,28 +9,30 @@ import re
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-from nm_health import feed
 from nm_health.model import Inspection
-from nm_health.rebuild import Rebuilt, Report
+from nm_health.rebuild import Rebuilt, Report, permit_line_pages, report_text
 from nm_health.settings import Settings
 from nm_health.viewmodel import (
     CELL_CLASSES,
     MIDDOT,
     RED_GROUP,
+    Coverage,
     Place,
     cell_code,
+    covered_days,
     group_places,
+    later_records,
     level,
     month_ticks,
     nice_date,
     notice_count_text,
     notice_quote,
     recent_text,
+    reopened_flag,
     reports_in_window,
-    row_flag,
     short_date,
     source_label,
-    status_today,
+    stated,
     strip_cells,
     strip_label,
 )
@@ -45,15 +47,14 @@ WHERE = f"Albuquerque, NM {MIDDOT} last 12 months"
 TABS = (("week", "index.html", "This week"), ("places", "places.html", "Places"), ("map", "map.html", "Map"))
 ABOUT_TAB = ("about", "about.html", "About")
 FOOTER = (
-    "Source: City of Albuquerque Environmental Health Department weekly inspection reports and its public "
-    "inspection-status feed. Statuses are shown as the city issued them; inspector observations are quoted as "
-    "published, with email addresses and phone numbers removed. Not affiliated with the City of Albuquerque."
+    "Source: City of Albuquerque Environmental Health Department weekly inspection reports, linked beside every "
+    "statement. Statuses are shown as the city issued them; inspector observations are quoted as published, with "
+    "email addresses and phone numbers removed. Not affiliated with the City of Albuquerque."
 )
 NOINDEX = '<meta name="robots" content="noindex, nofollow">'
 PLACE_DIR = "place"
 # What we downloaded from the city, published beside the pages so every statement can link to it.
 REPORTS_DIR = "reports"  # the weekly PDFs, byte for byte
-FEED_SOURCES_DIR = "sources/feed"  # one inspection's feed row per file, exactly as the city returned it
 UNSAFE_FILE_CHARS = re.compile(r"[^A-Za-z0-9-]")
 NO_SOURCE = "No city document on file"
 
@@ -67,7 +68,9 @@ class SiteData:
     places: list[Place]
     reports: tuple[Report, ...]  # weekly reports ending inside the window
     week_starts: dict[str, str | None]  # report file -> its week's first day
-    feed_rows: dict[tuple[str, str], feed.SourceRow]  # (inspection ID, date) -> the city's row for it
+    later: dict[str, Inspection]  # place slug -> a newer inspection in the city's records, report not on file
+    covered: Coverage  # dates a weekly report on file covers
+    permit_pages: dict[tuple[str, str], int]  # (report file, permit) -> page printing its Operational Status line
 
     @property
     def total(self) -> int:
@@ -81,47 +84,45 @@ class SiteData:
 
 
 def site_data(rebuilt: Rebuilt, settings: Settings, today: date) -> SiteData:
-    """Group the rebuilt inspections into places and keep the reports that fall in the window."""
+    """Places from what the weekly reports on file state, and the reports that fall in the window."""
     since = today - timedelta(days=settings.window_days)
+    places = group_places(stated(rebuilt.inspections, rebuilt.reports))
     return SiteData(
         settings=settings,
         today=today,
-        places=group_places(rebuilt.inspections),
+        places=places,
         reports=reports_in_window(rebuilt.reports, since),
         week_starts={r.file: r.week_start for r in rebuilt.reports},
-        feed_rows=feed.source_rows(settings, since),
+        later=later_records(rebuilt.inspections, places),
+        covered=covered_days(rebuilt.reports),
+        permit_pages=_permit_pages(settings, places),
     )
+
+
+def _permit_pages(settings: Settings, places: list[Place]) -> dict[tuple[str, str], int]:
+    files = sorted({i.report_file for p in places for i in p.inspections if i.operational_status})
+    return {
+        (name, permit): page
+        for name in files
+        for permit, page in permit_line_pages(report_text(settings.archive_dir / name)).items()
+    }
 
 
 # ---------- Sources ----------
 
 
-def feed_source_file(inspection: Inspection) -> str:
-    """'RT-FOODEST-097628-2025_2026-10-09.json': the file holding the inspection's feed row."""
-    return f"{UNSAFE_FILE_CHARS.sub('-', inspection.inspection_id)}_{inspection.date}.json"
-
-
-def has_feed_row(data: SiteData, inspection: Inspection) -> bool:
-    """The city's status feed has a row for this inspection."""
-    return (inspection.inspection_id, inspection.date) in data.feed_rows
-
-
 def unsourced(data: SiteData) -> list[Inspection]:
-    """Inspections with neither a weekly report nor a feed row on file: nothing the site may say about them."""
-    return [i for p in data.places for i in p.inspections if not i.report_file and not has_feed_row(data, i)]
+    """Inspections no weekly report on file prints: nothing the site may say about them."""
+    return [i for p in data.places for i in p.inspections if not i.report_file]
 
 
 def source_links(data: SiteData, inspection: Inspection, up: str = "") -> str:
-    """Links to the city's own documents for one inspection: the weekly PDF at its page, and the feed row."""
+    """A link to the city's own document for one inspection: the weekly PDF, opened at its page."""
     links = []
     if inspection.report_file:
         page = f"#page={inspection.page}" if inspection.page else ""
         label = source_label(inspection, data.week_starts.get(inspection.report_file))
         links.append(f'<a href="{up}{REPORTS_DIR}/{esc(inspection.report_file)}{page}">{esc(label)}</a>')
-    if has_feed_row(data, inspection):
-        links.append(
-            f'<a href="{up}{FEED_SOURCES_DIR}/{esc(feed_source_file(inspection))}">City status feed record</a>'
-        )
     return f" {MIDDOT} ".join(links) or f"<span>{NO_SOURCE}</span>"
 
 
@@ -154,9 +155,9 @@ def _tabs(active: str, up: str) -> str:
 def lede(data: SiteData) -> str:
     """The line under the site name, on every page."""
     return (
-        "Food inspections in the City of Albuquerque's records for the last 12 months: every status the city issued, "
-        f"and the inspector's notes for the {len(data.reports)} weekly reports saved so far. "
-        "The city itself only shows the latest week."
+        "Food inspections in the City of Albuquerque's weekly inspection reports, as the city published them: "
+        f"the {len(data.reports)} weekly reports saved so far in the last 12 months, each linked. "
+        "The city itself only shows the latest week, so this record grows by one report every week."
     )
 
 
@@ -251,11 +252,11 @@ def place_href(place: Place, up: str = "") -> str:
     return f"{up}{PLACE_DIR}/{esc(place.slug)}.html"
 
 
-def _row_flags(place: Place) -> str:
+def _row_flags(place: Place, covered: Coverage) -> str:
     flags = []
     if place.headline_pests:
         flags.append('<span class="flag">Roaches or rodents cited</span>')
-    reopened = row_flag(place)
+    reopened = reopened_flag(place, covered)
     if reopened:
         flags.append(f'<span class="flag">{esc(reopened)}</span>')
     elif place.closures and level(place.latest.status) != "r":
@@ -264,12 +265,12 @@ def _row_flags(place: Place) -> str:
     return "".join(flags)
 
 
-def row_html(place: Place, today: date) -> str:
+def row_html(place: Place, today: date, covered: Coverage) -> str:
     """One place in a list: name, address, latest status and date, flags, recent statuses (phones) and strip."""
     latest = place.latest
     meta = (
         f'<span class="data">{esc(place.address)}</span>{chip(latest.status)}'
-        f"<span>{nice_date(latest.date)}</span>{_row_flags(place)}"
+        f"<span>{nice_date(latest.date)}</span>{_row_flags(place, covered)}"
     )
     return (
         f'<li><a class="row" href="{place_href(place)}"><div class="info"><div class="nm">{esc(place.name)}</div>'
@@ -302,5 +303,5 @@ def notice_html(place: Place, inspection: Inspection, *, pest: bool) -> str:
         f'<a class="notice{kind}" href="{place_href(place)}#insp-{place.inspections.index(inspection)}">'
         f'<span class="eyebrow">{nice_date(inspection.date)}</span>'
         f'<span class="nm">{esc(place.name)}</span><span class="data muted">{esc(place.address)}</span>'
-        f'<span>{chip(inspection.status)}</span>{why}<span class="today">Status today: {esc(status_today(place))}</span></a>'
+        f"<span>{chip(inspection.status)}</span>{why}</a>"
     )

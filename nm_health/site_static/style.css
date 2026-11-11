@@ -475,8 +475,18 @@ ul.rows a.row:hover {
   overflow-wrap: anywhere;
 }
 .place-head .today {
-  margin: 8px 0 0;
+  margin: 10px 0 0;
+}
+.place-head .today p {
+  margin: 4px 0;
+}
+.place-head .today ul.permits {
+  margin: 4px 0;
+  padding-left: 1.2em;
   font-weight: 600;
+}
+.place-head .today ul.permits q {
+  quotes: none;
 }
 .place-head .today .lbl {
   font: 500 0.78rem var(--font-data);

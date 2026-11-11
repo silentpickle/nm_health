@@ -4,6 +4,7 @@
 import html
 import json
 import re
+import shutil
 from collections import defaultdict
 from dataclasses import replace
 from datetime import UTC, date, datetime
@@ -11,13 +12,14 @@ from pathlib import Path
 
 import pytest
 
-from nm_health import feed
+from nm_health import feed, site
 from nm_health.identity import establishment_slug
 from nm_health.model import Inspection, Violation
 from nm_health.rebuild import Rebuilt, Report, rebuild
 from nm_health.settings import Settings, load
-from nm_health.site import FLAG_CLOSURE_IN_FORCE, UnsourcedError, write_site
-from nm_health.site_html import NO_SOURCE
+from nm_health.site import UnsourcedError, write_site
+from nm_health.site_html import NO_SOURCE, site_data
+from nm_health.viewmodel import build_place, stated
 from tests.test_archive import make_settings
 
 TODAY = datetime(2026, 11, 9, 12, tzinfo=UTC)
@@ -36,7 +38,8 @@ PLACES_JSON_LIMIT = 300_000  # bytes
 TOP_PAGES = ("index.html", "places.html", "map.html", "about.html")
 H1 = re.compile(r"<h1\b")
 PDF_LINK = re.compile(r'href="([^"]+\.pdf)(?:#page=\d+)?"')
-PDF_BYTES = b"%PDF-1.4 test report"
+# A real weekly report stands in for the test report, so the build can read its text as it does in production.
+STAND_IN_PDF = Path(__file__).resolve().parent.parent / "data" / "archive" / "2026-10-25_2026-10-31_0e0b9708501f.pdf"
 FEED_DEFAULT_TIME = "09:00"
 
 
@@ -54,14 +57,16 @@ def visit(day: str, *violations: Violation, status: str = "Approved", name: str 
         report_file=REPORT_FILE,
         page=3,
         violations=violations,
+        operational_status="Open",
     )
 
 
-def feed_only(day: str, name: str = "FEED DINER") -> Inspection:
-    """An inspection known only from the city's status feed."""
+def feed_only(day: str, name: str = "FEED DINER", address: str = "5 MAIN ST NE") -> Inspection:
+    """An inspection known only from the city's status feed (no weekly report on file)."""
     return replace(
         visit(day, name=name, status="Closure Re-Inspection Required"),
-        address="5 MAIN ST NE",
+        address=address,
+        operational_status=None,
         report_file="",
         page=None,
         has_details=False,
@@ -94,7 +99,7 @@ def feed_row(inspection: Inspection) -> dict[str, object]:
 def save_sources(settings: Settings, inspections: tuple[Inspection, ...]) -> None:
     """What the build links to: the weekly PDF, and a saved feed response with each feed-only inspection's row."""
     settings.archive_dir.mkdir(parents=True, exist_ok=True)
-    (settings.archive_dir / REPORT_FILE).write_bytes(PDF_BYTES)
+    shutil.copy(STAND_IN_PDF, settings.archive_dir / REPORT_FILE)
     rows = [feed_row(i) for i in inspections if not i.has_details]
     body = json.dumps({"api_data": {"records": rows}}).encode()
     feed.save_raw(settings, TODAY.year, body, TODAY)
@@ -131,7 +136,6 @@ def test_write_site_writes_every_page(tmp_path: Path) -> None:
         "index.html",
         "map.html",
         "map.js",
-        "place/feed-diner-5-main-st-ne.html",
         "place/test-cafe-100-central-ave-sw.html",
         "places.html",
         "places.js",
@@ -139,7 +143,6 @@ def test_write_site_writes_every_page(tmp_path: Path) -> None:
         f"reports/{REPORT_FILE}",
         "robots.txt",
         "shared.js",
-        "sources/feed/PT-FEED-2026-11-06_2026-11-06.json",
         "style.css",
     ]
 
@@ -181,7 +184,7 @@ def test_text_from_pdfs_is_escaped(tmp_path: Path) -> None:
         '<script>x()</script> Location: "><b>bold</b>',
         details=(("Location", '"><b>bold</b>'),),
     )
-    inspection = replace(visit("2026-11-06", hostile, status="Closure Re-Inspection Required"), name="<b>CAFE</b>")
+    inspection = replace(visit("2026-10-30", hostile, status="Closure Re-Inspection Required"), name="<b>CAFE</b>")
     site = build(tmp_path, replace(inspection, address="1 <i>A</i> ST"))
     for page in pages(site):
         text = page.read_text(encoding="utf-8")
@@ -214,37 +217,36 @@ def test_email_and_phone_never_published(tmp_path: Path) -> None:
 
 
 def test_place_page_states_what_the_records_show(tmp_path: Path) -> None:
-    """Strip, coverage, the pest quote with reading/status/next approval/jump link, and each inspection's source."""
-    site = build(tmp_path, visit("2026-10-29", ROACHES), visit("2026-09-02", name="TEST CAFE"))
+    """The city's permit line, strip, coverage, the pest quote and each inspection's report page."""
+    site = build(tmp_path, visit("2026-10-29", ROACHES), visit("2026-10-26", name="TEST CAFE"))
     text = read(site, "place/test-cafe-100-central-ave-sw.html")
     assert 'class="strip big" role="img" aria-label="Inspections in the last 52 weeks: Oct 29, 2026: Approved;' in text
     assert "Inspector notes on file for 2 of 2 inspections." in text
     assert """<span class="reading" title="This site's reading of the inspector's words">Roaches, live""" in text
     assert "<q>Pest Type: Cockroach</q>" in text
     assert "Status that day, as issued by the city: Approved." in text
-    assert "No later approved inspection on record." in text
+    assert "No later approved inspection in the weekly reports on file." in text
+    permit_line = "Food Establishment (Permit # PT1): Operational Status \u2013 Open"
+    assert f'<q>{permit_line}</q> <a href="../reports/{REPORT_FILE}">PDF</a>' in text  # PT1: not in the stand-in
+    assert "Latest result in the weekly reports on file: Approved, Oct 29, 2026" in text
     assert '<a class="jump" href="#insp-0">Oct 29, 2026</a>: ' in text
     assert '<li class="g" id="insp-0">' in text
     assert f'<a href="../reports/{REPORT_FILE}#page=3">Week of Oct 25 report (PDF, p. 3)</a>' in text
     assert "<summary>Show everything the report says</summary>" in text
 
 
-def test_feed_only_place_and_banner(tmp_path: Path) -> None:
-    """Feed-only inspections say the notes aren't on file; no report covers the newest date, so the banner shows."""
-    site = build(tmp_path, visit("2026-10-29", ROACHES), feed_only("2026-11-06"))
-    place = read(site, "place/feed-diner-5-main-st-ne.html")
-    assert "Inspector notes on file for none of its 1 inspection in this period" in place
-    assert "the one covering this date isn&#x27;t in our archive." in place
-    feed_link = '<a href="../sources/feed/PT-FEED-2026-11-06_2026-11-06.json">City status feed record</a>'
-    assert feed_link in place
-    record = json.loads(read(site, "sources/feed/PT-FEED-2026-11-06_2026-11-06.json"))
-    assert record["record"] == feed_row(feed_only("2026-11-06"))  # the city's row, unchanged
-    assert record["saved_response"].startswith(f"data/feed/raw/{TODAY.year}/")
+def test_feed_only_inspections_stay_off_the_site(tmp_path: Path) -> None:
+    """No weekly report, no statement: a feed-only place gets no page, and a newer feed record is only noted."""
+    newer = feed_only("2026-11-06", name="TEST CAFE", address="100 CENTRAL AVE SW")
+    site = build(tmp_path, visit("2026-10-29", ROACHES), newer, feed_only("2026-11-06"))
+    assert not (site / "place" / "feed-diner-5-main-st-ne.html").exists()
+    assert not (site / "sources").exists()
+    place = read(site, "place/test-cafe-100-central-ave-sw.html")
+    assert "lists a later inspection on Nov 6, 2026. Its weekly report isn&#x27;t on file yet" in place
+    assert "Closure Re-Inspection Required" not in place
     index = read(site, "index.html")
-    assert "weekly report for this week isn&#x27;t on file yet" in index
-    assert "Roaches or rodents cited, week of Oct 25" in index
-    assert "Closure or unsatisfactory<span" in index
-    assert ">Closed<" not in index
+    assert "FEED DINER" not in index
+    assert "isn&#x27;t on file yet" not in index
 
 
 def test_covered_week_has_no_banner(tmp_path: Path) -> None:
@@ -258,7 +260,7 @@ def test_places_page_lists_every_place_without_javascript(tmp_path: Path) -> Non
     """Every place is a plain link with its latest status; the search tools stay hidden until places.js runs."""
     site = build(tmp_path, visit("2026-10-29"), feed_only("2026-11-06"))
     text = read(site, "places.html")
-    assert text.count('<a class="row" href="place/') == len(["TEST CAFE", "FEED DINER"])
+    assert text.count('<a class="row" href="place/') == len(["TEST CAFE"])
     assert '<div class="search" id="tools" hidden>' in text
     assert '<script type="module" src="places.js"></script>' in text
 
@@ -267,24 +269,22 @@ def test_places_json_shape(tmp_path: Path) -> None:
     """One row per place: slug, names, address, strip, statuses, flags, closure start, coordinates, reopened."""
     site = build(tmp_path, visit("2026-10-29", ROACHES), feed_only("2026-11-06"))
     data = json.loads(read(site, "places.json"))
-    assert data["statuses"] == [["Closure Re-Inspection Required", "r"], ["Approved", "g"]]
-    assert (data["today"], data["inspections"], data["withNotes"]) == ("2026-11-09", 2, 1)
-    feed_row, cafe_row = data["places"]
-    assert feed_row == [
-        "feed-diner-5-main-st-ne",
-        "FEED DINER",
+    assert data["statuses"] == [["Approved", "g"]]
+    assert (data["today"], data["inspections"], data["withNotes"]) == ("2026-11-09", 1, 1)
+    (cafe_row,) = data["places"]
+    assert cafe_row == [
+        "test-cafe-100-central-ave-sw",
+        "TEST CAFE",
         None,
-        "5 MAIN ST NE",
-        "." * 51 + "R",
-        [[3, 0]],
+        "100 CENTRAL AVE SW",
+        "." * 50 + "1.",
+        [[11, 0]],
         0,
-        FLAG_CLOSURE_IN_FORCE,
-        "2026-11-06",
-        [35.08, -106.65],
+        1,
+        "",
+        None,
         "",
     ]
-    assert cafe_row[4] == "." * 50 + "1."
-    assert cafe_row[7] == 1
 
 
 def test_map_and_about_pages(tmp_path: Path) -> None:
@@ -309,7 +309,7 @@ def test_real_archive(tmp_path: Path) -> None:
     assert (site / "places.json").stat().st_size < PLACES_JSON_LIMIT
     assert len(json.loads(read(site, "places.json"))["places"]) == count
     expected: dict[str, set[str]] = defaultdict(set)
-    for inspection in rebuilt.inspections:
+    for inspection in stated(rebuilt.inspections, rebuilt.reports):
         if inspection.report_file:
             slug = establishment_slug(inspection.name, inspection.address)
             expected[slug].add(html.escape(f"../reports/{inspection.report_file}"))
@@ -319,38 +319,37 @@ def test_real_archive(tmp_path: Path) -> None:
     assert not [p.name for p in (site / "place").glob("*.html") if NO_SOURCE in p.read_text(encoding="utf-8")]
 
 
-def test_same_day_reopening_shows_status_today(tmp_path: Path) -> None:
-    """Closed 1:06 pm, conditional 2:07 pm: the card, the row and the place page all say it's open again."""
+def test_same_day_reopening_states_the_reports(tmp_path: Path) -> None:
+    """Closed 1:06 pm, conditional 2:07 pm the same day: the row flag and the place page state both, from the report."""
     closed = replace(
-        visit("2026-11-06", status="Closure Re-Inspection Required"),
+        visit("2026-10-30", status="Closure Re-Inspection Required"),
         inspection_id="PT0156723",
         time="13:06",
         permit_number="PT0156723",
     )
     reopened = replace(
-        visit("2026-11-06", status="Conditional Approved"),
+        visit("2026-10-30", status="Conditional Approved"),
         inspection_id="RT-FOODEST-101632-2026",
         time="14:07",
         permit_number="PT0156723",
     )
     site = build(tmp_path, closed, reopened)
-    today = "Open \u00b7 Conditional Approved, per the Nov 6, 2026, 2:07 pm inspection"
     index = read(site, "index.html")
-    assert f'<span class="today">Status today: {html.escape(today)}</span>' in index
-    assert '<span class="flag">Closed and reopened Nov 6</span>' in index
+    assert '<span class="flag">Closed and reopened Oct 30</span>' in index
+    assert "Status today" not in index
     page = read(site, "place/test-cafe-100-central-ave-sw.html")
-    assert f'<span class="lbl">Status today</span> {html.escape(today)}</p>' in page
+    assert "Latest result in the weekly reports on file: Conditional Approved, Oct 30, 2026, 2:07 pm" in page
     assert "Closed and reopened the same day (1:06 pm \u2192 2:07 pm): Conditional Approved." in page
-    assert '<span class="d">Nov 6, 2026, 2:07 pm</span>' in page
-    assert json.loads(read(site, "places.json"))["places"][0][-1] == "Closed and reopened Nov 6"
+    assert '<span class="d">Oct 30, 2026, 2:07 pm</span>' in page
+    assert json.loads(read(site, "places.json"))["places"][0][-1] == "Closed and reopened Oct 30"
     assert 'data-f="reopened"' in read(site, "places.html")
 
 
 def test_build_refuses_an_unsourced_inspection(tmp_path: Path) -> None:
-    """An inspection with neither a weekly report nor a feed row on file never reaches the site."""
+    """The last guard: an inspection that slipped past stated() with no weekly report never reaches the site."""
     settings = make_settings(tmp_path)
     save_sources(settings, ())
-    orphan = feed_only("2026-11-06")
-    with pytest.raises(UnsourcedError, match="PT-FEED-2026-11-06"):
-        write_site(Rebuilt((orphan,), (REPORT,)), settings)
-    assert not settings.site_dir.exists()
+    orphan = replace(visit("2026-10-29"), report_file="")
+    data = site_data(Rebuilt((visit("2026-10-29"),), (REPORT,)), settings, TODAY.date())
+    with pytest.raises(UnsourcedError, match="PT-TEST-2026-10-29"):
+        site._require_sources(replace(data, places=[build_place("orphan", [orphan])]))  # noqa: SLF001 - the guard itself

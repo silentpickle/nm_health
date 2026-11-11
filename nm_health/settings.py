@@ -40,8 +40,6 @@ class Settings:
     # Feed records are filtered by creation date, which can precede the inspection by years.
     feed_lookback_days: int = DEFAULT_FEED_LOOKBACK_DAYS
     feed_raw_dir: Path = ROOT / "data" / "feed" / "raw"
-    # Where each saved feed response can be seen (GitHub view of feed_raw_dir).
-    feed_archive_url: str = ""
     # Places sampled into an LLM spot-check packet (nm-health spotcheck).
     spotcheck_places: int = DEFAULT_SPOTCHECK_PLACES
 
@@ -76,6 +74,5 @@ def load(path: Path = CONFIG_PATH) -> Settings:
         ),
         feed_lookback_days=int(feed["lookback_days"]),
         feed_raw_dir=base / str(feed["raw_dir"]),
-        feed_archive_url=str(site["feed_archive_url"]),
         spotcheck_places=int(data.get("spotcheck", {}).get("places", DEFAULT_SPOTCHECK_PLACES)),
     )
