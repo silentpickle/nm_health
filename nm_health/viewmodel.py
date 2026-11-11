@@ -600,8 +600,8 @@ def feed_only_text(inspection: Inspection) -> str:
     number = "an unknown number of" if count is None else str(count)
     noun = "violation" if count == 1 else "violations"
     return (
-        "Inspector notes not on file: the weekly report for this date wasn't saved. "
-        f"The city's status feed lists {number} {noun}."
+        "Inspector notes not on file: the city replaces its weekly report every week, and the one covering this "
+        f"date isn't in our archive. The city's status feed lists {number} {noun}."
     )
 
 

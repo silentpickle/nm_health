@@ -28,6 +28,9 @@ cabq.gov PDF ──daily──▶ data/archive/<week>_<sha>.pdf ──▶ parse 
    every inspection whose weekly report wasn't saved (status only).
 4. **Publish** (`site.yml`): plain HTML pages that read without JavaScript (This week, Places, Map, About, one page
    per place), a slim `places.json` that `places.js` (search, filters) and `map.js` (packages/citymap) read.
+   Every statement about a place links to the city document behind it: a byte-for-byte copy of the weekly PDF,
+   opened at the cited page (`reports/`), or the feed row exactly as the city returned it, with when and how it was
+   fetched (`sources/feed/`). The build refuses to publish an inspection with neither.
 
 Three report layouts are parsed: the current one (late 2025 on), the early-2025 transitional one, and the
 2021–2024 "Activity Date" one. The last two have no inspection or permit numbers, so their IDs are synthetic.

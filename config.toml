@@ -29,8 +29,12 @@ name = "Food Inspection History"
 indexable = false
 # Only inspections from the last this-many days are collected and shown. Archived PDFs are kept regardless.
 window_days = 365
-# Where the archived PDFs can be opened from the site (GitHub blob view of data/archive).
+# Where the archived PDFs can be opened from the site (GitHub blob view of data/archive). The site also publishes a
+# byte-for-byte copy of each PDF it cites, under reports/, so a link can open at the cited page.
 pdf_base_url = "https://github.com/silentpickle/nm_health/blob/main/data/archive/"
+# Where each saved feed response can be found (GitHub blob view of data/feed/raw); named in every feed record the
+# site publishes under sources/feed/.
+feed_archive_url = "https://github.com/silentpickle/nm_health/blob/main/data/feed/raw/"
 # The About page's "Report an error" link.
 report_error_url = "https://github.com/silentpickle/nm_health/issues"
 

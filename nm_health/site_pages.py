@@ -1,12 +1,15 @@
 # Copyright (c) 2026 nm_health contributors
 """The site's pages as HTML bodies: This week, Places, Map, About, and one place's whole record."""
 
+from collections.abc import Callable
+
 from nm_health.model import Inspection, Violation
 from nm_health.rebuild import Report
-from nm_health.signals import HEADLINE_PESTS
+from nm_health.signals import HEADLINE_PESTS, is_pass, is_red
 from nm_health.site_html import (
     EN_DASH,
     LEFT_ARROW,
+    REPORTS_DIR,
     Page,
     SiteData,
     chip,
@@ -18,6 +21,7 @@ from nm_health.site_html import (
     plain_row_html,
     row_html,
     rows_html,
+    source_links,
     strip_html,
 )
 from nm_health.viewmodel import (
@@ -43,7 +47,6 @@ from nm_health.viewmodel import (
     report_text,
     select_week,
     short_date,
-    source_label,
     status_today,
     thousands,
     unique_places,
@@ -73,6 +76,9 @@ MAP_LEGEND = (
 )
 NOT_A_CERTIFICATE = "An inspection reports what one inspector found on one day. No citation is not a certification."
 NO_LATER_APPROVAL = "No later approved inspection on record."
+UP = "../"  # place pages sit one folder below the site root
+ISO_DATE_LEN = len("2026-01-01")
+SHA_SHOWN = 12  # hex digits of a report's SHA-256 shown on the About page
 
 
 # ---------- This week ----------
@@ -187,9 +193,15 @@ def map_page(_data: SiteData) -> Page:
 def _report_item(data: SiteData, report: Report) -> str:
     start = short_date(report.week_start) if report.week_start else "?"
     end = nice_date(report.week_end) if report.week_end else "?"
-    pdf = esc(data.settings.pdf_base_url + report.file)
     count = plural(report.inspections, "inspection", "inspections")
-    return f'<li>{start} {EN_DASH} {end} {MIDDOT} {count} {MIDDOT} <a href="{pdf}">PDF</a></li>'
+    saved = nice_date(report.seen_at[:ISO_DATE_LEN])
+    history = esc(data.settings.pdf_base_url + report.file)
+    return (
+        f'<li>{start} {EN_DASH} {end} {MIDDOT} {count} {MIDDOT} <a href="{REPORTS_DIR}/{esc(report.file)}">PDF</a>'
+        f'<div class="quiet">Saved {saved} from <span class="data">{esc(report.source)}</span> {MIDDOT} '
+        f'SHA-256 <span class="data">{esc(report.sha256[:SHA_SHOWN])}</span> {MIDDOT} '
+        f'<a href="{history}">archive history</a></div></li>'
+    )
 
 
 def _reports_list(data: SiteData) -> str:
@@ -232,7 +244,22 @@ def _fact(term: str, detail: str) -> str:
     return f'<dl class="fact"><dt>{esc(term)}</dt><dd>{detail}</dd></dl>'
 
 
-def _pest_fact(citation: PestCitation) -> str:
+def _sources(data: SiteData, place: Place, cited: list[Inspection]) -> str:
+    """'Source: Oct 9, 2026, 11:30 am inspection: City status feed record' for each inspection a statement rests on."""
+    parts = [
+        f'<a class="jump" href="#insp-{place.inspections.index(i)}">{esc(when_text(i.date, i.time))}</a>: '
+        f"{source_links(data, i, UP)}"
+        for i in dict.fromkeys(cited)
+    ]
+    return f'<div class="src">Source: {"; ".join(parts)}</div>' if parts else ""
+
+
+def _found(place: Place, day: str | None, wanted: Callable[[Inspection], bool]) -> list[Inspection]:
+    """The place's first inspection on `day` that `wanted` accepts, as a list (empty when none)."""
+    return next(([i] for i in reversed(place.inspections) if i.date == day and wanted(i)), [])
+
+
+def _pest_fact(data: SiteData, place: Place, citation: PestCitation) -> str:
     cleared = (
         f"Next approved inspection: {nice_date(citation.cleared)}. "
         if citation.cleared
@@ -243,16 +270,31 @@ def _pest_fact(citation: PestCitation) -> str:
         f'<span class="reading" title="This site\'s reading of the inspector\'s words">{reading}</span>'
         f"<q>{esc(citation.quote)}</q>"
         f'<div class="quiet">Status that day, as issued by the city: {esc(citation.status)}. {cleared}'
-        f'<a class="jump" href="#insp-{citation.index}">See the inspection</a></div>'
+        "</div>"
+        f"{_sources(data, place, [place.inspections[citation.index]])}"
     )
     return _fact(nice_date(citation.date), detail)
 
 
-def _closure_fact(run: ClosureRun) -> str:
+def _closure_cited(place: Place, run: ClosureRun) -> list[Inspection]:
+    """The inspections a closure entry rests on: the one that started it, each reopening, the one that ended it."""
+    first = _found(place, run.episode.start, lambda i: is_red(i.status))
+    reopenings = [
+        i
+        for spell in run.closed
+        for i in place.inspections
+        if (i.date, i.time, i.status) == (spell.end, spell.end_time, spell.end_status)
+    ]
+    last = _found(place, run.episode.end, lambda i: is_pass(i.status) and i.status == run.episode.end_status)
+    return first + reopenings + last
+
+
+def _closure_fact(data: SiteData, place: Place, run: ClosureRun) -> str:
     end = closure_end(run)
     after = esc(end) if end else f'<span class="open">{NO_LATER_APPROVAL}</span>'
     closed = "".join(f'<div class="closed">{esc(closed_text(spell))}</div>' for spell in run.closed)
-    return _fact(RED_GROUP, f'{esc(closure_start(run))}{closed}<div class="quiet">{after}</div>')
+    sources = _sources(data, place, _closure_cited(place, run))
+    return _fact(RED_GROUP, f'{esc(closure_start(run))}{closed}<div class="quiet">{after}</div>{sources}')
 
 
 def _other_pests_fact(place: Place) -> str:
@@ -266,9 +308,9 @@ def _other_pests_fact(place: Place) -> str:
     return _fact("Other pests", lines)
 
 
-def _facts(place: Place) -> str:
-    pests = [_pest_fact(c) for c in place.pests if c.headline]
-    closures = [_closure_fact(run) for run in reversed(place.closures)]
+def _facts(data: SiteData, place: Place) -> str:
+    pests = [_pest_fact(data, place, c) for c in place.pests if c.headline]
+    closures = [_closure_fact(data, place, run) for run in reversed(place.closures)]
     return "".join([*pests, *closures, _other_pests_fact(place)])
 
 
@@ -307,11 +349,7 @@ def _inspection_body(inspection: Inspection) -> str:
 
 
 def _source(data: SiteData, inspection: Inspection) -> str:
-    if not inspection.report_file:
-        return "<span>City inspection-status feed</span>"
-    href = esc(data.settings.pdf_base_url + inspection.report_file)
-    label = source_label(inspection, data.week_starts.get(inspection.report_file))
-    return f'<a href="{href}">{esc(label)}</a>'
+    return source_links(data, inspection, UP)
 
 
 def _timeline_item(data: SiteData, inspection: Inspection, index: int) -> str:
@@ -326,12 +364,14 @@ def _timeline_item(data: SiteData, inspection: Inspection, index: int) -> str:
     )
 
 
-def _place_head(place: Place) -> str:
+def _place_head(data: SiteData, place: Place) -> str:
     legal = f" {MIDDOT} {place.legal_name}" if place.legal_name else ""
+    cited = list(reversed(place.standing)) or [place.latest]
     return (
         f'<div class="place-head"><a href="../places.html">{LEFT_ARROW} All places</a>'
         f'<h1 class="view">{esc(place.name)}</h1><div class="addr">{esc(place.address + legal)}</div>'
-        f'<p class="today"><span class="lbl">Status today</span> {esc(status_today(place))}</p></div>'
+        f'<p class="today"><span class="lbl">Status today</span> {esc(status_today(place))}</p>'
+        f"{_sources(data, place, cited)}</div>"
     )
 
 
@@ -339,10 +379,10 @@ def place_page(data: SiteData, place: Place) -> Page:
     """place/<slug>.html: the strip, what the records show, and every inspection with its source."""
     timeline = "".join(_timeline_item(data, i, n) for n, i in enumerate(place.inspections))
     body = (
-        f"{_place_head(place)}\n"
+        f"{_place_head(data, place)}\n"
         '<section class="record" aria-label="What the city\'s records show">'
         f"{strip_html(place, data.today, big=True)}{months_html(data.today)}{legend_html()}"
-        f'<p class="coverage">{esc(coverage_line(place))}</p>{_facts(place)}'
+        f'<p class="coverage">{esc(coverage_line(place))}</p>{_facts(data, place)}'
         f'<p class="quiet">{esc(NOT_A_CERTIFICATE)}</p></section>\n'
         f"{heading('Inspections', len(place.inspections))}\n"
         f'<ol class="timeline">{timeline}</ol>'

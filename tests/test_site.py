@@ -16,7 +16,8 @@ from nm_health.identity import establishment_slug
 from nm_health.model import Inspection, Violation
 from nm_health.rebuild import Rebuilt, Report, rebuild
 from nm_health.settings import Settings, load
-from nm_health.site import FLAG_CLOSURE_IN_FORCE, write_site
+from nm_health.site import FLAG_CLOSURE_IN_FORCE, UnsourcedError, write_site
+from nm_health.site_html import NO_SOURCE
 from tests.test_archive import make_settings
 
 TODAY = datetime(2026, 11, 9, 12, tzinfo=UTC)
@@ -34,7 +35,9 @@ ROACHES = Violation(
 PLACES_JSON_LIMIT = 300_000  # bytes
 TOP_PAGES = ("index.html", "places.html", "map.html", "about.html")
 H1 = re.compile(r"<h1\b")
-PDF_LINK = re.compile(r'href="([^"]+\.pdf)"')
+PDF_LINK = re.compile(r'href="([^"]+\.pdf)(?:#page=\d+)?"')
+PDF_BYTES = b"%PDF-1.4 test report"
+FEED_DEFAULT_TIME = "09:00"
 
 
 def visit(day: str, *violations: Violation, status: str = "Approved", name: str = "TEST CAFE") -> Inspection:
@@ -74,9 +77,33 @@ def fixed_today(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(feed, "today_utc", lambda: TODAY)
 
 
+def feed_row(inspection: Inspection) -> dict[str, object]:
+    """The city's feed row for an inspection, as the feed would return it."""
+    return {
+        "category": inspection.kind,
+        "ticket_id": inspection.inspection_id,
+        "street_address": inspection.address,
+        feed.NUMBER: inspection.inspection_id,
+        feed.COMPANY: inspection.name,
+        feed.STATUS: inspection.status,
+        feed.ACTUAL_START: f"{inspection.date}T{inspection.time or FEED_DEFAULT_TIME}:00.000",
+        feed.VIOLATIONS: str(inspection.violation_count or 0),
+    }
+
+
+def save_sources(settings: Settings, inspections: tuple[Inspection, ...]) -> None:
+    """What the build links to: the weekly PDF, and a saved feed response with each feed-only inspection's row."""
+    settings.archive_dir.mkdir(parents=True, exist_ok=True)
+    (settings.archive_dir / REPORT_FILE).write_bytes(PDF_BYTES)
+    rows = [feed_row(i) for i in inspections if not i.has_details]
+    body = json.dumps({"api_data": {"records": rows}}).encode()
+    feed.save_raw(settings, TODAY.year, body, TODAY)
+
+
 def build(tmp_path: Path, *inspections: Inspection, settings: Settings | None = None) -> Path:
-    """Write the site for these inspections; returns the site folder."""
+    """Write the site for these inspections, with their sources on file; returns the site folder."""
     chosen = settings or make_settings(tmp_path)
+    save_sources(chosen, inspections)
     write_site(Rebuilt(inspections, (REPORT,)), chosen)
     return chosen.site_dir
 
@@ -92,7 +119,7 @@ def pages(site: Path) -> list[Path]:
 
 
 def test_write_site_writes_every_page(tmp_path: Path) -> None:
-    """Four top pages, one page per place, the static and citymap assets, places.json, robots.txt."""
+    """Top pages, place pages, assets, places.json, robots.txt, and the city documents the pages cite."""
     site = build(tmp_path, visit("2026-10-29", ROACHES), feed_only("2026-11-06"))
     written = sorted(p.relative_to(site).as_posix() for p in site.rglob("*") if p.is_file())
     assert written == [
@@ -109,8 +136,10 @@ def test_write_site_writes_every_page(tmp_path: Path) -> None:
         "places.html",
         "places.js",
         "places.json",
+        f"reports/{REPORT_FILE}",
         "robots.txt",
         "shared.js",
+        "sources/feed/PT-FEED-2026-11-06_2026-11-06.json",
         "style.css",
     ]
 
@@ -194,9 +223,9 @@ def test_place_page_states_what_the_records_show(tmp_path: Path) -> None:
     assert "<q>Pest Type: Cockroach</q>" in text
     assert "Status that day, as issued by the city: Approved." in text
     assert "No later approved inspection on record." in text
-    assert '<a class="jump" href="#insp-0">See the inspection</a>' in text
+    assert '<a class="jump" href="#insp-0">Oct 29, 2026</a>: ' in text
     assert '<li class="g" id="insp-0">' in text
-    assert f'<a href="https://example.test/pdf/{REPORT_FILE}">Week of Oct 25 report (PDF, p. 3)</a>' in text
+    assert f'<a href="../reports/{REPORT_FILE}#page=3">Week of Oct 25 report (PDF, p. 3)</a>' in text
     assert "<summary>Show everything the report says</summary>" in text
 
 
@@ -205,8 +234,12 @@ def test_feed_only_place_and_banner(tmp_path: Path) -> None:
     site = build(tmp_path, visit("2026-10-29", ROACHES), feed_only("2026-11-06"))
     place = read(site, "place/feed-diner-5-main-st-ne.html")
     assert "Inspector notes on file for none of its 1 inspection in this period" in place
-    assert "Inspector notes not on file: the weekly report for this date wasn&#x27;t saved." in place
-    assert "<span>City inspection-status feed</span>" in place
+    assert "the one covering this date isn&#x27;t in our archive." in place
+    feed_link = '<a href="../sources/feed/PT-FEED-2026-11-06_2026-11-06.json">City status feed record</a>'
+    assert feed_link in place
+    record = json.loads(read(site, "sources/feed/PT-FEED-2026-11-06_2026-11-06.json"))
+    assert record["record"] == feed_row(feed_only("2026-11-06"))  # the city's row, unchanged
+    assert record["saved_response"].startswith(f"data/feed/raw/{TODAY.year}/")
     index = read(site, "index.html")
     assert "weekly report for this week isn&#x27;t on file yet" in index
     assert "Roaches or rodents cited, week of Oct 25" in index
@@ -262,7 +295,8 @@ def test_map_and_about_pages(tmp_path: Path) -> None:
     assert '<link rel="stylesheet" href="citymap.css">' in map_html
     about = read(site, "about.html")
     assert '<a href="https://github.com/silentpickle/nm_health/issues">Report an error</a>' in about
-    assert f'<a href="https://example.test/pdf/{REPORT_FILE}">PDF</a>' in about
+    assert f'<a href="reports/{REPORT_FILE}">PDF</a>' in about
+    assert f'<a href="https://example.test/pdf/{REPORT_FILE}">archive history</a>' in about
 
 
 def test_real_archive(tmp_path: Path) -> None:
@@ -278,10 +312,11 @@ def test_real_archive(tmp_path: Path) -> None:
     for inspection in rebuilt.inspections:
         if inspection.report_file:
             slug = establishment_slug(inspection.name, inspection.address)
-            expected[slug].add(html.escape(settings.pdf_base_url + inspection.report_file))
+            expected[slug].add(html.escape(f"../reports/{inspection.report_file}"))
     for slug, links in expected.items():
         page = read(site, f"place/{slug}.html")
         assert links <= set(PDF_LINK.findall(page)), slug
+    assert not [p.name for p in (site / "place").glob("*.html") if NO_SOURCE in p.read_text(encoding="utf-8")]
 
 
 def test_same_day_reopening_shows_status_today(tmp_path: Path) -> None:
@@ -309,3 +344,13 @@ def test_same_day_reopening_shows_status_today(tmp_path: Path) -> None:
     assert '<span class="d">Nov 6, 2026, 2:07 pm</span>' in page
     assert json.loads(read(site, "places.json"))["places"][0][-1] == "Closed and reopened Nov 6"
     assert 'data-f="reopened"' in read(site, "places.html")
+
+
+def test_build_refuses_an_unsourced_inspection(tmp_path: Path) -> None:
+    """An inspection with neither a weekly report nor a feed row on file never reaches the site."""
+    settings = make_settings(tmp_path)
+    save_sources(settings, ())
+    orphan = feed_only("2026-11-06")
+    with pytest.raises(UnsourcedError, match="PT-FEED-2026-11-06"):
+        write_site(Rebuilt((orphan,), (REPORT,)), settings)
+    assert not settings.site_dir.exists()

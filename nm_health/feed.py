@@ -39,6 +39,28 @@ NUMBER, COMPANY, STATUS, RISK, ACTUAL_START, VIOLATIONS, DBA = (
 )
 
 
+@dataclass(frozen=True)
+class SourceRow:
+    """One inspection's row exactly as the city's feed returned it, and the saved response it came from."""
+
+    snapshot: str  # the saved response, relative to feed_raw_dir: "<creation year>/<fetched>_<sha>.json.gz"
+    fetched_at: str  # ISO 8601 UTC, from the saved response's name
+    query_url: str  # the request that returned it
+    row: dict[str, Any]
+
+
+# What the numbered columns hold, as far as this project reads them (published beside each record, never in it).
+COLUMN_MEANINGS = {
+    NUMBER: "inspection number",
+    COMPANY: "establishment (company) name",
+    STATUS: "inspection status",
+    RISK: "risk category",
+    ACTUAL_START: "inspection start (local time)",
+    VIOLATIONS: "violation count",
+    DBA: "doing-business-as name",
+}
+
+
 class FeedError(Exception):
     """A feed response we must not keep (truncated)."""
 
@@ -197,6 +219,33 @@ def load_records(settings: Settings, since: date) -> list[FeedRecord]:
             if record.date >= since.isoformat():
                 by_key[(record.number, record.date)] = record
     return sorted(by_key.values(), key=lambda r: (r.date, r.number))
+
+
+def _fetched_at(snapshot: Path) -> str:
+    stamp = snapshot.name.split("_", 1)[0]
+    return datetime.strptime(stamp, TIMESTAMP_FORMAT).replace(tzinfo=UTC).isoformat()
+
+
+def _source_rows_of(settings: Settings, year: int, snapshot: Path, since: date) -> dict[tuple[str, str], SourceRow]:
+    url = query_url(settings, date(year, 1, 1), date(year, 12, 31))
+    found: dict[tuple[str, str], SourceRow] = {}
+    for row in records_of(gzip.decompress(snapshot.read_bytes())):
+        record = to_record(row)
+        if record is None or record.date < since.isoformat():
+            continue
+        found[(record.number, record.date)] = SourceRow(f"{year}/{snapshot.name}", _fetched_at(snapshot), url, row)
+    return found
+
+
+def source_rows(settings: Settings, since: date) -> dict[tuple[str, str], SourceRow]:
+    """The raw row behind every inspection `load_records` returns, keyed the same way: (number, date)."""
+    found: dict[tuple[str, str], SourceRow] = {}
+    years = sorted(int(folder.name) for folder in settings.feed_raw_dir.glob("*") if folder.name.isdigit())
+    for year in years:
+        snapshot = latest_raw(settings, year)
+        if snapshot is not None:
+            found.update(_source_rows_of(settings, year, snapshot, since))
+    return found
 
 
 def today_utc() -> datetime:

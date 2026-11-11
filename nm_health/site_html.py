@@ -5,9 +5,11 @@ Every piece of text goes through `esc`: names, addresses and observations come f
 """
 
 import html
+import re
 from dataclasses import dataclass
 from datetime import date, timedelta
 
+from nm_health import feed
 from nm_health.model import Inspection
 from nm_health.rebuild import Rebuilt, Report
 from nm_health.settings import Settings
@@ -27,6 +29,7 @@ from nm_health.viewmodel import (
     reports_in_window,
     row_flag,
     short_date,
+    source_label,
     status_today,
     strip_cells,
     strip_label,
@@ -48,6 +51,11 @@ FOOTER = (
 )
 NOINDEX = '<meta name="robots" content="noindex, nofollow">'
 PLACE_DIR = "place"
+# What we downloaded from the city, published beside the pages so every statement can link to it.
+REPORTS_DIR = "reports"  # the weekly PDFs, byte for byte
+FEED_SOURCES_DIR = "sources/feed"  # one inspection's feed row per file, exactly as the city returned it
+UNSAFE_FILE_CHARS = re.compile(r"[^A-Za-z0-9-]")
+NO_SOURCE = "No city document on file"
 
 
 @dataclass(frozen=True)
@@ -59,6 +67,7 @@ class SiteData:
     places: list[Place]
     reports: tuple[Report, ...]  # weekly reports ending inside the window
     week_starts: dict[str, str | None]  # report file -> its week's first day
+    feed_rows: dict[tuple[str, str], feed.SourceRow]  # (inspection ID, date) -> the city's row for it
 
     @property
     def total(self) -> int:
@@ -80,7 +89,40 @@ def site_data(rebuilt: Rebuilt, settings: Settings, today: date) -> SiteData:
         places=group_places(rebuilt.inspections),
         reports=reports_in_window(rebuilt.reports, since),
         week_starts={r.file: r.week_start for r in rebuilt.reports},
+        feed_rows=feed.source_rows(settings, since),
     )
+
+
+# ---------- Sources ----------
+
+
+def feed_source_file(inspection: Inspection) -> str:
+    """'RT-FOODEST-097628-2025_2026-10-09.json': the file holding the inspection's feed row."""
+    return f"{UNSAFE_FILE_CHARS.sub('-', inspection.inspection_id)}_{inspection.date}.json"
+
+
+def has_feed_row(data: SiteData, inspection: Inspection) -> bool:
+    """The city's status feed has a row for this inspection."""
+    return (inspection.inspection_id, inspection.date) in data.feed_rows
+
+
+def unsourced(data: SiteData) -> list[Inspection]:
+    """Inspections with neither a weekly report nor a feed row on file: nothing the site may say about them."""
+    return [i for p in data.places for i in p.inspections if not i.report_file and not has_feed_row(data, i)]
+
+
+def source_links(data: SiteData, inspection: Inspection, up: str = "") -> str:
+    """Links to the city's own documents for one inspection: the weekly PDF at its page, and the feed row."""
+    links = []
+    if inspection.report_file:
+        page = f"#page={inspection.page}" if inspection.page else ""
+        label = source_label(inspection, data.week_starts.get(inspection.report_file))
+        links.append(f'<a href="{up}{REPORTS_DIR}/{esc(inspection.report_file)}{page}">{esc(label)}</a>')
+    if has_feed_row(data, inspection):
+        links.append(
+            f'<a href="{up}{FEED_SOURCES_DIR}/{esc(feed_source_file(inspection))}">City status feed record</a>'
+        )
+    return f" {MIDDOT} ".join(links) or f"<span>{NO_SOURCE}</span>"
 
 
 @dataclass(frozen=True)
@@ -257,7 +299,8 @@ def notice_html(place: Place, inspection: Inspection, *, pest: bool) -> str:
     why = f"<q>{esc(quote)}</q>" if quote else f'<span class="quiet">{esc(notice_count_text(inspection))}</span>'
     kind = " pest" if pest else ""
     return (
-        f'<a class="notice{kind}" href="{place_href(place)}"><span class="eyebrow">{nice_date(inspection.date)}</span>'
+        f'<a class="notice{kind}" href="{place_href(place)}#insp-{place.inspections.index(inspection)}">'
+        f'<span class="eyebrow">{nice_date(inspection.date)}</span>'
         f'<span class="nm">{esc(place.name)}</span><span class="data muted">{esc(place.address)}</span>'
         f'<span>{chip(inspection.status)}</span>{why}<span class="today">Status today: {esc(status_today(place))}</span></a>'
     )

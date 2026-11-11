@@ -14,7 +14,17 @@ from pathlib import Path
 from nm_health import feed
 from nm_health.rebuild import Rebuilt
 from nm_health.settings import ROOT, Settings
-from nm_health.site_html import PLACE_DIR, SiteData, page_html, site_data
+from nm_health.site_html import (
+    FEED_SOURCES_DIR,
+    PLACE_DIR,
+    REPORTS_DIR,
+    SiteData,
+    feed_source_file,
+    has_feed_row,
+    page_html,
+    site_data,
+    unsourced,
+)
 from nm_health.site_pages import about_page, map_page, place_page, places_page, week_page
 from nm_health.viewmodel import ARIA_LIST_MAX, Place, level, row_flag, strip_cells, strip_code
 
@@ -32,7 +42,14 @@ COORD_DIGITS = 5  # about a metre
 FLAG_HEADLINE_PESTS = 1
 FLAG_EMPLOYEE_ITEMS = 2
 FLAG_CLOSURE_IN_FORCE = 4
+EXAMPLES = 5  # unsourced inspections named in the error
 JSON_SEPARATORS = (",", ":")
+JSON_INDENT = 1
+FEED_SOURCE_NAME = "City of Albuquerque inspection-status feed (Info Connect)"
+
+
+class UnsourcedError(Exception):
+    """An inspection the site would describe has no city document on file."""
 
 
 # ---------- places.json ----------
@@ -119,14 +136,59 @@ def _write_pages(data: SiteData, out: Path) -> None:
         _write(out / PLACE_DIR / f"{place.slug}.html", page_html(data, place_page(data, place), depth=1))
 
 
+# ---------- What we downloaded ----------
+
+
+def _require_sources(data: SiteData) -> None:
+    """Refuse to publish a statement the city's own documents don't back."""
+    missing = unsourced(data)
+    if missing:
+        named = ", ".join(f"{i.name} {i.inspection_id} {i.date}" for i in missing[:EXAMPLES])
+        msg = f"{len(missing)} inspections have no weekly report or feed row on file: {named}"
+        raise UnsourcedError(msg)
+
+
+def _copy_reports(data: SiteData, out: Path) -> None:
+    files = {i.report_file for p in data.places for i in p.inspections if i.report_file} | {
+        r.file for r in data.reports
+    }
+    (out / REPORTS_DIR).mkdir(parents=True, exist_ok=True)
+    for name in files:
+        shutil.copy(data.settings.archive_dir / name, out / REPORTS_DIR / name)
+
+
+def feed_source_json(data: SiteData, row: feed.SourceRow) -> str:
+    """One feed row exactly as the city returned it, with where and when we got it."""
+    body = {
+        "source": FEED_SOURCE_NAME,
+        "query": row.query_url,
+        "fetched_at": row.fetched_at,
+        "saved_response": f"data/feed/raw/{row.snapshot}",
+        "saved_response_url": data.settings.feed_archive_url + row.snapshot,
+        "columns_as_read_by_this_site": feed.COLUMN_MEANINGS,
+        "record": row.row,
+    }
+    return json.dumps(body, ensure_ascii=False, indent=JSON_INDENT) + "\n"
+
+
+def _write_feed_sources(data: SiteData, out: Path) -> None:
+    cited = [i for p in data.places for i in p.inspections if has_feed_row(data, i)]
+    for inspection in cited:
+        row = data.feed_rows[(inspection.inspection_id, inspection.date)]
+        _write(out / FEED_SOURCES_DIR / feed_source_file(inspection), feed_source_json(data, row))
+
+
 def write_site(rebuilt: Rebuilt, settings: Settings) -> int:
     """Replace the site folder with freshly rendered pages; returns how many place pages were written."""
+    data = site_data(rebuilt, settings, feed.today_utc().date())
+    _require_sources(data)
     out = settings.site_dir
     shutil.rmtree(out, ignore_errors=True)
     out.mkdir(parents=True)
-    data = site_data(rebuilt, settings, feed.today_utc().date())
     _write_pages(data, out)
     _copy_assets(out)
+    _copy_reports(data, out)
+    _write_feed_sources(data, out)
     _write(out / "places.json", places_json(data))
     _write(out / ".nojekyll", "")
     if not settings.indexable:
