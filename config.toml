@@ -63,5 +63,16 @@ minute = 0
 # Places sampled into the LLM spot-check packet (uv run nm-health spotcheck): one per hard case, the rest at random.
 places = 6
 
+[audit]
+# A closure with no reopening inspection on record for this many days is listed for a second opinion.
+long_closure_days = 14
+
+[judge]
+# `nm-health judge` (local only: needs your agy login) asks agy, with a JSON schema, whether a long-closed place is
+# restaurant-only and whether it operates now. Answers are saved here and committed; the audit lists them.
+command = "agy"
+timeout_seconds = 240
+cache = "data/judgements.json"
+
 [secrets]
 # None. The collector reads only public pages.

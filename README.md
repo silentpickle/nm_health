@@ -50,6 +50,7 @@ uv run nm-health ingest               # rebuild data/nm_health.db from the archi
 uv run nm-health site                 # render site/ (open site/index.html)
 uv run nm-health audit                # check our assumptions against the PDFs and feed (docs/assumptions.md)
 uv run nm-health spotcheck | pbcopy   # a packet to paste into any LLM: site statements + city records
+uv run nm-health judge                # local, needs agy: second opinion on long closures (data/judgements.json)
 uv run nm-health search "pho"         # CLI lookups against the database
 uv run nm-health lookup "Little Bear Coffee"
 ```

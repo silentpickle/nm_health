@@ -33,6 +33,8 @@ a person judges the disagreements.
 | An untimed corrective-action visit came after that day's routine inspection | `follow_up_order` | Feed times, when both sides have one |
 | With no time, a same-day failure came before the pass | `untimed_order` | Lists the days where this guess decides the order |
 | The PDF and the feed agree on each inspection's status | `feed_status` | Status of every inspection found in both |
+| A report prints only inspections from the week it covers | `dates_in_week` | Each PDF inspection's date against its report's week (the site skips any outside it) |
+| A closure with no reopening on record for weeks is a missing record, not a months-long closure | `long_closures` | Lists closures in force over `[audit] long_closure_days` (14) with a second opinion from `nm-health judge` |
 
 ## A second opinion from any LLM
 
@@ -51,6 +53,17 @@ uv run nm-health spotcheck | pbcopy
 
 The sample changes daily; `--seed N` repeats a packet (the seed is printed at its top) and `--places N` changes the
 size. A packet of six places is about 50 KB.
+
+## A second opinion on long closures
+
+A restaurant closed for months is unusual; usually its reopening is in a weekly report we don't hold. `uv run
+nm-health judge` (local only: it needs your `agy` login) asks, for each closure in force over 14 days, two questions
+with typed answers checked against a JSON schema: is the business restaurant-only (yes / no / unsure, with a reason),
+and, from a web search, is it operating now (operating / closed / unknown, with the evidence). Names that say the place
+does more than serve food (hotel, inn, suites, school, academy, gas station, 7-Eleven, grocery...) are answered "no"
+without asking. Answers are saved in `data/judgements.json` (commit it) and asked again only when a new closure is
+recorded. `nm-health audit` lists them under `long_closures`, restaurant-only first. None of this reaches the public
+site: it tells you where to dig.
 
 ## Results on 2026-11-10 (whole archive, 2020–2026)
 

@@ -11,10 +11,13 @@ from nm_health.audit import (
     AuditData,
     CheckResult,
     PermitBlock,
+    Review,
     audit_data,
+    check_dates_in_week,
     check_feed_status,
     check_feed_times,
     check_follow_up_order,
+    check_long_closures,
     check_operational_status,
     check_same_minute,
     check_untimed_order,
@@ -22,7 +25,9 @@ from nm_health.audit import (
     report_lines,
 )
 from nm_health.feed import FeedRecord
+from nm_health.judge import Judgement
 from nm_health.model import Inspection
+from nm_health.rebuild import Report
 
 APPROVED = "Approved"
 CONDITIONAL = "Conditional Approved"
@@ -30,6 +35,7 @@ CLOSED = "Closure Re-Inspection Required"
 FAILED = "Unsatisfactory Re-Inspection required"
 FOLLOW_UP = "Corrective Action Compliance"
 REPORT = "2026-10-25_2026-10-31_abc.pdf"
+TODAY_REVIEW = date(2026, 11, 10)
 SUMMARY = """NAAN & DOSA - 6501 WYOMING BLVD NE, B
 Inspection Date     Inspection ID Number               Inspection Type                         Inspection Status    Page #
 Food Establishment (Permit # - PT0156723) - Operational Status \u2013 Open
@@ -223,3 +229,28 @@ def test_report_lines_cap_the_examples() -> None:
     ]
     assert lines[-1] == f"  ... and {extra} more"
     assert len(lines) == len(["title", "blank", "question", "count", "tally", "more"]) + EXAMPLES_MAX
+
+
+# ---------- Dates and long closures ----------
+
+
+def test_dates_in_week_flags_a_typo_date() -> None:
+    """Simply Sweet: the Jan 27-31, 2025 report prints 1/29/2026."""
+    week = Report(REPORT, "abc", "2025-01-27", "2025-01-31", "test", "2025-02-08", "legacy", 2)
+    inside, typo = visit("2025-01-29", APPROVED, "A"), visit("2026-01-29", APPROVED, "B", name="SIMPLY SWEET")
+    result = check_dates_in_week(audit_data((inside, typo), (), (), (week,)))
+    assert result.checked == len([inside, typo])
+    assert result.disagreements == (f"{REPORT} prints SIMPLY SWEET on 2026-01-29 (week 2025-01-27 to 2025-01-31)",)
+
+
+def test_long_closures_show_the_second_opinion() -> None:
+    """Closed a year with no reopening: listed with its saved judgement; an unjudged one says so."""
+    judged = visit("2025-11-12", CLOSED, "A", name="OUMI SUSHI")
+    unjudged = visit("2025-12-04", CLOSED, "B", name="THAI VEGAN")
+    opinion = Judgement("2025-11-12", "yes", "Sushi.", "closed", "Map listing says closed.", "agy", "2026-11-10")
+    review = Review(today=TODAY_REVIEW, judgements={"oumi-sushi-100-central-ave-sw": opinion})
+    result = check_long_closures(audit_data((judged, unjudged), (), (), (), review))
+    assert result.tally == (("not judged yet", 1), ("restaurant-only yes, operating now: closed", 1))
+    assert result.disagreements[0].startswith("OUMI SUSHI, 100 CENTRAL AVE SW: closed 2025-11-12, 363 days")
+    assert result.disagreements[0].endswith("operating now: closed (Map listing says closed.)")
+    assert result.disagreements[1].endswith("not judged yet (run nm-health judge)")

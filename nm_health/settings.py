@@ -12,6 +12,8 @@ DEFAULT_REPORT_ERROR_URL = "https://github.com/silentpickle/nm_health/issues"
 DEFAULT_WINDOW_DAYS = 365
 DEFAULT_FEED_LOOKBACK_DAYS = 2200
 DEFAULT_SPOTCHECK_PLACES = 6
+DEFAULT_LONG_CLOSURE_DAYS = 14
+DEFAULT_JUDGE_TIMEOUT_SECONDS = 240
 
 
 @dataclass(frozen=True)
@@ -42,6 +44,11 @@ class Settings:
     feed_raw_dir: Path = ROOT / "data" / "feed" / "raw"
     # Places sampled into an LLM spot-check packet (nm-health spotcheck).
     spotcheck_places: int = DEFAULT_SPOTCHECK_PLACES
+    # A closure with no reopening on record this long is listed for a second opinion (audit, nm-health judge).
+    long_closure_days: int = DEFAULT_LONG_CLOSURE_DAYS
+    judge_command: str = "agy"
+    judge_timeout_seconds: int = DEFAULT_JUDGE_TIMEOUT_SECONDS
+    judge_cache: Path = ROOT / "data" / "judgements.json"
 
 
 def load(path: Path = CONFIG_PATH) -> Settings:
@@ -75,4 +82,8 @@ def load(path: Path = CONFIG_PATH) -> Settings:
         feed_lookback_days=int(feed["lookback_days"]),
         feed_raw_dir=base / str(feed["raw_dir"]),
         spotcheck_places=int(data.get("spotcheck", {}).get("places", DEFAULT_SPOTCHECK_PLACES)),
+        long_closure_days=int(data.get("audit", {}).get("long_closure_days", DEFAULT_LONG_CLOSURE_DAYS)),
+        judge_command=str(data.get("judge", {}).get("command", "agy")),
+        judge_timeout_seconds=int(data.get("judge", {}).get("timeout_seconds", DEFAULT_JUDGE_TIMEOUT_SECONDS)),
+        judge_cache=base / str(data.get("judge", {}).get("cache", "data/judgements.json")),
     )
