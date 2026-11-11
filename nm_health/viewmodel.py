@@ -80,10 +80,6 @@ EMPLOYEE_TAG = "employee_items"
 # Status levels: r = closure or unsatisfactory, y = conditional, g = approved, n = any other status.
 LEVEL_RED, LEVEL_CONDITIONAL, LEVEL_APPROVED, LEVEL_OTHER, LEVEL_NONE = "r", "y", "g", "n", ""
 CONDITIONAL_WORD = "conditional"
-# A place's permits fall on two sides: retail (packaged goods) and food service (everything prepared on site).
-RETAIL_WORD = "retail"
-SIDE_RETAIL = "retail"
-SIDE_FOOD = "food service"
 # A week's cell shows its worst status. Any status outranks "no inspection".
 LEVEL_RANK = {LEVEL_NONE: 0, LEVEL_OTHER: 1, LEVEL_APPROVED: 2, LEVEL_CONDITIONAL: 3, LEVEL_RED: 4}
 # One character per strip cell (places.json; places.js decodes it with the same table).
@@ -504,37 +500,16 @@ def _permit_label(inspection: Inspection) -> str:
     return f"{inspection.permit_type} {permit}" if inspection.permit_type else f"permit {permit}"
 
 
-def side(inspection: Inspection) -> str:
-    """'retail' for a retail permit (packaged goods), else 'food service' (kitchen, hot-dog roller, mobile unit)."""
-    text = f"{inspection.permit_type or ''} {inspection.kind}".lower()
-    return SIDE_RETAIL if RETAIL_WORD in text else SIDE_FOOD
-
-
-def split_side(place: Place) -> str | None:
-    """The one side that is closed while the other side's permits are all open (a convenience store's food counter).
-
-    Any other closure closes the whole place: two food permits at one place, or a closure on both sides.
-    """
-    closed = {side(i) for i in place.standing if is_closed(i.status)}
-    still_open = {side(i) for i in place.standing if not is_closed(i.status)}
-    if len(closed) != 1 or not still_open or closed & still_open:
-        return None
-    return next(iter(closed))
-
-
 def _status_by_permit(place: Place) -> str:
-    """'Closed since Aug 13, 2026, 10:55 am · by permit: Closure ... (permit PT1, ...); Approved (permit PT2, ...)'."""
+    """'By permit: Closure ... (permit PT1, Aug 13, 2026, 10:55 am); Approved (permit PT2, ...)'.
+
+    Each permit's result exactly as the city recorded it, and no claim about the place as a whole: no city document
+    says whether one permit's closure closes the rest.
+    """
     parts = "; ".join(f"{i.status} ({_permit_label(i)}, {when_text(i.date, i.time)})" for i in reversed(place.standing))
-    closures = [i for i in place.standing if is_closed(i.status)]
-    if not closures:
-        state = f"Open {MIDDOT} " if all(is_open(i.status) for i in place.standing) else ""
-        return f"{state}by permit: {parts}"
-    since = when_text(closures[0].date, closures[0].time)
-    closed_side = split_side(place)
-    if closed_side is None:
-        return f"Closed since {since} {MIDDOT} by permit: {parts}"
-    open_side = SIDE_RETAIL if closed_side == SIDE_FOOD else SIDE_FOOD
-    return f"{closed_side.capitalize()} closed since {since}, {open_side} open {MIDDOT} by permit: {parts}"
+    if all(is_open(i.status) for i in place.standing):
+        return f"Open {MIDDOT} by permit: {parts}"
+    return f"By permit: {parts}"
 
 
 def _also(place: Place) -> str:
@@ -571,12 +546,11 @@ def closed_text(spell: ClosedSpell) -> str:
 
 
 def row_flag(place: Place) -> str:
-    """A list row's status flag: 'Food service closed, retail open', else the reopened flag, else ''."""
-    closed_side = split_side(place)
-    if closed_side is None:
-        return reopened_flag(place)
-    open_side = SIDE_RETAIL if closed_side == SIDE_FOOD else SIDE_FOOD
-    return f"{closed_side.capitalize()} closed, {open_side} open"
+    """A list row's status flag: '1 of 2 permits closed' when the permits differ, else the reopened flag, else ''."""
+    closed = sum(is_closed(i.status) for i in place.standing)
+    if 0 < closed < len(place.standing):
+        return f"{closed} of {plural(len(place.standing), 'permit', 'permits')} closed"
+    return reopened_flag(place)
 
 
 def reopened_flag(place: Place) -> str:
@@ -600,8 +574,8 @@ def feed_only_text(inspection: Inspection) -> str:
     number = "an unknown number of" if count is None else str(count)
     noun = "violation" if count == 1 else "violations"
     return (
-        "Inspector notes not on file: the weekly report for this date wasn't saved. "
-        f"The city's status feed lists {number} {noun}."
+        "Inspector notes not on file: the city replaces its weekly report every week, and the one covering this "
+        f"date isn't in our archive. The city's status feed lists {number} {noun}."
     )
 
 

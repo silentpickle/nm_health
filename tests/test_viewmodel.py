@@ -530,30 +530,27 @@ def permit_visit(day: str, time: str, status: str, permit: str, kind: str | None
     return replace(found, permit_type=kind)
 
 
-def test_status_today_two_food_permits_close_the_whole_place() -> None:
-    """Saint Martins, Aug 13 2026: one food permit approved at 9:55, another closed at 10:55: the place is closed."""
+def test_status_today_states_each_permit_when_one_is_closed() -> None:
+    """Saint Martins, Aug 13 2026: one permit approved at 9:55, another closed at 10:55: each as recorded, nothing more."""
     center = place(
         permit_visit("2026-08-13", "09:55", APPROVED, "PT0157951"),
         permit_visit("2026-08-13", "10:55", CLOSED, "PT0054778"),
     )
     assert center.closure_in_force
     assert status_today(center) == (
-        "Closed since Aug 13, 2026, 10:55 am \u00b7 by permit: Closure Re-Inspection Required (permit PT0054778, "
-        "Aug 13, 2026, 10:55 am); Approved (permit PT0157951, Aug 13, 2026, 9:55 am)"
+        "By permit: Closure Re-Inspection Required (permit PT0054778, Aug 13, 2026, 10:55 am); "
+        "Approved (permit PT0157951, Aug 13, 2026, 9:55 am)"
     )
-    assert row_flag(center) == ""
+    assert row_flag(center) == "1 of 2 permits closed"
+    assert reopened_flag(center) == ""
 
 
-def test_status_today_food_service_closed_retail_open() -> None:
-    """Drury Inn, Jun 15 2026: the retail permit approved, the food permit closed: only food service is closed."""
+def test_no_place_wide_claim_from_permit_types() -> None:
+    """Drury Inn, Jun 15 2026: a retail permit approved, a food permit closed: no "food service closed" inference."""
     retail = replace(permit_visit("2026-06-15", "07:15", APPROVED, "PT0140689"), kind="Routine Retail Food Inspection")
     hotel = place(retail, permit_visit("2026-06-15", "08:00", CLOSED, "PT0051883"))
-    assert status_today(hotel) == (
-        "Food service closed since Jun 15, 2026, 8:00 am, retail open \u00b7 by permit: Closure Re-Inspection "
-        "Required (permit PT0051883, Jun 15, 2026, 8:00 am); Approved (permit PT0140689, Jun 15, 2026, 7:15 am)"
-    )
-    assert row_flag(hotel) == "Food service closed, retail open"
-    assert reopened_flag(hotel) == ""
+    assert status_today(hotel).startswith("By permit: Closure Re-Inspection Required (permit PT0051883,")
+    assert row_flag(hotel) == "1 of 2 permits closed"
 
 
 def test_status_today_by_permit_when_open() -> None:
