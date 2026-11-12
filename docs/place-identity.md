@@ -253,7 +253,7 @@ of the 20 judged slugs is in a merged group or a CAN'T TELL pair today.
    spot-check and judge all go through it.
 3. **The shown name**: of the names the reports printed for the group, the one the feed's trade (DBA) name confirms
    for any of the group's inspections. The feed only chooses; it never supplies a word. With no confirmation, the
-   name printed on the most inspections wins, and a tie goes to the most recent. Under the shown name, the place
+   most recent printed name wins, as before the change. Under the shown name, the place
    page says *"Also listed in the city's reports as: Maria Cabrera"*. To make this possible, each inspection keeps
    the feed's DBA for the same (ID, date) as `feed_name`. It is used for nothing else.
 4. **The URL** stays the slug of the group's earliest key, so El Branco keeps

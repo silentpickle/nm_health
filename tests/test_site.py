@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from nm_health import feed, site
-from nm_health.identity import establishment_slug
+from nm_health.identity import group
 from nm_health.model import Inspection, Violation
 from nm_health.rebuild import Rebuilt, Report, rebuild
 from nm_health.settings import Settings, load
@@ -416,10 +416,9 @@ def test_real_archive(tmp_path: Path) -> None:
     assert (site / "places.json").stat().st_size < PLACES_JSON_LIMIT
     assert len(json.loads(read(site, "places.json"))["places"]) == count
     expected: dict[str, set[str]] = defaultdict(set)
-    for inspection in stated(rebuilt.inspections, rebuilt.reports):
-        if inspection.report_file:
-            slug = establishment_slug(inspection.name, inspection.address)
-            expected[slug].add(html.escape(f"../reports/{inspection.report_file}"))
+    for found in group(stated(rebuilt.inspections, rebuilt.reports)):
+        files = {i.report_file for i in found.inspections if i.report_file}
+        expected[found.slug] |= {html.escape(f"../reports/{name}") for name in files}
     for slug, links in expected.items():
         page = read(site, f"place/{slug}.html")
         assert links <= set(PDF_LINK.findall(page)), slug

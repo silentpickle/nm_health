@@ -611,12 +611,27 @@ def _city_status(data: SiteData, place: Place) -> str:
     )
 
 
+ALSO_LISTED = "Also listed in the city's reports as:"
+MERGED_BY_PERMIT = "Merged by permit; names differ."
+
+
+def _also_listed(place: Place) -> str:
+    """The other names the reports printed for this place, each linked to its newest inspection, and the review note."""
+    if not place.also_listed:
+        return ""
+    names = ", ".join(
+        f'<a href="#insp-{place.inspections.index(i)}">{esc(i.name)}</a> ({esc(nice_date(i.date))})'
+        for i in place.also_listed
+    )
+    return f'<p class="also">{esc(ALSO_LISTED)} {names}. <span class="quiet">{esc(MERGED_BY_PERMIT)}</span></p>'
+
+
 def _place_head(data: SiteData, place: Place) -> str:
     legal = f" {MIDDOT} {place.legal_name}" if place.legal_name else ""
     return (
         f'<div class="place-head"><a href="../places.html">{LEFT_ARROW} All places</a>'
         f'<h1 class="view">{esc(place.name)}</h1><div class="addr">{esc(place.address + legal)}</div>'
-        f"{_city_status(data, place)}</div>"
+        f"{_also_listed(place)}{_city_status(data, place)}</div>"
     )
 
 

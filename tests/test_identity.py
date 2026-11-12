@@ -8,16 +8,23 @@ Regenerate only for a deliberate behaviour change, in that change's own commit:
     UPDATE_GOLDEN=1 uv run pytest tests/test_identity.py
 """
 
+import json
 import os
 from dataclasses import replace
 from datetime import date
 from pathlib import Path
 
+import pytest
+
+from nm_health.audit import audit_data, check_place_identity
+from nm_health.identity import DIFFERENT, SAME, Key, establishment_slug, match
 from nm_health.model import Inspection
 from nm_health.rebuild import Rebuilt, Report
-from nm_health.site import places_json
+from nm_health.site import FLAG_MERGED_BY_PERMIT, places_json
 from nm_health.site_html import site_data
 from nm_health.site_pages import ALL_RANGE, place_page, range_page
+from nm_health.spotcheck import claims
+from nm_health.viewmodel import Place, covered_days, group_places, reopened_flag
 from tests.test_archive import make_settings
 from tests.test_viewmodel import CLOSED, FAILED, visit
 
@@ -28,6 +35,8 @@ LEGACY_2025 = Report("2025-01-27_2025-01-31_abc.pdf", "abc", "2025-01-27", "2025
 OCTOBER = Report("2026-10-25_2026-10-31_abc.pdf", "abc", "2026-10-25", "2026-10-31", "test", "x", "current", 1)
 NOVEMBER = Report("2026-11-01_2026-11-07_abc.pdf", "abc", "2026-11-01", "2026-11-07", "test", "x", "current", 1)
 CURLY_APOSTROPHE = "\u2019"
+EL_BRANCO = "El Branco Restaurant"
+FLAGS_INDEX = 7  # places.json row: [slug, name, legal, address, strip, history, more, flags, ...]
 REPORTS = (LEGACY_2021, LEGACY_2025, OCTOBER, NOVEMBER)
 
 
@@ -40,10 +49,13 @@ def rec(  # noqa: PLR0913 - one fixture row: every field that decides identity, 
     *,
     status: str = "Approved",
     number: str = "",
+    feed_name: str | None = None,
 ) -> Inspection:
     """One inspection as a report printed it; `number` defaults to a new-style ID (not a permit)."""
     found = visit(day, status=status, number=number or f"RT-FOODEST-{day}-{name[:3]}")
-    return replace(found, name=name, address=address, permit_number=permit, report_file=source.file)
+    return replace(
+        found, name=name, address=address, permit_number=permit, report_file=source.file, feed_name=feed_name
+    )
 
 
 def records() -> tuple[Inspection, ...]:
@@ -51,7 +63,7 @@ def records() -> tuple[Inspection, ...]:
     return (
         # Same permit, same address, unrelated names: the owner's name printed for the re-inspection.
         rec("2026-10-30", "El Branco Restaurant", "100 Coors AVE SW", "FOODEST-1", OCTOBER, status=FAILED),
-        rec("2026-11-03", "Maria Cabrera", "100 Coors AVE SW", "FOODEST-1", NOVEMBER),
+        rec("2026-11-03", "Maria Cabrera", "100 Coors AVE SW", "FOODEST-1", NOVEMBER, feed_name=EL_BRANCO),
         # The same, had the first been a closure: the merged place reopened.
         rec("2026-10-30", "Shut Cafe", "200 Main ST NE", "FOODEST-2", OCTOBER, status=CLOSED),
         rec("2026-11-03", "Shut Cafe LLC Owner", "200 Main ST NE", "FOODEST-2", NOVEMBER),
@@ -103,3 +115,84 @@ def test_grouping_unchanged(tmp_path: Path) -> None:
     pages = [f"=== {p.slug}\n{place_page(data, p).body}" for p in data.places]
     check_golden("identity_places.json", places_json(data) + "\n")
     check_golden("identity_pages.html", range_page(data, ALL_RANGE).body + "\n" + "\n".join(pages) + "\n")
+
+
+# ---------- Rules, names and the review marker ----------
+
+
+def key(*inspections: Inspection) -> Key:
+    """One name + address key."""
+    first = inspections[0]
+    return Key(establishment_slug(first.name, first.address), inspections)
+
+
+def places_of(*inspections: Inspection) -> list[Place]:
+    """The places the site would build from these inspections."""
+    return group_places(inspections)
+
+
+EL_BRANCO_FAILED = rec("2026-10-30", EL_BRANCO, "100 Coors AVE SW", "FOODEST-1", OCTOBER, status=FAILED)
+MARIA_CABRERA = rec("2026-11-03", "Maria Cabrera", "100 Coors AVE SW", "FOODEST-1", NOVEMBER, feed_name=EL_BRANCO)
+
+
+def test_M1_shared_permit() -> None:  # noqa: N802 - test ID keeps its code
+    """The same permit at the same address is the same place, whatever the names."""
+    assert match(key(EL_BRANCO_FAILED), key(MARIA_CABRERA)) == SAME
+
+
+@pytest.mark.parametrize(
+    ("other", "expected"),
+    [
+        pytest.param(replace(MARIA_CABRERA, address="101 Coors AVE SW"), DIFFERENT, id="other_address"),
+        pytest.param(replace(MARIA_CABRERA, permit_number="FOODEST-9"), DIFFERENT, id="other_permit"),
+        pytest.param(replace(MARIA_CABRERA, permit_number=None), DIFFERENT, id="no_permit"),
+    ],
+)
+def test_M1_shared_permit_edges(other: Inspection, expected: str) -> None:  # noqa: N802 - test ID keeps its code
+    """Only both together join: another address or another (or no) permit does not."""
+    assert match(key(EL_BRANCO_FAILED), key(other)) == expected
+
+
+def test_el_branco_merged_and_resolved() -> None:
+    """The owner's name on the re-inspection: one place, shown under the trade name, the failure resolved."""
+    (merged,) = places_of(EL_BRANCO_FAILED, MARIA_CABRERA)
+    assert (merged.slug, merged.name) == ("el-branco-restaurant-100-coors-ave-sw", EL_BRANCO)
+    assert [i.name for i in merged.also_listed] == ["Maria Cabrera"]
+    assert merged.merged_by_permit
+    assert [(i.date, i.status) for i in merged.standing] == [("2026-11-03", "Approved")]
+
+
+def test_display_name_prefers_feed_dba() -> None:
+    """The feed's trade name picks among printed names; without it, the most recent printed name, as before."""
+    assert places_of(EL_BRANCO_FAILED, MARIA_CABRERA)[0].name == EL_BRANCO
+    assert places_of(EL_BRANCO_FAILED, replace(MARIA_CABRERA, feed_name=None))[0].name == "Maria Cabrera"
+    assert places_of(EL_BRANCO_FAILED, replace(MARIA_CABRERA, feed_name="Other Name"))[0].name == "Maria Cabrera"
+
+
+def test_merged_closure_reopens() -> None:
+    """Had the Oct 30 result been a closure, the merged place reopened Nov 3 (both weeks on file)."""
+    (merged,) = places_of(replace(EL_BRANCO_FAILED, status=CLOSED), MARIA_CABRERA)
+    covered = covered_days((OCTOBER, NOVEMBER))
+    assert reopened_flag(merged, covered) == "Closed 4 days, reopened Nov 3"
+    assert not merged.closure_in_force
+
+
+def test_punctuation_only_not_marked() -> None:
+    """PAPA JOHN'S and PAPA JOHNS under one permit are one place with nothing to review."""
+    curly = rec("2026-10-28", f"PAPA JOHN{CURLY_APOSTROPHE}S PIZZA", "7000 Lomas BLVD NE", "PT0000060", OCTOBER)
+    plain = rec("2026-11-02", "PAPA JOHNS PIZZA", "7000 Lomas BLVD NE", "PT0000060", NOVEMBER)
+    (merged,) = places_of(curly, plain)
+    assert (merged.also_listed, merged.merged_by_permit) == ((), False)
+
+
+def test_review_marker_in_places_json_audit_and_spotcheck(tmp_path: Path) -> None:
+    """The merge is marked where it will be found again: places.json bit 16, the audit, the spot-check packet."""
+    data = site_data(Rebuilt((EL_BRANCO_FAILED, MARIA_CABRERA), REPORTS), make_settings(tmp_path), TODAY)
+    (row,) = json.loads(places_json(data))["places"]
+    assert row[FLAGS_INDEX] & FLAG_MERGED_BY_PERMIT
+    result = check_place_identity(audit_data((EL_BRANCO_FAILED, MARIA_CABRERA), (), ()))
+    assert result.disagreements == (
+        "El Branco Restaurant, 100 COORS AVE SW (permit FOODEST-1): the reports also print Maria Cabrera (2026-11-03)",
+    )
+    (merged,) = data.places
+    assert any("merged by permit; names differ" in line for line in claims(merged, data.covered))

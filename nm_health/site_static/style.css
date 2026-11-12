@@ -546,6 +546,10 @@ ul.rows a.row:hover {
   color: var(--muted);
   overflow-wrap: anywhere;
 }
+.place-head .also {
+  margin: 4px 0 0;
+  font-size: 0.92rem;
+}
 .place-head .today {
   margin: 10px 0 0;
 }

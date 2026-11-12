@@ -9,7 +9,7 @@ import re
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 
-from nm_health.identity import group, normalized_address
+from nm_health.identity import also_listed, group, normalized_address, shown_name
 from nm_health.model import Inspection, Violation
 from nm_health.rebuild import Report
 from nm_health.settings import DEFAULT_STRIP_WEEKS
@@ -263,11 +263,18 @@ class Place:
     pests: tuple[PestCitation, ...]  # newest first
     spells: tuple[ClosedSpell, ...] = ()  # every closure and what reopened it, oldest first
     standing: tuple[Inspection, ...] = ()  # results still in force, one per permit as far as known, oldest first
+    # The newest inspection printed under each other name: places joined by permit (identity.group).
+    also_listed: tuple[Inspection, ...] = ()
 
     @property
     def closure_in_force(self) -> bool:
         """Some permit's result in force is a closure."""
         return any(is_closed(i.status) for i in self.standing)
+
+    @property
+    def merged_by_permit(self) -> bool:
+        """Records under different names joined because they share a permit at this address: due a review."""
+        return bool(self.also_listed)
 
     @property
     def latest(self) -> Inspection:
@@ -336,9 +343,10 @@ def build_place(slug: str, inspections: list[Inspection]) -> Place:
     ordered = tuple(_redacted(i) for i in reversed(chronological(tuple(inspections))))
     spells = tuple(closed_spells(ordered))
     latest = ordered[0]
+    name = shown_name(ordered)
     return Place(
         slug=slug,
-        name=latest.name,
+        name=name,
         legal_name=next((i.legal_name for i in ordered if i.legal_name), None),
         address=normalized_address(latest.address),
         lat_lng=_lat_lng(ordered),
@@ -347,6 +355,7 @@ def build_place(slug: str, inspections: list[Inspection]) -> Place:
         pests=_citations(ordered),
         spells=spells,
         standing=tuple(standing(ordered)),
+        also_listed=also_listed(ordered, name),
     )
 
 

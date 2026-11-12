@@ -177,15 +177,17 @@ def _from_feed(record: FeedRecord) -> Inspection:
         lat=record.lat,
         lng=record.lng,
         time=record.time,
+        feed_name=record.name,
     )
 
 
 def merge_feed(
     detailed: list[Inspection], records: list[FeedRecord], *, feed_details: bool = False
 ) -> list[Inspection]:
-    """Report inspections gain the feed's coordinates and nothing else.
+    """Report inspections gain the feed's coordinates and its trade name for the same inspection, nothing else.
 
-    The weekly report PDFs are the only source of what the site states. With `feed_details` (the audit only) the
+    The weekly report PDFs are the only source of what the site states; the trade name only chooses among the names
+    they printed (identity.shown_name). With `feed_details` (the audit only) the
     feed's count and start time are added too, and feed-only inspections are appended, so the feed can be checked
     against the reports.
     """
@@ -197,6 +199,8 @@ def merge_feed(
         nearby = match or by_address.get(normalized_address(inspection.address))
         if nearby is not None:
             inspection = replace(inspection, lat=nearby.lat, lng=nearby.lng)  # noqa: PLW2901 - enriching the loop item
+        if match is not None:
+            inspection = replace(inspection, feed_name=match.name)  # noqa: PLW2901 - enriching the loop item
         if match is not None and feed_details:
             inspection = replace(inspection, violation_count=match.violations, time=match.time)  # noqa: PLW2901 - enriching the loop item
         merged.append(inspection)

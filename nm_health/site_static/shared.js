@@ -23,6 +23,7 @@
  * @property {string} closure latest closure or unsatisfactory start, or ""
  * @property {[number, number] | null} latLng
  * @property {boolean} closureInForce some permit's result in force is a closure
+ * @property {boolean} mergedByPermit records under different names joined by permit, due a review
  * @property {string} reopened status flag, e.g. "1 of 2 permits closed" or "Closed 6 days, reopened Oct 9", else ""
  */
 /** @typedef {{ inspections: number, withNotes: number, places: Place[] }} Places */
@@ -32,6 +33,7 @@ export const PEST_FLAG_TEXT = "Roaches or rodents cited";
 const FLAG_PESTS = 1;
 const FLAG_EMPLOYEE = 2;
 const FLAG_CLOSURE_IN_FORCE = 4;
+const FLAG_MERGED_BY_PERMIT = 16;
 const RECENT_MAX = 3;
 const NOON = "T12:00:00";
 const LOCALE = "en-US";
@@ -198,6 +200,7 @@ function decode(file, row) {
     pests: (flags & FLAG_PESTS) !== 0,
     employee: (flags & FLAG_EMPLOYEE) !== 0,
     closureInForce: (flags & FLAG_CLOSURE_IN_FORCE) !== 0,
+    mergedByPermit: (flags & FLAG_MERGED_BY_PERMIT) !== 0,
     closure,
     latLng,
     reopened,

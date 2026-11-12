@@ -370,6 +370,25 @@ def check_long_closures(data: AuditData) -> CheckResult:
     )
 
 
+def _merged_line(place: Place) -> str:
+    others = "; ".join(f"{i.name} ({i.date})" for i in place.also_listed)
+    permits = ", ".join(sorted({p for i in place.inspections if (p := permit_of(i)) is not None}))
+    return f"{place.name}, {place.address} (permit {permits}): the reports also print {others}"
+
+
+def check_place_identity(data: AuditData) -> CheckResult:
+    """Which places join records printed under different names? Each is merged by permit and due a review."""
+    merged = [p for p in data.places if p.merged_by_permit]
+    return CheckResult(
+        "place_identity",
+        "Records under different names are one place when the reports give them the same permit at one address "
+        "(merged, marked for review: docs/place-identity.md)",
+        len(data.places),
+        tuple(_merged_line(p) for p in merged),
+        (("merged by permit, names differ", len(merged)),),
+    )
+
+
 CHECKS: tuple[Callable[[AuditData], CheckResult], ...] = (
     check_operational_status,
     check_follow_up_order,
@@ -379,6 +398,7 @@ CHECKS: tuple[Callable[[AuditData], CheckResult], ...] = (
     check_feed_status,
     check_dates_in_week,
     check_long_closures,
+    check_place_identity,
 )
 
 
