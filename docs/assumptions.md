@@ -42,7 +42,7 @@ a person judges the disagreements.
 | Only a Closure means closed; an Unsatisfactory place stays open (red sticker) | `operational_status` | Each PDF permit line's own "Operational Status – Open/Closed" against the latest result listed under it |
 | The feed's start time is when the inspection happened | `feed_times` | Flags times of exactly 00:00, a likely placeholder |
 | Results at the same minute are separate permits, so the failure stands | `same_minute` | Permit numbers of same-minute records with a failure among them |
-| Each permit's latest result stays in force until that permit is inspected again; an inspection with no permit number (most re-inspections since late 2025) replaces every earlier result; when permits' results differ, status today lists each one and says nothing about the place as a whole | `same_minute` (partly) | Permits are known from the PDF's summary table or an old-style ID that is the permit number; the feed names no permit |
+| Each permit's latest result stays in force until that permit is inspected again; an inspection with no permit number (in the weekly reports, only the 2021 to early-2025 layouts, which print none: every current-layout inspection, re-inspections included, gets one from the summary table; and every feed-only record in the audit) replaces every earlier result; when permits' results differ, status today lists each one and says nothing about the place as a whole | `same_minute` (partly) | Permits are known from the PDF's summary table or an old-style ID that is the permit number; the feed names no permit |
 | An untimed corrective-action visit came after that day's routine inspection | `follow_up_order` | Feed times, when both sides have one |
 | With no time, a same-day failure came before the pass | `untimed_order` | Lists the days where this guess decides the order |
 | The PDF and the feed agree on each inspection's status | `feed_status` | Status of every inspection found in both |
@@ -100,6 +100,6 @@ no claim about the place as a whole. Permits come from an old-style inspection I
 PDF's summary table; the ID wins because the table now and then files a row under the wrong permit (5 of 173 rows: Quick
 Track 93, Allsup's #102460, Sergio's Bakery).
 
-Not checked: that a place's name and address identify one place, that an inspection with no permit number re-inspected
-what failed before it, and that no reopening inspection is missing from the records (a missing one would make a closure
-look longer than it was).
+Not checked: that an inspection with no permit number re-inspected what failed before it, and that no reopening
+inspection is missing from the records (a missing one would make a closure look longer than it was). Which records
+are one place is measured in `docs/place-identity.md`.
