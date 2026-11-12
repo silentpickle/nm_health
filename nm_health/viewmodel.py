@@ -6,11 +6,10 @@ the only durations are between two inspections on record (a closure and the insp
 """
 
 import re
-from collections import defaultdict
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 
-from nm_health.identity import establishment_slug, normalized_address
+from nm_health.identity import group, normalized_address
 from nm_health.model import Inspection, Violation
 from nm_health.rebuild import Report
 from nm_health.settings import DEFAULT_STRIP_WEEKS
@@ -352,11 +351,8 @@ def build_place(slug: str, inspections: list[Inspection]) -> Place:
 
 
 def group_places(inspections: tuple[Inspection, ...]) -> list[Place]:
-    """Inspections grouped by place (identity.establishment_slug); most recently inspected first, then by name."""
-    by_slug: dict[str, list[Inspection]] = defaultdict(list)
-    for inspection in inspections:
-        by_slug[establishment_slug(inspection.name, inspection.address)].append(inspection)
-    places = [build_place(slug, found) for slug, found in by_slug.items()]
+    """Inspections grouped by place (identity.group); most recently inspected first, then by name."""
+    places = [build_place(g.slug, list(g.inspections)) for g in group(inspections)]
     places.sort(key=lambda p: p.name.casefold())
     places.sort(key=lambda p: p.latest.date, reverse=True)
     return places

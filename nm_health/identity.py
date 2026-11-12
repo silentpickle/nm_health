@@ -2,8 +2,11 @@
 """Which inspections belong to the same place: normalized name + normalized address."""
 
 import re
+from collections import defaultdict
+from dataclasses import dataclass
 
 from nm_health.ingest.normalizer import normalize_address, normalize_establishment_name
+from nm_health.model import Inspection
 
 NON_ALNUM = re.compile(r"[^a-z0-9]+")
 DBA_RE = re.compile(r"\s+D\.?/?B\.?/?A\.?:?\s+", re.IGNORECASE)  # "Long Cao LLC DBA Dragon Sushi", "X d/b/a Y"
@@ -36,3 +39,19 @@ def establishment_slug(name: str, address: str) -> str:
 def normalized_address(address: str) -> str:
     """Canonical street address ('1415 4TH ST SW, Unit H')."""
     return str(normalize_address(address)["normalized_address"])
+
+
+@dataclass(frozen=True)
+class Group:
+    """The inspections of one place, under the slug its page is published at."""
+
+    slug: str
+    inspections: tuple[Inspection, ...]
+
+
+def group(inspections: tuple[Inspection, ...]) -> list[Group]:
+    """Inspections grouped by place (establishment_slug), in the order each place first appears."""
+    by_slug: dict[str, list[Inspection]] = defaultdict(list)
+    for inspection in inspections:
+        by_slug[establishment_slug(inspection.name, inspection.address)].append(inspection)
+    return [Group(slug, tuple(found)) for slug, found in by_slug.items()]
