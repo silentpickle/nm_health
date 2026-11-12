@@ -2,6 +2,7 @@
 """The site's pages as HTML bodies: This week, Places, Map, About, and one place's whole record."""
 
 from collections.abc import Callable
+from dataclasses import dataclass
 
 from nm_health.model import Inspection, Violation
 from nm_health.rebuild import Report
@@ -28,10 +29,11 @@ from nm_health.viewmodel import (
     MIDDOT,
     RED_GROUP,
     TAG_LABEL,
+    WEEK_SPAN_DAYS,
     ClosureRun,
+    Period,
     PestCitation,
     Place,
-    Week,
     amended_text,
     closed_text,
     closure_end,
@@ -48,7 +50,7 @@ from nm_health.viewmodel import (
     pest_reading,
     plural,
     report_text,
-    select_week,
+    select_period,
     short_date,
     source_label,
     thousands,
@@ -93,11 +95,11 @@ def _cards(cards: list[str], empty: str) -> str:
     return f'<div class="lead">{"".join(cards)}</div>'
 
 
-def _pest_section(week: Week) -> str:
-    cards = [notice_html(p, i, pest=True) for p, i in week.pest_visits]
-    if week.covered:
+def _pest_section(period: Period) -> str:
+    cards = [notice_html(p, i, pest=True) for p, i in period.pest_visits]
+    if period.covered:
         return heading("Roaches or rodents cited", len(cards)) + _cards(cards, "None cited in that report.")
-    report = week.pest_report
+    report = period.pest_report
     if report is None or report.week_start is None or report.week_end is None:
         empty = "No weekly report on file yet, so pest citations can't be shown."
         return heading("Roaches or rodents cited", 0) + f'<p class="muted">{esc(empty)}</p>'
@@ -150,31 +152,51 @@ def latest_report_html(data: SiteData) -> str:
     return f'<p class="eyebrow">{stamp}</p>' + data_link_html()
 
 
-def _week_body(data: SiteData, week: Week) -> str:
-    red = [notice_html(p, i, pest=False) for p, i in week.red]
-    other = unique_places(week.other)[:PAGE_SIZE]
+@dataclass(frozen=True)
+class TimeRange:
+    """One of the time-range pages: the newest inspection date and span_days before it."""
+
+    key: str  # which tab is current
+    file: str
+    title: str
+    span_days: int
+    banner: str  # shown when no weekly report on file covers the newest date
+
+
+WEEK_RANGE = TimeRange("week", "index.html", "This week", WEEK_SPAN_DAYS, BANNER)
+
+
+def _range_body(data: SiteData, time_range: TimeRange, period: Period) -> str:
+    red = [notice_html(p, i, pest=False) for p, i in period.red]
+    other = unique_places(period.other)[:PAGE_SIZE]
     parts = [
         disclaimer_html(),
-        '<h1 class="view">This week</h1>',
+        f'<h1 class="view">{esc(time_range.title)}</h1>',
         latest_report_html(data),
-        f'<p class="eyebrow">Inspections {short_date(week.start)} {EN_DASH} {nice_date(week.end)}</p>',
-        "" if week.covered else f'<p class="banner">{esc(BANNER)}</p>',
+        f'<p class="eyebrow">Inspections {short_date(period.start)} {EN_DASH} {nice_date(period.end)}</p>',
+        "" if period.covered else f'<p class="banner">{esc(time_range.banner)}</p>',
         heading(RED_GROUP, len(red)),
         _cards(red, "None in the city's records for these dates."),
-        _pest_section(week),
-        heading("Other inspections", len(week.other)),
+        _pest_section(period),
+        heading("Other inspections", len(period.other)),
         rows_html([row_html(p, data.today, data.covered) for p in other]),
     ]
     return "\n".join(parts)
 
 
+def range_page(data: SiteData, time_range: TimeRange) -> Page:
+    """One time-range page: closures, pest citations and every other inspection in the range."""
+    period = select_period(data.places, data.reports, time_range.span_days)
+    if period is None:
+        empty = '<p class="muted">No inspections on file yet.</p>'
+        body = f'{disclaimer_html()}<h1 class="view">{esc(time_range.title)}</h1>{empty}'
+        return Page(time_range.title, body, time_range.key)
+    return Page(time_range.title, _range_body(data, time_range, period), time_range.key)
+
+
 def week_page(data: SiteData) -> Page:
     """index.html: the newest seven days of inspections."""
-    week = select_week(data.places, data.reports)
-    if week is None:
-        body = disclaimer_html() + '<h1 class="view">This week</h1><p class="muted">No inspections on file yet.</p>'
-        return Page("This week", body, "week")
-    return Page("This week", _week_body(data, week), "week")
+    return range_page(data, WEEK_RANGE)
 
 
 # ---------- Data ----------

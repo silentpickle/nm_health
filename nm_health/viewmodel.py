@@ -641,8 +641,8 @@ def visits_between(places: list[Place], first: str, last: str) -> list[Visit]:
 
 
 @dataclass(frozen=True)
-class Week:
-    """The newest seven days of inspections and where the pest citations come from."""
+class Period:
+    """The newest stretch of inspections (a week, say) and where its pest citations come from."""
 
     start: str
     end: str
@@ -662,18 +662,26 @@ class Week:
         return [v for v in self.visits if level(v[1].status) != LEVEL_RED]
 
 
-def select_week(places: list[Place], reports: tuple[Report, ...]) -> Week | None:
-    """The newest 7 days; pest citations from that week if a report covers its newest date, else the latest report."""
+def select_period(places: list[Place], reports: tuple[Report, ...], span_days: int) -> Period | None:
+    """The newest date and the span_days before it; pests from those days if a report covers the newest date.
+
+    When no report covers the newest date, pest citations come from the latest report on file instead.
+    """
     newest = max((p.latest.date for p in places), default=None)
     if newest is None:
         return None
-    start = (date.fromisoformat(newest) - timedelta(days=WEEK_SPAN_DAYS)).isoformat()
+    start = (date.fromisoformat(newest) - timedelta(days=span_days)).isoformat()
     visits = visits_between(places, start, newest)
     covered = covering_report(reports, newest) is not None
     report = None if covered else latest_report(reports)
     pest_pool = visits if covered else _report_visits(places, report)
     pests = tuple(v for v in pest_pool if cites_headline_pests(v[1]))
-    return Week(start, newest, tuple(visits), covered, report, pests)
+    return Period(start, newest, tuple(visits), covered, report, pests)
+
+
+def select_week(places: list[Place], reports: tuple[Report, ...]) -> Period | None:
+    """The newest 7 days; pest citations from that week if a report covers its newest date, else the latest report."""
+    return select_period(places, reports, WEEK_SPAN_DAYS)
 
 
 def _report_visits(places: list[Place], report: Report | None) -> list[Visit]:
