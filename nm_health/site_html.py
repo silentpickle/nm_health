@@ -21,7 +21,6 @@ from nm_health.viewmodel import (
     cell_code,
     covered_days,
     group_places,
-    later_records,
     level,
     month_ticks,
     nice_date,
@@ -44,7 +43,12 @@ FONTS_URL = (
 EN_DASH = "\u2013"
 LEFT_ARROW = "\u2190"
 WHERE = f"Albuquerque, NM {MIDDOT} last 12 months"
-TABS = (("week", "index.html", "This week"), ("places", "places.html", "Places"), ("map", "map.html", "Map"))
+TABS = (
+    ("week", "index.html", "This week"),
+    ("places", "places.html", "Places"),
+    ("map", "map.html", "Map"),
+    ("data", "data.html", "Data"),
+)
 ABOUT_TAB = ("about", "about.html", "About")
 FOOTER = (
     "Source: City of Albuquerque Environmental Health Department weekly inspection reports, linked beside every "
@@ -67,8 +71,8 @@ class SiteData:
     today: date
     places: list[Place]
     reports: tuple[Report, ...]  # weekly reports ending inside the window
+    all_reports: tuple[Report, ...]  # every report in the archive
     week_starts: dict[str, str | None]  # report file -> its week's first day
-    later: dict[str, Inspection]  # place slug -> a newer inspection in the city's records, report not on file
     covered: Coverage  # dates a weekly report on file covers
     permit_pages: dict[tuple[str, str], int]  # (report file, permit) -> page printing its Operational Status line
 
@@ -92,8 +96,8 @@ def site_data(rebuilt: Rebuilt, settings: Settings, today: date) -> SiteData:
         today=today,
         places=places,
         reports=reports_in_window(rebuilt.reports, since),
+        all_reports=rebuilt.reports,
         week_starts={r.file: r.week_start for r in rebuilt.reports},
-        later=later_records(rebuilt.inspections, places),
         covered=covered_days(rebuilt.reports),
         permit_pages=_permit_pages(settings, places),
     )

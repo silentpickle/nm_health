@@ -11,7 +11,7 @@ import random
 import re
 from collections import Counter
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
@@ -30,8 +30,6 @@ from nm_health.viewmodel import (
     coverage_line,
     covered_days,
     group_places,
-    later_record_text,
-    later_records,
     latest_result_text,
     other_pest_kinds,
     permit_line_text,
@@ -85,7 +83,6 @@ class Sources:
     reports: dict[str, str]
     feed: dict[tuple[str, str], FeedRecord]
     covered: Coverage = frozenset()  # dates a weekly report on file covers
-    later: dict[str, Inspection] = field(default_factory=dict)  # place slug -> newer record, report not on file
 
 
 # ---------- Sampling ----------
@@ -164,14 +161,13 @@ def _pest_claims(place: Place) -> list[str]:
     ]
 
 
-def claims(place: Place, covered: Coverage, later: Inspection | None = None) -> list[str]:
+def claims(place: Place, covered: Coverage) -> list[str]:
     """Everything the site states about the place, in the order a reader meets it."""
     flag = reopened_flag(place, covered)
     return [
         f"Name and address: {place.name}, {place.address}.",
         *(f"The city's latest weekly report on file lists: {permit_line_text(line)}." for line in permit_lines(place)),
         f"{latest_result_text(place)}.",
-        *([later_record_text(later)] if later else []),
         *([f"List flag: {flag}."] if flag else []),
         coverage_line(place),
         *_closure_claims(place, covered),
@@ -265,7 +261,7 @@ def _feed_section(place: Place, sources: Sources) -> list[str]:
 def place_section(number: int, sample: Sample, sources: Sources) -> list[str]:
     """One place: why it was picked, its numbered statements, then its records."""
     place = sample.place
-    found = claims(place, sources.covered, sources.later.get(place.slug))
+    found = claims(place, sources.covered)
     statements = [f"{number}.{n}. {text}" for n, text in enumerate(found, start=1)]
     return [
         f"## Place {number}: {place.name} ({sample.reason})",
@@ -315,6 +311,5 @@ def build(settings: Settings, since: date, count: int, seed: int) -> str:
         reports={f: report_text(settings.archive_dir / f) for f in files},
         feed={(r.number, r.date): r for r in load_records(settings, since)},
         covered=covered_days(rebuilt.reports),
-        later=later_records(rebuilt.inspections, places),
     )
     return packet(samples, sources, seed, read_assumptions())

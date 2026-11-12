@@ -7,7 +7,15 @@ from pathlib import Path
 
 import pytest
 
-from nm_health.archive import ArchiveError, Week, archive_bytes, archive_name, download, week_from_text
+from nm_health.archive import (
+    ArchiveError,
+    Week,
+    amended_from_text,
+    archive_bytes,
+    archive_name,
+    download,
+    week_from_text,
+)
 from nm_health.settings import Settings
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -97,3 +105,12 @@ def test_download_refuses_http() -> None:
     """Only https URLs are fetched."""
     with pytest.raises(ArchiveError, match="non-https"):
         download("http://example.test/report.pdf", "test", 1)
+
+
+def test_amended_header_date_as_printed() -> None:
+    """The header's amendment date is kept as printed, and a report without one has none."""
+    assert (
+        amended_from_text("Performed Week: ...\n2026 Report Amended on 11/2/2026 for clerical\nerrors") == "11/2/2026"
+    )
+    assert amended_from_text("Report amended on12/22/2025 For clerical errors") == "12/22/2025"
+    assert amended_from_text("Performed Week: October 25, 2026 to October 31, 2026") is None

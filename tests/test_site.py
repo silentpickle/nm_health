@@ -35,7 +35,7 @@ ROACHES = Violation(
     (("Pest Type", "Cockroach"),),
 )
 PLACES_JSON_LIMIT = 300_000  # bytes
-TOP_PAGES = ("index.html", "places.html", "map.html", "about.html")
+TOP_PAGES = ("index.html", "places.html", "map.html", "data.html", "about.html")
 H1 = re.compile(r"<h1\b")
 PDF_LINK = re.compile(r'href="([^"]+\.pdf)(?:#page=\d+)?"')
 # A real weekly report stands in for the test report, so the build can read its text as it does in production.
@@ -133,6 +133,7 @@ def test_write_site_writes_every_page(tmp_path: Path) -> None:
         "albuquerque.geojson",
         "citymap.css",
         "citymap.js",
+        "data.html",
         "index.html",
         "map.html",
         "map.js",
@@ -236,13 +237,13 @@ def test_place_page_states_what_the_records_show(tmp_path: Path) -> None:
 
 
 def test_feed_only_inspections_stay_off_the_site(tmp_path: Path) -> None:
-    """No weekly report, no statement: a feed-only place gets no page, and a newer feed record is only noted."""
+    """No weekly report, no statement: a feed-only place gets no page, and a newer feed record is not even noted."""
     newer = feed_only("2026-11-06", name="TEST CAFE", address="100 CENTRAL AVE SW")
     site = build(tmp_path, visit("2026-10-29", ROACHES), newer, feed_only("2026-11-06"))
     assert not (site / "place" / "feed-diner-5-main-st-ne.html").exists()
     assert not (site / "sources").exists()
     place = read(site, "place/test-cafe-100-central-ave-sw.html")
-    assert "lists a later inspection on Nov 6, 2026. Its weekly report isn&#x27;t on file yet" in place
+    assert "later inspection" not in place
     assert "Closure Re-Inspection Required" not in place
     index = read(site, "index.html")
     assert "FEED DINER" not in index
@@ -254,6 +255,23 @@ def test_covered_week_has_no_banner(tmp_path: Path) -> None:
     index = read(build(tmp_path, visit("2026-10-29", ROACHES)), "index.html")
     assert "isn&#x27;t on file yet" not in index
     assert "Roaches or rodents cited<span" in index
+
+
+def test_landing_page_disclaimer_and_latest(tmp_path: Path) -> None:
+    """The landing page carries the red not-endorsed notice and the newest report's week."""
+    index = read(build(tmp_path, visit("2026-10-29", ROACHES)), "index.html")
+    assert 'class="disclaimer"' in index
+    assert "not endorsed by" in index
+    assert "Latest weekly report on file: week ending" in index
+
+
+def test_data_page_lists_reports_and_front_page_links_it(tmp_path: Path) -> None:
+    """data.html lists every archived PDF with its header check; the landing page links to it."""
+    site = build(tmp_path, visit("2026-10-29", ROACHES))
+    assert 'href="data.html"' in read(site, "index.html")
+    data = read(site, "data.html")
+    assert REPORT_FILE in data
+    assert "No department letterhead" in data
 
 
 def test_places_page_lists_every_place_without_javascript(tmp_path: Path) -> None:

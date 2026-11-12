@@ -37,9 +37,8 @@ from nm_health.viewmodel import (
     closure_end,
     closure_start,
     coverage_line,
-    feed_only_text,
     kind_line,
-    later_record_text,
+    latest_report,
     latest_result_text,
     level,
     nice_date,
@@ -114,11 +113,38 @@ BANNER = (
 )
 
 
+DISCLAIMER = (
+    "This site is not endorsed by, affiliated with, or approved by the City of Albuquerque Environmental Health "
+    "Department. Please double-check inspection results with the city's own records before relying on them."
+)
+
+
+def disclaimer_html() -> str:
+    """The red legal notice shown at the top of the landing page."""
+    return f'<p class="disclaimer" role="note"><strong>Legal notice:</strong> {esc(DISCLAIMER)}</p>'
+
+
+def data_link_html() -> str:
+    """Pointer from the landing page to everything pulled so far."""
+    return '<p class="eyebrow"><a href="data.html">See every report PDF we have pulled</a></p>'
+
+
+def latest_report_html(data: SiteData) -> str:
+    """The week of the newest weekly PDF on file, so readers know how current the record is."""
+    report = latest_report(data.reports)
+    if report is None or report.week_end is None:
+        return ""
+    stamp = f"Latest weekly report on file: week ending {nice_date(report.week_end)}"
+    return f'<p class="eyebrow">{stamp}</p>' + data_link_html()
+
+
 def _week_body(data: SiteData, week: Week) -> str:
     red = [notice_html(p, i, pest=False) for p, i in week.red]
     other = unique_places(week.other)[:PAGE_SIZE]
     parts = [
+        disclaimer_html(),
         '<h1 class="view">This week</h1>',
+        latest_report_html(data),
         f'<p class="eyebrow">Inspections {short_date(week.start)} {EN_DASH} {nice_date(week.end)}</p>',
         "" if week.covered else f'<p class="banner">{esc(BANNER)}</p>',
         heading(RED_GROUP, len(red)),
@@ -134,9 +160,54 @@ def week_page(data: SiteData) -> Page:
     """index.html: the newest seven days of inspections."""
     week = select_week(data.places, data.reports)
     if week is None:
-        body = '<h1 class="view">This week</h1><p class="muted">No inspections on file yet.</p>'
+        body = disclaimer_html() + '<h1 class="view">This week</h1><p class="muted">No inspections on file yet.</p>'
         return Page("This week", body, "week")
     return Page("This week", _week_body(data, week), "week")
+
+
+# ---------- Data ----------
+
+HEADER_SEEN = "City letterhead: Environmental Health Department"
+HEADER_ABSENT = "No department letterhead on page 1 (older layout)"
+
+
+def archive_tree_url(data: SiteData) -> str:
+    """The archive folder on GitHub, one step up from a file's page."""
+    return data.settings.pdf_base_url.replace("/blob/", "/tree/")
+
+
+def _data_row(data: SiteData, report: Report) -> str:
+    start = short_date(report.week_start) if report.week_start else "?"
+    end = nice_date(report.week_end) if report.week_end else "week not stated"
+    letterhead = HEADER_SEEN if report.letterhead else HEADER_ABSENT
+    amended = f"Amended {esc(report.amended_on)}" if report.amended_on else "Not marked amended"
+    saved = nice_date(report.seen_at[:ISO_DATE_LEN])
+    return (
+        f"<tr><td>{start} {EN_DASH} {end}</td>"
+        f'<td><a href="{REPORTS_DIR}/{esc(report.file)}">PDF</a> {MIDDOT} '
+        f'<a href="{esc(data.settings.pdf_base_url + report.file)}">GitHub</a></td>'
+        f"<td>{esc(letterhead)}</td><td>{amended}</td>"
+        f"<td>{report.inspections}</td><td>{saved}</td>"
+        f'<td class="data">{esc(report.source)}</td>'
+        f'<td class="data">{esc(report.sha256[:SHA_SHOWN])}</td></tr>'
+    )
+
+
+def data_page(data: SiteData) -> Page:
+    """data.html: every weekly report PDF in the archive, so each can be checked against the city's own."""
+    ordered = sorted(data.all_reports, key=lambda r: (r.week_end or "", r.seen_at), reverse=True)
+    rows = "".join(_data_row(data, r) for r in ordered)
+    head = (
+        "<tr><th>Week</th><th>File</th><th>Header</th><th>Amendment</th><th>Inspections</th>"
+        "<th>Saved</th><th>Source</th><th>SHA-256</th></tr>"
+    )
+    body = f"""<section class="about">
+<h1 class="view">Data we have pulled</h1>
+<p>Every weekly report PDF saved so far: {len(ordered)} files, byte for byte as the city published them.
+Browse the whole folder on <a href="{esc(archive_tree_url(data))}">GitHub (data/archive)</a>.</p>
+<div class="tablewrap"><table class="datatable"><thead>{head}</thead><tbody>{rows}</tbody></table></div>
+</section>"""
+    return Page("Data we have pulled", body, "data")
 
 
 # ---------- Places ----------
@@ -200,9 +271,10 @@ def _report_item(data: SiteData, report: Report) -> str:
     count = plural(report.inspections, "inspection", "inspections")
     saved = nice_date(report.seen_at[:ISO_DATE_LEN])
     history = esc(data.settings.pdf_base_url + report.file)
+    amended = f" {MIDDOT} Amended {esc(report.amended_on)} per its header" if report.amended_on else ""
     return (
         f'<li>{start} {EN_DASH} {end} {MIDDOT} {count} {MIDDOT} <a href="{REPORTS_DIR}/{esc(report.file)}">PDF</a>'
-        f'<div class="quiet">Saved {saved} from <span class="data">{esc(report.source)}</span> {MIDDOT} '
+        f'<div class="quiet">Saved {saved}{amended} from <span class="data">{esc(report.source)}</span> {MIDDOT} '
         f'SHA-256 <span class="data">{esc(report.sha256[:SHA_SHOWN])}</span> {MIDDOT} '
         f'<a href="{history}">archive history</a></div></li>'
     )
@@ -226,8 +298,8 @@ def about_page(data: SiteData) -> Page:
 <p>The City of Albuquerque publishes one PDF of the week's food inspections and replaces it the next week. This site
 keeps every copy it saves and shows the last 12 months. Every statement links to the page of the report it comes from;
 the copies here are byte-for-byte what the city published.</p>
-<p>The city also runs a public inspection-status feed. This site uses it only to order inspections made on the same
-day and to place dots on the map, and to note when a newer inspection exists whose weekly report isn't on file yet.</p>
+<p>The city also runs a public inspection-status feed. It is separate from the weekly reports, and this site treats it
+as a separate source: it is used only for the coordinates of the dots on the map, and no statement here rests on it.</p>
 <p>{esc(counts)}</p>
 <h2>What it does not say</h2>
 <p>An inspection reports what one inspector found on one day. No citation is not a certification: inspectors never
@@ -343,8 +415,6 @@ def _violation(v: Violation) -> str:
 
 
 def _inspection_body(inspection: Inspection) -> str:
-    if not inspection.has_details:
-        return f'<p class="quiet">{esc(feed_only_text(inspection))}</p>'
     if not inspection.violations:
         return '<p class="quiet">The report lists no violations for this inspection.</p>'
     items = "".join(_violation(v) for v in inspection.violations)
@@ -383,12 +453,10 @@ def _city_status(data: SiteData, place: Place) -> str:
     latest = place.latest
     report = source_label(latest, data.week_starts.get(latest.report_file)).split(" (", 1)[0]
     lines = "".join(_permit_line(data, line) for line in permit_lines(place))
-    later = data.later.get(place.slug)
-    note = f'<p class="quiet">{esc(later_record_text(later))}</p>' if later else ""
     return (
         f'<div class="today"><span class="lbl">The city\'s latest weekly report on file</span> {esc(report)}'
         f"{f'<ul class="permits">{lines}</ul>' if lines else ''}"
-        f"<p>{esc(latest_result_text(place))}</p>{_sources(data, place, [latest])}{note}</div>"
+        f"<p>{esc(latest_result_text(place))}</p>{_sources(data, place, [latest])}</div>"
     )
 
 

@@ -100,6 +100,20 @@ def week_from_text(text: str) -> Week | None:
     return None
 
 
+def amended_from_text(text: str) -> str | None:
+    """The date as the header prints it in 'Report Amended on 11/2/2026', or None when it isn't amended."""
+    found = re.search(r"Report\s+amended\s+on\s*([\d/]+)", " ".join(text.split()), re.IGNORECASE)
+    return found[1] if found else None
+
+
+LETTERHEAD = "Environmental Health Department"
+
+
+def has_letterhead(text: str) -> bool:
+    """True when page 1 carries the city's 'Environmental Health Department' letterhead (2025-10 layout on)."""
+    return LETTERHEAD.lower() in " ".join(text.split()).lower()
+
+
 def first_page_text(pdf: Path) -> str:
     """Text of page 1 via poppler's pdftotext."""
     result = subprocess.run(
@@ -140,7 +154,8 @@ def archive_bytes(body: bytes, source: str, seen_at: datetime, settings: Setting
     settings.archive_dir.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(dir=settings.archive_dir, suffix=".pdf", delete=False) as incoming:
         incoming.write(body)
-    week = week_from_text(first_page_text(Path(incoming.name)))
+    header = first_page_text(Path(incoming.name))
+    week = week_from_text(header)
     final = settings.archive_dir / archive_name(week, seen_at, sha256)
     Path(incoming.name).replace(final)
     final.chmod(ARCHIVE_FILE_MODE)
@@ -154,6 +169,8 @@ def archive_bytes(body: bytes, source: str, seen_at: datetime, settings: Setting
             "week_end": week.end.isoformat() if week else None,
             "source": source,
             "seen_at": seen_at.isoformat(),
+            "amended_on": amended_from_text(header),
+            "letterhead": has_letterhead(header),
         },
     )
     return Archived(final, sha256, is_new=True)
