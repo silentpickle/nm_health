@@ -119,9 +119,21 @@ DISCLAIMER = (
 )
 
 
+CITY_RESULTS_URL = "https://www.cabq.gov/environmentalhealth/food-safety/restaurant-inspection-results"
+CITY_MOST_RECENT_URL = "https://www.cabq.gov/environmentalhealth/documents/chpd_main_inspection_report.pdf"
+# noreferrer: the city's site is not told where the reader came from.
+NEW_WINDOW = 'target="_blank" rel="noopener noreferrer"'
+
+
+def external_link(url: str, label: str) -> str:
+    """A link out to the city's site: new window, no referrer."""
+    return f'<a href="{esc(url)}" {NEW_WINDOW}>{esc(label)}</a>'
+
+
 def disclaimer_html() -> str:
-    """The red legal notice shown at the top of the landing page."""
-    return f'<p class="disclaimer" role="note"><strong>Legal notice:</strong> {esc(DISCLAIMER)}</p>'
+    """The red legal notice shown at the top of the landing page, with a pointer to the city's own results page."""
+    city = external_link(CITY_RESULTS_URL, "the city's restaurant inspection results page")
+    return f'<p class="disclaimer" role="note"><strong>Legal notice:</strong> {esc(DISCLAIMER)} See {city}.</p>'
 
 
 def data_link_html() -> str:
@@ -338,6 +350,22 @@ def _found(place: Place, day: str | None, wanted: Callable[[Inspection], bool]) 
     return next(([i] for i in reversed(place.inspections) if i.date == day and wanted(i)), [])
 
 
+def _is_recent(data: SiteData, day: str) -> bool:
+    """True when the day falls in the week of the newest weekly report on file."""
+    report = latest_report(data.reports)
+    if report is None or report.week_start is None or report.week_end is None:
+        return False
+    return report.week_start <= day <= report.week_end
+
+
+def _most_recent_link(data: SiteData, day: str) -> str:
+    """A 'most recent' link to the city's current report, only for a violation dated in the newest report's week."""
+    if not _is_recent(data, day):
+        return ""
+    link = external_link(CITY_MOST_RECENT_URL, "most recent")
+    return f'<div class="quiet">City\'s current report: {link}</div>'
+
+
 def _pest_fact(data: SiteData, place: Place, citation: PestCitation) -> str:
     cleared = (
         f"Next approved inspection: {nice_date(citation.cleared)}. "
@@ -351,6 +379,7 @@ def _pest_fact(data: SiteData, place: Place, citation: PestCitation) -> str:
         f'<div class="quiet">Status that day, as issued by the city: {esc(citation.status)}. {cleared}'
         "</div>"
         f"{_sources(data, place, [place.inspections[citation.index]])}"
+        f"{_most_recent_link(data, citation.date)}"
     )
     return _fact(nice_date(citation.date), detail)
 
@@ -373,7 +402,8 @@ def _closure_fact(data: SiteData, place: Place, run: ClosureRun) -> str:
     after = esc(end) if end else f'<span class="open">{NO_LATER_APPROVAL}</span>'
     closed = "".join(f'<div class="closed">{esc(closed_text(spell, data.covered))}</div>' for spell in run.closed)
     sources = _sources(data, place, _closure_cited(place, run))
-    return _fact(RED_GROUP, f'{esc(closure_start(run))}{closed}<div class="quiet">{after}</div>{sources}')
+    recent = _most_recent_link(data, run.episode.start)
+    return _fact(RED_GROUP, f'{esc(closure_start(run))}{closed}<div class="quiet">{after}</div>{sources}{recent}')
 
 
 def _other_pests_fact(place: Place) -> str:
