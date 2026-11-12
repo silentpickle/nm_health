@@ -412,6 +412,17 @@ h2 .n {
   border-color: var(--edge);
   border-top-color: var(--bad-cell);
 }
+.notice.reopened {
+  border-top-color: var(--ok-cell);
+}
+.notice.reopened a.nm {
+  color: inherit;
+}
+.notice .src {
+  font-size: 0.82rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
 .notice.pest {
   border-top-color: var(--ink);
 }

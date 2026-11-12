@@ -719,6 +719,67 @@ def _report_visits(places: list[Place], report: Report | None) -> list[Visit]:
     return visits_between(places, report.week_start, report.week_end)
 
 
+# ---------- Reopened after a closure ----------
+
+
+@dataclass(frozen=True)
+class Reopening:
+    """A place closed by one inspection and reopened by a later one (signals.closed_spells), with both inspections."""
+
+    place: Place
+    spell: ClosedSpell
+    closure: Inspection
+    reopening: Inspection
+
+
+def _spell_inspection(place: Place, day: str | None, time: str | None, wanted: str | None) -> Inspection | None:
+    """The oldest of the place's inspections on that day, at that time, with that status."""
+    return next((i for i in reversed(place.inspections) if (i.date, i.time, i.status) == (day, time, wanted)), None)
+
+
+def _closure_of(place: Place, spell: ClosedSpell) -> Inspection | None:
+    return next(
+        (
+            i
+            for i in reversed(place.inspections)
+            if (i.date, i.time) == (spell.start, spell.start_time) and is_closed(i.status)
+        ),
+        None,
+    )
+
+
+def _still_closed(place: Place, spell: ClosedSpell) -> bool:
+    """Some permit's result in force is a closure from this spell: that permit never reopened (only another did)."""
+    return any(is_closed(i.status) and spell.start <= i.date <= (spell.end or i.date) for i in place.standing)
+
+
+def _reopening(place: Place, spell: ClosedSpell) -> Reopening | None:
+    closure = _closure_of(place, spell)
+    reopening = _spell_inspection(place, spell.end, spell.end_time, spell.end_status)
+    if closure is None or reopening is None or _still_closed(place, spell):
+        return None
+    return Reopening(place, spell, closure, reopening)
+
+
+def reopenings(places: list[Place], first: str, last: str, closed_before: str | None = None) -> list[Reopening]:
+    """Places reopened by an inspection dated first..last after a closure, newest reopening first.
+
+    The closure may be any time before the reopening, or only before `closed_before` when given (This week: closed
+    before the week began, so in an earlier report on file, and still closed when it began).
+    """
+    found = [
+        reopened
+        for place in places
+        for spell in place.spells
+        if spell.end is not None and first <= spell.end <= last
+        if closed_before is None or spell.start < closed_before
+        for reopened in [_reopening(place, spell)]
+        if reopened is not None
+    ]
+    by_name = sorted(found, key=lambda r: r.place.name.casefold())
+    return sorted(by_name, key=lambda r: r.spell.end or "", reverse=True)
+
+
 def notice_quote(place: Place, inspection: Inspection) -> str | None:
     """The inspector's words about roaches or rodents that day, for a This-week card."""
     return next((c.quote for c in place.pests if c.date == inspection.date and c.headline), None)

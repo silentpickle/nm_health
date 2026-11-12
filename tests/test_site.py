@@ -386,6 +386,14 @@ def test_places_json_shape(tmp_path: Path) -> None:
     ]
 
 
+def test_places_json_tracks_reopened(tmp_path: Path) -> None:
+    """places.json lists each range page's Reopened section: slug, closed, reopened, days, status, days all on file."""
+    site = build(tmp_path, visit("2026-10-26", status="Closure Re-Inspection Required"), visit("2026-10-29"))
+    reopened = json.loads(read(site, "places.json"))["reopened"]
+    row = ["test-cafe-100-central-ave-sw", "2026-10-26", "2026-10-29", 3, "Approved", True]
+    assert reopened == {"index.html": [], "month.html": [row], "all.html": [row]}
+
+
 def test_map_and_about_pages(tmp_path: Path) -> None:
     """The map loads citymap through an import map; About links the reports and the error-report page."""
     site = build(tmp_path, visit("2026-10-29"))

@@ -22,8 +22,27 @@ from nm_health.site_html import (
     site_data,
     unsourced,
 )
-from nm_health.site_pages import RANGES, about_page, data_page, map_page, place_page, places_page, range_page
-from nm_health.viewmodel import ARIA_LIST_MAX, Place, level, reopened_flag, strip_cells, strip_code
+from nm_health.site_pages import (
+    RANGES,
+    about_page,
+    data_page,
+    map_page,
+    place_page,
+    places_page,
+    range_page,
+    range_reopenings,
+)
+from nm_health.viewmodel import (
+    ARIA_LIST_MAX,
+    Place,
+    Reopening,
+    level,
+    reopened_flag,
+    select_period,
+    strip_cells,
+    strip_code,
+    unbroken,
+)
 
 STATIC_DIR = Path(__file__).resolve().parent / "site_static"
 STATIC_FILES = ("style.css", "shared.js", "places.js", "map.js")
@@ -85,12 +104,36 @@ def _place_row(data: SiteData, place: Place, statuses: dict[str, int]) -> list[o
     ]
 
 
+def _reopened_row(data: SiteData, reopened: Reopening) -> list[object]:
+    spell = reopened.spell
+    return [
+        reopened.place.slug,
+        spell.start,
+        spell.end,
+        spell.days,
+        spell.end_status,
+        unbroken(spell.start, spell.end or spell.start, data.covered),
+    ]
+
+
+def reopened_json(data: SiteData) -> dict[str, list[list[object]]]:
+    """Each time-range page's "Reopened" section, by page name: what the pages list, for tracking over time."""
+    found: dict[str, list[list[object]]] = {}
+    for time_range in RANGES:
+        period = select_period(data.places, data.reports, time_range.span_days)
+        reopened = range_reopenings(data, time_range, period) if period else []
+        found[time_range.file] = [_reopened_row(data, r) for r in reopened]
+    return found
+
+
 def places_json(data: SiteData) -> str:
     """The slim index places.js and map.js read.
 
     Each place is [slug, name, legal name, address, strip code (one char per week, settings.strip_weeks), [[days before today, status index], ...]
     newest first (up to 8), how many more inspections, flags (1 roaches/rodents, 2 employee items, 4 a closure in force), latest closure start or "",
     [lat, lng] or null, reopened flag text or "" (viewmodel.reopened_flag)]. `statuses` lists [status, level] by index.
+    `reopened` lists each time-range page's Reopened section, keyed by page file: [slug, closure date, reopening date,
+    days closed, reopening status, every day between in a report on file (else it may have reopened sooner)].
     """
     statuses: dict[str, int] = {}
     rows = [_place_row(data, p, statuses) for p in data.places]
@@ -100,6 +143,7 @@ def places_json(data: SiteData) -> str:
         "inspections": data.total,
         "withNotes": data.with_notes,
         "places": rows,
+        "reopened": reopened_json(data),
     }
     return json.dumps(body, ensure_ascii=False, separators=JSON_SEPARATORS)
 

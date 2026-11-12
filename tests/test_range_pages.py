@@ -6,6 +6,7 @@ Regenerate only for a deliberate behaviour change, in that change's own commit:
 """
 
 import os
+import re
 from dataclasses import replace
 from datetime import date
 from pathlib import Path
@@ -15,7 +16,7 @@ import pytest
 from nm_health.model import Inspection
 from nm_health.rebuild import Rebuilt, Report
 from nm_health.site_html import SiteData, site_data
-from nm_health.site_pages import ALL_RANGE, MONTH_RANGE, PAGE_SIZE, TimeRange, range_page, week_page
+from nm_health.site_pages import ALL_RANGE, MONTH_RANGE, PAGE_SIZE, WEEK_RANGE, TimeRange, range_page, week_page
 from nm_health.viewmodel import RED_GROUP
 from tests.test_archive import make_settings
 from tests.test_viewmodel import CLOSED, CONDITIONAL, FAILED, ROACHES, report, visit
@@ -83,12 +84,36 @@ def month_edges() -> Rebuilt:
     return Rebuilt(inspections, (LATE_SEPTEMBER, COVERING))
 
 
+def reopened_edges() -> Rebuilt:
+    """Newest Oct 31, the covering report's last day: reopenings on the week's first day, the day before it, inside it.
+
+    FIRST DAY closed Oct 20 and reopened Oct 25; DAY BEFORE reopened Oct 24; SAME WEEK closed and reopened inside the
+    week; OPENING DAY closed on the week's first day; GAP closed Sep 28 with no reports on file for Oct 4-17; STILL SHUT has no reopening.
+    """
+    inspections = (
+        at(visit("2026-10-31"), "NEWEST", COVERING),
+        at(visit("2026-10-20", status=CLOSED), "FIRST DAY", OLDER),
+        at(visit("2026-10-25"), "FIRST DAY", COVERING),
+        at(visit("2026-10-19", status=CLOSED), "DAY BEFORE", OLDER),
+        at(visit("2026-10-24", status=CONDITIONAL), "DAY BEFORE", OLDER),
+        at(visit("2026-10-26", status=CLOSED), "SAME WEEK", COVERING),
+        at(visit("2026-10-28"), "SAME WEEK", COVERING),
+        at(visit("2026-09-28", status=CLOSED), "GAP", LATE_SEPTEMBER),
+        at(visit("2026-10-27", status=FAILED), "GAP", COVERING),
+        at(visit("2026-10-22", status=CLOSED), "STILL SHUT", OLDER),
+        at(visit("2026-10-25", status=CLOSED), "OPENING DAY", COVERING),
+        at(visit("2026-10-29"), "OPENING DAY", COVERING),
+    )
+    return Rebuilt(inspections, (LATE_SEPTEMBER, OLDER, COVERING))
+
+
 SCENARIOS = {
     "covered_week": covered_week,
     "quiet_week": quiet_week,
     "latest_report": latest_report_week,
     "no_report": no_report_week,
     "no_inspections": no_inspections,
+    "reopened_edges": reopened_edges,
 }
 
 
@@ -115,6 +140,7 @@ def test_week_page_unchanged(tmp_path: Path, scenario: str) -> None:
 
 LONGER_RANGES = {"month": MONTH_RANGE, "all": ALL_RANGE}
 LONGER_SCENARIOS = {**SCENARIOS, "month_edges": month_edges}
+REOPENED_SECTION = re.compile(r"<h2>Reopened.*?(?=\n<h2>)", re.DOTALL)
 
 
 @pytest.mark.parametrize("scenario", list(LONGER_SCENARIOS))
@@ -188,3 +214,56 @@ def test_week_across_new_year_names_both_years(tmp_path: Path) -> None:
     rebuilt = Rebuilt((at(visit("2026-01-02"), "JANUARY", new_year),), (new_year,))
     body = week_page(data_for(tmp_path, rebuilt)).body
     assert "Inspections Dec 27, 2025 \u2013 Jan 2, 2026</p>" in body
+
+
+def reopened_names(body: str) -> list[str]:
+    """The place names in a page's Reopened section, in order."""
+    match = REOPENED_SECTION.search(body)
+    assert match is not None
+    return re.findall(r'<a class="nm" href="[^"]*">([^<]*)</a>', match.group(0))
+
+
+@pytest.mark.parametrize(
+    ("time_range", "names"),
+    [
+        pytest.param(WEEK_RANGE, ["GAP", "FIRST DAY"], id="week_since_prior"),
+        pytest.param(MONTH_RANGE, ["OPENING DAY", "SAME WEEK", "GAP", "FIRST DAY", "DAY BEFORE"], id="month_in_range"),
+        pytest.param(ALL_RANGE, ["OPENING DAY", "SAME WEEK", "GAP", "FIRST DAY", "DAY BEFORE"], id="all_in_range"),
+    ],
+)
+def test_reopened_section_edges(tmp_path: Path, time_range: TimeRange, names: list[str]) -> None:
+    """This week: closed before the week, reopened on its first day or later (not the day before).
+
+    Longer ranges also count a closure inside the range. A place with no reopening is never listed.
+    """
+    assert reopened_names(body_for(tmp_path, reopened_edges(), time_range)) == names
+
+
+def test_reopened_card_states_days_and_sources(tmp_path: Path) -> None:
+    """Each card: the reopening date, how long it was closed (hedged across a gap), and both reports' pages."""
+    body = week_page(data_for(tmp_path, reopened_edges())).body
+    assert "Closed 5 days: Oct 20 to Oct 25, 2026, reopened as Approved." in body
+    assert "found Unsatisfactory Re-Inspection required; reports for some days in between" in body
+    assert f'Closed Oct 20: <a href="reports/{OLDER.file}#page=3">' in body
+    assert f'reopened Oct 25: <a href="reports/{COVERING.file}#page=3">' in body
+
+
+def test_reopened_when_report_not_on_file(tmp_path: Path) -> None:
+    """The newest date is in no dated report (the banner case): a closure in the prior report reopened since counts."""
+    inspections = (
+        at(visit("2026-10-28", status=CLOSED), "BACK", COVERING),
+        at(visit("2026-11-02"), "BACK", UNDATED),
+        at(visit("2026-11-06"), "NEWEST", UNDATED),
+    )
+    body = week_page(data_for(tmp_path, Rebuilt(inspections, (COVERING, UNDATED)))).body
+    assert "isn&#x27;t on file yet" in body
+    assert reopened_names(body) == ["BACK"]
+
+
+def test_other_permit_passing_is_not_a_reopening(tmp_path: Path) -> None:
+    """One permit closed, another permit at the place approved: the closed permit's result still stands, so not listed."""
+    closed = replace(at(visit("2026-10-20", status=CLOSED), "TWO PERMITS", OLDER), permit_number="PT1")
+    other = replace(at(visit("2026-10-27"), "TWO PERMITS", COVERING), permit_number="PT2")
+    newest = at(visit("2026-10-31"), "NEWEST", COVERING)
+    body = week_page(data_for(tmp_path, Rebuilt((closed, other, newest), (OLDER, COVERING)))).body
+    assert reopened_names(body) == []

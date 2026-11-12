@@ -19,6 +19,16 @@ makes the declaration, the site repeats it. Incomplete is better than wrong, and
   check it against the reports.
 - A closure's length is stated only when every day between the closure and the reopening inspection is in a report on
   file; across a gap the site says the place may have reopened sooner.
+- "Reopened" means what a closure's length already means (`signals.closed_spells`): after a closure, the first later
+  inspection with a result that lets the place operate (approved, conditional, or unsatisfactory: a red sticker, but
+  open). It doesn't count when the reopening result is another permit's and the closed permit's closure still stands
+  (`signals.standing`). On This week, "Reopened since the prior report" lists places closed before the week's first
+  day (so in an earlier report on file, and still closed when the week began) whose reopening inspection is dated
+  inside the week; the week is the page's own (the newest inspection date and the six days before it), so it holds
+  the same way when the newest week's report isn't on file yet. On Last month and All time, "Reopened after a
+  closure" lists reopenings dated inside the range, the closure before or inside it. Each card gives both dates, the
+  closure's length as above, and links both reports' pages. `places.json` carries each page's list under
+  `reopened`, keyed by page file, for tracking.
 
 ## Checking the assumptions
 
