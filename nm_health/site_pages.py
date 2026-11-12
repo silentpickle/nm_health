@@ -29,6 +29,7 @@ from nm_health.site_html import (
     strip_html,
 )
 from nm_health.viewmodel import (
+    MAYBE_SAME,
     MIDDOT,
     MONTH_SPAN_DAYS,
     RED_GROUP,
@@ -74,6 +75,7 @@ FILTERS = (
     ("reopened", "Open again after a red result"),
     ("pests", "Roaches or rodents"),
     ("employee", "Employee items"),
+    ("maybe", "May be the same business"),
 )
 NO_JS_MAP = "The map needs JavaScript."
 MAP_NOTE = (
@@ -626,12 +628,23 @@ def _also_listed(place: Place) -> str:
     return f'<p class="also">{esc(ALSO_LISTED)} {names}. <span class="quiet">{esc(MERGED_BY_PERMIT)}</span></p>'
 
 
+CANT_TELL_NOTE = "The city's records don't say whether they are one business, so the site keeps them apart."
+
+
+def _maybe_same(place: Place) -> str:
+    """Each place the records can't tell apart from this one, linked."""
+    if not place.maybe_same:
+        return ""
+    links = " and ".join(f'<a href="{esc(slug)}.html">{esc(name)}</a>' for slug, name in place.maybe_same)
+    return f'<p class="also">{esc(MAYBE_SAME)} {links}. <span class="quiet">{esc(CANT_TELL_NOTE)}</span></p>'
+
+
 def _place_head(data: SiteData, place: Place) -> str:
     legal = f" {MIDDOT} {place.legal_name}" if place.legal_name else ""
     return (
         f'<div class="place-head"><a href="../places.html">{LEFT_ARROW} All places</a>'
         f'<h1 class="view">{esc(place.name)}</h1><div class="addr">{esc(place.address + legal)}</div>'
-        f"{_also_listed(place)}{_city_status(data, place)}</div>"
+        f"{_also_listed(place)}{_maybe_same(place)}{_city_status(data, place)}</div>"
     )
 
 

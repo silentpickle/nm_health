@@ -58,6 +58,7 @@ COORD_DIGITS = 5  # about a metre
 FLAG_HEADLINE_PESTS = 1
 FLAG_EMPLOYEE_ITEMS = 2
 FLAG_CLOSURE_IN_FORCE = 4
+FLAG_MAYBE_SAME = 8  # the records can't tell this place apart from another: kept apart, flagged
 FLAG_MERGED_BY_PERMIT = 16  # records under different names joined by permit: due a review (docs/place-identity.md)
 EXAMPLES = 5  # unsourced inspections named in the error
 JSON_SEPARATORS = (",", ":")
@@ -74,7 +75,8 @@ def _flags(place: Place) -> int:
     pests = FLAG_HEADLINE_PESTS if place.headline_pests else 0
     closed = FLAG_CLOSURE_IN_FORCE if place.closure_in_force else 0
     merged = FLAG_MERGED_BY_PERMIT if place.merged_by_permit else 0
-    return pests | closed | merged | (FLAG_EMPLOYEE_ITEMS if place.employee_items else 0)
+    maybe = FLAG_MAYBE_SAME if place.maybe_same else 0
+    return pests | closed | merged | maybe | (FLAG_EMPLOYEE_ITEMS if place.employee_items else 0)
 
 
 def _lat_lng(place: Place) -> list[float] | None:
@@ -132,7 +134,7 @@ def places_json(data: SiteData) -> str:
     """The slim index places.js and map.js read.
 
     Each place is [slug, name, legal name, address, strip code (one char per week, settings.strip_weeks), [[days before today, status index], ...]
-    newest first (up to 8), how many more inspections, flags (1 roaches/rodents, 2 employee items, 4 a closure in force, 16 merged by permit with names that differ), latest closure start or "",
+    newest first (up to 8), how many more inspections, flags (1 roaches/rodents, 2 employee items, 4 a closure in force, 8 may be the same business as another place, 16 merged by permit with names that differ), latest closure start or "",
     [lat, lng] or null, reopened flag text or "" (viewmodel.reopened_flag)]. `statuses` lists [status, level] by index.
     `reopened` lists each time-range page's Reopened section, keyed by page file: [slug, closure date, reopening date,
     days closed, reopening status, every day between in a report on file (else it may have reopened sooner)].

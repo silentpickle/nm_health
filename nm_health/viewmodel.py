@@ -265,6 +265,8 @@ class Place:
     standing: tuple[Inspection, ...] = ()  # results still in force, one per permit as far as known, oldest first
     # The newest inspection printed under each other name: places joined by permit (identity.group).
     also_listed: tuple[Inspection, ...] = ()
+    # (slug, name) of each place the records can't tell apart from this one: kept apart, flagged (identity.group).
+    maybe_same: tuple[tuple[str, str], ...] = ()
 
     @property
     def closure_in_force(self) -> bool:
@@ -361,7 +363,11 @@ def build_place(slug: str, inspections: list[Inspection]) -> Place:
 
 def group_places(inspections: tuple[Inspection, ...]) -> list[Place]:
     """Inspections grouped by place (identity.group); most recently inspected first, then by name."""
-    places = [build_place(g.slug, list(g.inspections)) for g in group(inspections)]
+    groups = group(inspections)
+    built = {g.slug: build_place(g.slug, list(g.inspections)) for g in groups}
+    places = [
+        replace(built[g.slug], maybe_same=tuple((other, built[other].name) for other in g.maybe_same)) for g in groups
+    ]
     places.sort(key=lambda p: p.name.casefold())
     places.sort(key=lambda p: p.latest.date, reverse=True)
     return places
@@ -541,6 +547,16 @@ def _dates(first: str, last: str) -> list[str]:
 def unbroken(first: str, last: str, covered: Coverage) -> bool:
     """Every day from first to last is in a weekly report on file, so no inspection between them can be missing."""
     return all(day in covered for day in _dates(first, last))
+
+
+MAYBE_SAME = "May be the same business as"
+
+
+def maybe_same_text(place: Place) -> str:
+    """'May be the same business as Taco Bell': the places the records can't tell apart from this one, else ""."""
+    if not place.maybe_same:
+        return ""
+    return f"{MAYBE_SAME} {' and '.join(name for _, name in place.maybe_same)}"
 
 
 def permit_lines(place: Place) -> list[Inspection]:

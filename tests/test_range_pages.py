@@ -30,8 +30,9 @@ UNDATED = Report("unknown-week_2026-11-08_abc.pdf", "abc", None, None, "test", "
 
 
 def at(inspection: Inspection, name: str, source: Report) -> Inspection:
-    """The inspection at a place of its own, printed in the given report."""
-    return replace(inspection, name=name, address=f"{len(name)} {name} ST", report_file=source.file)
+    """The inspection at a place of its own (its own permit too), printed in the given report."""
+    address, permit = f"{len(name)} {name} ST", f"PT-{name}"
+    return replace(inspection, name=name, address=address, permit_number=permit, report_file=source.file)
 
 
 def covered_week() -> Rebuilt:

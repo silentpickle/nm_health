@@ -17,14 +17,14 @@ from pathlib import Path
 import pytest
 
 from nm_health.audit import audit_data, check_place_identity
-from nm_health.identity import DIFFERENT, SAME, Key, establishment_slug, match
+from nm_health.identity import CANT_TELL, DIFFERENT, SAME, Key, establishment_slug, match
 from nm_health.model import Inspection
 from nm_health.rebuild import Rebuilt, Report
-from nm_health.site import FLAG_MERGED_BY_PERMIT, places_json
+from nm_health.site import FLAG_MAYBE_SAME, FLAG_MERGED_BY_PERMIT, places_json
 from nm_health.site_html import site_data
 from nm_health.site_pages import ALL_RANGE, place_page, range_page
 from nm_health.spotcheck import claims
-from nm_health.viewmodel import Place, covered_days, group_places, reopened_flag
+from nm_health.viewmodel import Place, covered_days, group_places, maybe_same_text, reopened_flag
 from tests.test_archive import make_settings
 from tests.test_viewmodel import CLOSED, FAILED, visit
 
@@ -143,13 +143,13 @@ def test_M1_shared_permit() -> None:  # noqa: N802 - test ID keeps its code
 @pytest.mark.parametrize(
     ("other", "expected"),
     [
-        pytest.param(replace(MARIA_CABRERA, address="101 Coors AVE SW"), DIFFERENT, id="other_address"),
+        pytest.param(replace(MARIA_CABRERA, address="101 Coors AVE SW"), CANT_TELL, id="other_address"),
         pytest.param(replace(MARIA_CABRERA, permit_number="FOODEST-9"), DIFFERENT, id="other_permit"),
-        pytest.param(replace(MARIA_CABRERA, permit_number=None), DIFFERENT, id="no_permit"),
+        pytest.param(replace(MARIA_CABRERA, permit_number=None), CANT_TELL, id="no_permit"),
     ],
 )
 def test_M1_shared_permit_edges(other: Inspection, expected: str) -> None:  # noqa: N802 - test ID keeps its code
-    """Only both together join: another address or another (or no) permit does not."""
+    """Only both together join: the permit elsewhere (M2) or no permit (M7) can't tell; another permit (M6) differs."""
     assert match(key(EL_BRANCO_FAILED), key(other)) == expected
 
 
@@ -196,3 +196,73 @@ def test_review_marker_in_places_json_audit_and_spotcheck(tmp_path: Path) -> Non
     )
     (merged,) = data.places
     assert any("merged by permit; names differ" in line for line in claims(merged, data.covered))
+
+
+# ---------- CAN'T TELL ----------
+
+TACO_LEGACY = rec("2025-01-30", "Taco Bell", "4901 Gibson BLVD SE", None, LEGACY_2025, number="legacy-c")
+TACO_NOW = rec("2026-10-27", "TACO BELL 2926", "4901 Gibson BLVD SE", "PT0000030", OCTOBER, number="PT0000030")
+
+
+@pytest.mark.parametrize(
+    ("a", "b", "expected"),
+    [
+        pytest.param(
+            rec("2026-10-29", "Fuel Ignited", "9250 Golf Course RD NW, B", "PT0000050", OCTOBER),
+            rec("2026-11-05", "PAPA JOHNS PIZZA", "9500 Montgomery BLVD NE, 11", "PT0000050", NOVEMBER),
+            CANT_TELL,
+            id="M2_permit_elsewhere",
+        ),
+        pytest.param(
+            rec("2021-11-10", "GOOD FELLAS PIZZERIA", "5844 Osuna RD NW", None, LEGACY_2021, number="legacy-d"),
+            rec("2026-10-28", "Good Fellas Pizzeria", "5844 Osuna RD NE", "PT0000040", OCTOBER),
+            CANT_TELL,
+            id="M3_quadrant_typo",
+        ),
+        pytest.param(
+            rec("2021-11-10", "GOOD FELLAS PIZZERIA", "5845 Osuna RD NW", None, LEGACY_2021, number="legacy-d"),
+            rec("2026-10-28", "Good Fellas Pizzeria", "5844 Osuna RD NE", "PT0000040", OCTOBER),
+            DIFFERENT,
+            id="M4_other_address",
+        ),
+        pytest.param(
+            rec("2025-01-29", "Sheraton - Bar", "2910 Yale BLVD SE", None, LEGACY_2025, number="legacy-a"),
+            rec("2025-01-29", "Sheraton - Kitchen", "2910 Yale BLVD SE", None, LEGACY_2025, number="legacy-b"),
+            DIFFERENT,
+            id="M5_listed_together",
+        ),
+        pytest.param(
+            rec("2026-10-26", "TWISTERS #14", "425 Eubank BLVD NE", "PT0000020", OCTOBER),
+            rec("2026-11-04", "WINGSTOP 714", "425 Eubank BLVD NE", "PT0000021", NOVEMBER),
+            DIFFERENT,
+            id="M6_distinct_permits",
+        ),
+        pytest.param(TACO_LEGACY, TACO_NOW, CANT_TELL, id="M7_no_permit"),
+    ],
+)
+def test_matcher_rules(a: Inspection, b: Inspection, expected: str) -> None:
+    """Each rule's case decides as docs/place-identity.md section 3.2 says, both ways round."""
+    assert match(key(a), key(b)) == match(key(b), key(a)) == expected
+
+
+def test_cant_tell_kept_apart_and_flagged(tmp_path: Path) -> None:
+    """Two places, each naming the other: row flag, places.json bit 8, the audit and the spot-check packet."""
+    data = site_data(Rebuilt((TACO_LEGACY, TACO_NOW), REPORTS), make_settings(tmp_path), TODAY)
+    legacy, now = sorted(data.places, key=lambda p: p.latest.date)
+    assert legacy.maybe_same == ((now.slug, now.name),)
+    assert now.maybe_same == ((legacy.slug, legacy.name),)
+    assert maybe_same_text(now) == "May be the same business as Taco Bell"
+    rows = json.loads(places_json(data))["places"]
+    assert all(row[FLAGS_INDEX] & FLAG_MAYBE_SAME for row in rows)
+    result = check_place_identity(audit_data((TACO_LEGACY, TACO_NOW), (), ()))
+    assert result.disagreements == ("can't tell: TACO BELL 2926, 4901 GIBSON BLVD SE / Taco Bell, 4901 GIBSON BLVD SE",)
+    assert any("may be the same business as Taco Bell" in line for line in claims(now, data.covered))
+
+
+def test_cant_tell_never_joins_through_a_merge() -> None:
+    """A key that can't be told apart from one member of a merged place stays its own place."""
+    merged_a = rec("2026-10-30", "El Branco", "4901 Gibson BLVD SE", "PT0000030", OCTOBER)
+    places = places_of(TACO_LEGACY, TACO_NOW, merged_a)
+    assert len(places) == 2
+    joined = next(p for p in places if len(p.inspections) == 2)
+    assert [name for _, name in joined.maybe_same] == ["Taco Bell"]

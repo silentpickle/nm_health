@@ -24,6 +24,7 @@ from nm_health.viewmodel import (
     covered_days,
     group_places,
     level,
+    maybe_same_text,
     month_ticks,
     nice_date,
     notice_count_text,
@@ -287,6 +288,9 @@ def _row_flags(place: Place, covered: Coverage) -> str:
     elif place.closures and level(place.latest.status) != "r":
         start = short_date(place.closures[-1].episode.start)
         flags.append(f'<span class="flag">{esc(RED_GROUP)} {start}</span>')
+    maybe = maybe_same_text(place)
+    if maybe:
+        flags.append(f'<span class="flag">{esc(maybe)}</span>')
     return "".join(flags)
 
 

@@ -2,6 +2,7 @@
 // Places: search, filters, strips and paging over places.json. Without it the page lists every place as a plain link.
 
 import {
+  MAYBE_SAME_TEXT,
   PEST_FLAG_TEXT,
   RED_GROUP,
   chip,
@@ -33,6 +34,7 @@ const FILTERS = {
     OPEN_AGAIN.has(place.history[0]?.level ?? ""),
   pests: (place) => place.pests,
   employee: (place) => place.employee,
+  maybe: (place) => place.maybeSame,
 };
 const state = { q: "", f: ALL, shown: PAGE_SIZE };
 
@@ -66,6 +68,9 @@ function flags(place) {
         text: `${RED_GROUP} ${fmtShort(day(place.closure))}`,
       }),
     );
+  }
+  if (place.maybeSame) {
+    out.push(el("span", { class: "flag", text: MAYBE_SAME_TEXT }));
   }
   return out;
 }

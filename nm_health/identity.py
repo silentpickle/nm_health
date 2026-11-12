@@ -82,6 +82,17 @@ class Key:
         return frozenset(p for i in self.inspections if (p := permit_of(i)) is not None)
 
     @cached_property
+    def street(self) -> tuple[str, str]:
+        """Street number and name, without quadrant or unit."""
+        parts = normalize_address(self.inspections[0].address)
+        return str(parts["street_number"]), str(parts["street_name"])
+
+    @cached_property
+    def reports(self) -> frozenset[str]:
+        """The weekly reports that print these inspections."""
+        return frozenset(i.report_file for i in self.inspections if i.report_file)
+
+    @cached_property
     def first(self) -> str:
         """The earliest inspection date."""
         return min(i.date for i in self.inspections)
@@ -95,7 +106,46 @@ def shared_permit_here(a: Key, b: Key) -> Verdict | None:
     return SAME if a.permits & b.permits and a.address == b.address else None
 
 
-RULES: tuple[Rule, ...] = (shared_permit_here,)
+def permit_elsewhere(a: Key, b: Key) -> Verdict | None:
+    """M2: the same permit at another address: a misfiled summary row or a moved unit, so can't tell."""
+    return CANT_TELL if a.permits & b.permits else None
+
+
+def quadrant_typo(a: Key, b: Key) -> Verdict | None:
+    """M3: one name, one street and number, the address differing only by quadrant or unit: can't tell."""
+    same_name = compact_name(a.inspections[0].name) == compact_name(b.inspections[0].name)
+    return CANT_TELL if same_name and a.street == b.street and a.address != b.address else None
+
+
+def other_address(a: Key, b: Key) -> Verdict | None:
+    """M4: different addresses are different places."""
+    return DIFFERENT if a.address != b.address else None
+
+
+def listed_together(a: Key, b: Key) -> Verdict | None:
+    """M5: one weekly report lists both under their own names: the city counts two."""
+    return DIFFERENT if a.reports & b.reports else None
+
+
+def distinct_permits(a: Key, b: Key) -> Verdict | None:
+    """M6: both name permits and none is shared: different businesses."""
+    return DIFFERENT if a.permits and b.permits else None
+
+
+def no_permit(_a: Key, _b: Key) -> Verdict | None:
+    """M7: one address, two names, no permit on one side to compare: can't tell."""
+    return CANT_TELL
+
+
+RULES: tuple[Rule, ...] = (
+    shared_permit_here,
+    permit_elsewhere,
+    quadrant_typo,
+    other_address,
+    listed_together,
+    distinct_permits,
+    no_permit,
+)
 
 
 def match(a: Key, b: Key) -> Verdict:
@@ -113,6 +163,7 @@ class Group:
     slug: str
     inspections: tuple[Inspection, ...]
     keys: tuple[str, ...] = ()  # the name + address slugs joined here
+    maybe_same: tuple[str, ...] = ()  # slugs of other groups the records can't tell apart from this one
 
 
 def _keys(inspections: tuple[Inspection, ...]) -> dict[str, Key]:
@@ -128,10 +179,11 @@ def _pairs(slugs: Iterable[str]) -> set[tuple[str, str]]:
 
 
 def candidates(keys: dict[str, Key]) -> list[tuple[str, str]]:
-    """Pairs of keys worth comparing: they share a permit or an address."""
-    shared: dict[tuple[str, str], set[str]] = defaultdict(set)
+    """Pairs of keys worth comparing: they share a permit, an address, or a name on the same street and number."""
+    shared: dict[tuple[str, ...], set[str]] = defaultdict(set)
     for key in keys.values():
         shared["address", key.address].add(key.slug)
+        shared["name", compact_name(key.inspections[0].name), *key.street].add(key.slug)
         for permit in key.permits:
             shared["permit", permit].add(key.slug)
     return sorted(set().union(*(_pairs(slugs) for slugs in shared.values())))
@@ -143,23 +195,48 @@ def _root(parent: dict[str, str], slug: str) -> str:
     return slug
 
 
-def _group(keys: dict[str, Key], slugs: list[str]) -> Group:
-    """Published under the earliest key's slug, so a place's page keeps its address when a new name joins it."""
-    earliest = min(slugs, key=lambda s: (keys[s].first, s))
-    return Group(earliest, tuple(i for s in slugs for i in keys[s].inspections), tuple(slugs))
+def _published_slug(keys: dict[str, Key], slugs: list[str]) -> str:
+    """The earliest key's slug, so a place's page keeps its address when a new name joins it."""
+    return min(slugs, key=lambda s: (keys[s].first, s))
+
+
+def _unclear(verdicts: dict[tuple[str, str], Verdict], parent: dict[str, str]) -> dict[str, set[str]]:
+    """Roots each root can't be told apart from (pairs inside one joined group don't count)."""
+    found: dict[str, set[str]] = defaultdict(set)
+    for (a, b), verdict in verdicts.items():
+        ra, rb = _root(parent, a), _root(parent, b)
+        if verdict != CANT_TELL or ra == rb:
+            continue
+        found[ra].add(rb)
+        found[rb].add(ra)
+    return found
 
 
 def group(inspections: tuple[Inspection, ...]) -> list[Group]:
-    """Inspections grouped by place: keys joined where match() says same, in the order each key first appears."""
+    """Inspections grouped by place: keys joined where match() says same, in the order each key first appears.
+
+    A pair match() can't tell apart stays two places, each naming the other in `maybe_same`.
+    """
     keys = _keys(inspections)
+    verdicts = {(a, b): match(keys[a], keys[b]) for a, b in candidates(keys)}
     parent = {slug: slug for slug in keys}
-    for a, b in candidates(keys):
-        if match(keys[a], keys[b]) == SAME:
+    for (a, b), verdict in verdicts.items():
+        if verdict == SAME:
             parent[_root(parent, a)] = _root(parent, b)
     members: dict[str, list[str]] = defaultdict(list)
     for slug in keys:
         members[_root(parent, slug)].append(slug)
-    return [_group(keys, slugs) for slugs in members.values()]
+    published = {root: _published_slug(keys, slugs) for root, slugs in members.items()}
+    unclear = _unclear(verdicts, parent)
+    return [
+        Group(
+            published[root],
+            tuple(i for s in slugs for i in keys[s].inspections),
+            tuple(slugs),
+            tuple(sorted(published[other] for other in unclear[root])),
+        )
+        for root, slugs in members.items()
+    ]
 
 
 # ---------- Names ----------
