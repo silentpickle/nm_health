@@ -106,6 +106,11 @@ def shared_permit_here(a: Key, b: Key) -> Verdict | None:
     return SAME if a.permits & b.permits and a.address == b.address else None
 
 
+def feed_only(a: Key, b: Key) -> Verdict | None:
+    """M8: a key no weekly report prints (the audit's feed-only records) joins only by a shared permit (M1)."""
+    return DIFFERENT if not (a.reports and b.reports) else None
+
+
 def permit_elsewhere(a: Key, b: Key) -> Verdict | None:
     """M2: the same permit at another address: a misfiled summary row or a moved unit, so can't tell."""
     return CANT_TELL if a.permits & b.permits else None
@@ -139,6 +144,7 @@ def no_permit(_a: Key, _b: Key) -> Verdict | None:
 
 RULES: tuple[Rule, ...] = (
     shared_permit_here,
+    feed_only,
     permit_elsewhere,
     quadrant_typo,
     other_address,
@@ -242,17 +248,23 @@ def group(inspections: tuple[Inspection, ...]) -> list[Group]:
 # ---------- Names ----------
 
 
+def _printed(newest_first: tuple[Inspection, ...]) -> tuple[Inspection, ...]:
+    """The inspections a weekly report prints; all of them when none is (the audit's feed-only places)."""
+    return tuple(i for i in newest_first if i.has_details) or newest_first
+
+
 def shown_name(newest_first: tuple[Inspection, ...]) -> str:
     """The printed name the feed's trade name confirms, most recent first; else the most recent printed name."""
     confirmed = {compact_name(i.feed_name) for i in newest_first if i.feed_name}
-    return next((i.name for i in newest_first if compact_name(i.name) in confirmed), newest_first[0].name)
+    printed = _printed(newest_first)
+    return next((i.name for i in printed if compact_name(i.name) in confirmed), printed[0].name)
 
 
 def also_listed(newest_first: tuple[Inspection, ...], shown: str) -> tuple[Inspection, ...]:
     """The newest inspection printed under each other name (one that differs beyond case and punctuation)."""
     seen = {compact_name(shown)}
     found: list[Inspection] = []
-    for inspection in newest_first:
+    for inspection in _printed(newest_first):
         name = compact_name(inspection.name)
         if name in seen:
             continue

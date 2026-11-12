@@ -194,6 +194,7 @@ archive and 8 in the window. The matcher in `classify.py` applies the first rule
 | 5 | Listed side by side in one report | different (the city listed them as two) | 11 | 4 |
 | 6 | Both have permits, none shared | different | 4 | 2 |
 | 7 | Same address, no permit to compare | CAN'T TELL | 3 (Taco Bell, Taylor Ranch, Bubba's) | 0 |
+| 8 | (Audit only, checked right after rule 1) a key no weekly report prints: the feed-only records | different, unless rule 1 joined it | — | — |
 | | **Total** | 2 same · 15 different · **4 CAN'T TELL** | | 2 same · 6 different · **0 CAN'T TELL** |
 
 A tried rule, "the feed names one key's name as the other's legal name or DBA, so same", decided **no** pair the
@@ -292,7 +293,7 @@ of the 20 judged slugs is in a merged group or a CAN'T TELL pair today.
 | Old no-permit key and current key at one address (Taco Bell / TACO BELL 2926) | CAN'T TELL |
 | Quadrant typo (Good Fellas NE / NW) | CAN'T TELL |
 | A key ages out of the window | the group's URL can change, as any place's can today |
-| Feed-only inspections (audit only) | no permit, so they join only through rules 5 and 7; feed names never merge |
+| Feed-only inspections (audit only) | join only by a shared permit at one address (rule 1), else different (rule 8); their names are never shown or listed as "also printed" |
 
 ### Commits and tests
 

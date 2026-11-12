@@ -238,6 +238,10 @@ TACO_NOW = rec("2026-10-27", "TACO BELL 2926", "4901 Gibson BLVD SE", "PT0000030
             id="M6_distinct_permits",
         ),
         pytest.param(TACO_LEGACY, TACO_NOW, CANT_TELL, id="M7_no_permit"),
+        pytest.param(replace(TACO_LEGACY, report_file="", has_details=False), TACO_NOW, DIFFERENT, id="M8_feed_only"),
+        pytest.param(
+            replace(MARIA_CABRERA, report_file="", has_details=False), EL_BRANCO_FAILED, SAME, id="M8_feed_permit"
+        ),
     ],
 )
 def test_matcher_rules(a: Inspection, b: Inspection, expected: str) -> None:
@@ -266,3 +270,10 @@ def test_cant_tell_never_joins_through_a_merge() -> None:
     assert len(places) == 2
     joined = next(p for p in places if len(p.inspections) == 2)
     assert [name for _, name in joined.maybe_same] == ["Taco Bell"]
+
+
+def test_feed_only_names_never_shown_or_listed() -> None:
+    """In the audit, a feed-only record joined by permit lends neither the shown name nor an "also listed" name."""
+    feed_row = replace(MARIA_CABRERA, name="Feed Company LLC", report_file="", has_details=False, feed_name="X")
+    (merged,) = places_of(EL_BRANCO_FAILED, feed_row)
+    assert (merged.name, merged.also_listed) == (EL_BRANCO, ())
