@@ -83,6 +83,7 @@ NOT_A_CERTIFICATE = "An inspection reports what one inspector found on one day. 
 NO_LATER_APPROVAL = "No later approved inspection in the weekly reports on file."
 UP = "../"  # place pages sit one folder below the site root
 ISO_DATE_LEN = len("2026-01-01")
+YEAR_LEN = len("2026")
 SHA_SHOWN = 12  # hex digits of a report's SHA-256 shown on the About page
 
 
@@ -152,6 +153,12 @@ def latest_report_html(data: SiteData) -> str:
     return f'<p class="eyebrow">{stamp}</p>' + data_link_html()
 
 
+def date_span(first: str, last: str) -> str:
+    """'Oct 24 - Oct 30, 2026' (en dash), naming the first day's year too when it differs from the last day's."""
+    shown = short_date(first) if first[:YEAR_LEN] == last[:YEAR_LEN] else nice_date(first)
+    return f"{shown} {EN_DASH} {nice_date(last)}"
+
+
 @dataclass(frozen=True)
 class TimeRange:
     """One of the time-range pages: the newest inspection date and span_days before it."""
@@ -173,7 +180,7 @@ def _range_body(data: SiteData, time_range: TimeRange, period: Period) -> str:
         disclaimer_html(),
         f'<h1 class="view">{esc(time_range.title)}</h1>',
         latest_report_html(data),
-        f'<p class="eyebrow">Inspections {short_date(period.start)} {EN_DASH} {nice_date(period.end)}</p>',
+        f'<p class="eyebrow">Inspections {date_span(period.start, period.end)}</p>',
         "" if period.covered else f'<p class="banner">{esc(time_range.banner)}</p>',
         heading(RED_GROUP, len(red)),
         _cards(red, "None in the city's records for these dates."),

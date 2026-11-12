@@ -107,3 +107,11 @@ def test_week_page_rows_capped(tmp_path: Path) -> None:
     body = week_page(data_for(tmp_path, Rebuilt(many, (COVERING,)))).body
     assert body.count('<a class="row"') == PAGE_SIZE
     assert f'Other inspections<span class="n">{PAGE_SIZE + 1}</span>' in body
+
+
+def test_week_across_new_year_names_both_years(tmp_path: Path) -> None:
+    """A week that starts in December says which year it starts in."""
+    new_year = report("2025-12-28", "2026-01-03")
+    rebuilt = Rebuilt((at(visit("2026-01-02"), "JANUARY", new_year),), (new_year,))
+    body = week_page(data_for(tmp_path, rebuilt)).body
+    assert "Inspections Dec 27, 2025 \u2013 Jan 2, 2026</p>" in body
