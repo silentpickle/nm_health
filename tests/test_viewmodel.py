@@ -40,9 +40,11 @@ from nm_health.viewmodel import (
     select_period,
     select_week,
     stated,
+    strip_caption,
     strip_cells,
     strip_code,
     strip_label,
+    strip_start,
     unbroken,
     violation_lead,
 )
@@ -65,6 +67,7 @@ FLIES = Violation("Pest Control", "Insect Control", "", "Observed flies near the
 OTHER = Violation("Plumbing", "System Maintained in Good Repair", "", "Observed leak.")
 LAST_COLUMN = WEEKS - 1
 NO_INSPECTION_WEEK = "." * WEEKS
+STRIP_FIRST_DAY = "2025-11-11"  # 52 weeks back from TODAY, less a day
 
 
 def visit(day: str, *violations: Violation, status: str = APPROVED, number: str = "", notes: bool = True) -> Inspection:
@@ -335,6 +338,32 @@ def test_strip_label_and_recent_text() -> None:
     assert label.endswith("Feb 1, 2026: Approved; and 1 more")
     assert recent_text(p.inspections) == "Sep 1 Approved \u00b7 Aug 1 Approved \u00b7 Jul 1 Approved"
     assert not strip_label(p.inspections[:2]).endswith("more")
+
+
+@pytest.mark.parametrize(
+    ("day", "column"),
+    [
+        pytest.param("2025-11-11", 0, id="start_day"),
+        pytest.param("2025-11-10", None, id="day_before"),
+    ],
+)
+def test_strip_start_is_first_day_shown(day: str, column: int | None) -> None:
+    """The axis's first day is the oldest day the leftmost cell takes; the day before is off the strip."""
+    assert strip_start(TODAY).isoformat() == STRIP_FIRST_DAY
+    code = strip_code(strip_cells((visit(day),), TODAY))
+    assert (code.find("g") if "g" in code else None) == column
+
+
+@pytest.mark.parametrize(
+    ("weeks", "caption"),
+    [
+        pytest.param(1, "Past 1 week \u00b7 one tick per week", id="one_week"),
+        pytest.param(WEEKS, "Past 52 weeks \u00b7 one tick per week", id="default_weeks"),
+    ],
+)
+def test_strip_caption_names_weeks(weeks: int, caption: str) -> None:
+    """The caption over strips says how many weeks and that each tick is one week."""
+    assert strip_caption(weeks) == caption
 
 
 def test_month_ticks_skip_the_first_columns() -> None:

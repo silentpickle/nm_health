@@ -347,6 +347,29 @@ h2 .n {
     visibility: hidden;
   }
 }
+/* What a strip covers: span and tick size, then the first day (left end) and "This week" (right end). */
+.axis {
+  display: grid;
+  gap: 1px;
+  font: 500 0.7rem var(--font-data);
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.axis .ends {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+/* Over a list of rows: the same columns as a row, the axis over the strip column. */
+.rowshead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 32%);
+  gap: 6px 16px;
+  padding: 0 4px;
+}
+.rowshead .axis {
+  grid-column: 2;
+}
 .legend {
   display: flex;
   flex-wrap: wrap;
@@ -455,7 +478,8 @@ ul.rows a.row:hover {
   ul.rows a.row {
     grid-template-columns: minmax(0, 1fr);
   }
-  ul.rows a.row .strip {
+  ul.rows a.row .strip,
+  .rowshead {
     display: none;
   }
   .row .recent {

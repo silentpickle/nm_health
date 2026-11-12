@@ -21,8 +21,10 @@ from nm_health.site_html import (
     notice_html,
     plain_row_html,
     row_html,
+    rows_axis_html,
     rows_html,
     source_links,
+    strip_axis_html,
     strip_html,
 )
 from nm_health.viewmodel import (
@@ -62,6 +64,7 @@ from nm_health.viewmodel import (
 )
 
 PAGE_SIZE = 60  # rows shown before "Show more" (places.js pages the same way)
+PLACES_AXIS_ID = "axis"  # places.js shows this strip axis above the rows it draws
 FILTERS = (
     ("all", "All"),
     ("red", RED_GROUP),
@@ -210,8 +213,9 @@ def _range_head(time_range: TimeRange) -> str:
 
 def _other_rows(data: SiteData, period: Period) -> str:
     places = unique_places(period.other)
-    rows = rows_html([row_html(p, data.today, data.covered, data.settings.strip_weeks) for p in places[:PAGE_SIZE]])
-    return rows + _more_note(len(places))
+    weeks = data.settings.strip_weeks
+    rows = rows_html([row_html(p, data.today, data.covered, weeks) for p in places[:PAGE_SIZE]])
+    return rows_axis_html(data.today, weeks) + rows + _more_note(len(places))
 
 
 def _range_body(data: SiteData, time_range: TimeRange, period: Period) -> str:
@@ -307,6 +311,7 @@ def places_page(data: SiteData) -> Page:
         '<h1 class="view">Places</h1>\n'
         '<div class="search" id="tools" hidden><input id="q" type="search" placeholder="Name or street" '
         f'aria-label="Search places by name or street">{_filter_buttons()}</div>\n'
+        f"{rows_axis_html(data.today, data.settings.strip_weeks, element_id=PLACES_AXIS_ID)}\n"
         f'<div id="list"><p class="eyebrow">{count} of {count} places</p>'
         f"{rows_html([plain_row_html(p) for p in data.places])}</div>"
     )
@@ -573,7 +578,7 @@ def place_page(data: SiteData, place: Place) -> Page:
     body = (
         f"{_place_head(data, place)}\n"
         '<section class="record" aria-label="What the city\'s records show">'
-        f"{strip_html(place, data.today, weeks, big=True)}{months_html(data.today, weeks)}{legend_html()}"
+        f"{strip_axis_html(data.today, weeks)}{strip_html(place, data.today, weeks, big=True)}{months_html(data.today, weeks)}{legend_html()}"
         f'<p class="coverage">{esc(coverage_line(place))}</p>{_facts(data, place)}'
         f'<p class="quiet">{esc(NOT_A_CERTIFICATE)}</p></section>\n'
         f"{heading('Inspections', len(place.inspections))}\n"

@@ -162,7 +162,13 @@ async function main() {
     redraw();
   });
   listen(tools, redraw);
-  list.replaceChildren(view.caveat, view.status, view.rows, view.more);
+  // The strip axis (span in weeks, first day, "This week") is rendered once in the page, hidden until strips are.
+  const axis = document.getElementById("axis");
+  const head = axis ? [axis] : [];
+  list.replaceChildren(view.caveat, view.status, ...head, view.rows, view.more);
+  if (axis) {
+    axis.hidden = false;
+  }
   tools.hidden = false;
   redraw();
 }

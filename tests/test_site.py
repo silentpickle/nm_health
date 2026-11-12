@@ -350,6 +350,20 @@ def test_strip_weeks_setting_sets_every_strip(tmp_path: Path) -> None:
     assert row[STRIP_FIELD] == "." * (QUARTER_WEEKS - len(newest_two)) + newest_two
 
 
+def test_strip_axis_names_the_span(tmp_path: Path) -> None:
+    """Every page with strips says what they cover: weeks, one tick per week, the first day and This week."""
+    settings = replace(make_settings(tmp_path), strip_weeks=QUARTER_WEEKS)
+    site = build(tmp_path, visit("2026-10-29", ROACHES), settings=settings)
+    axis = (
+        '<div class="axis" aria-hidden="true"><span>Past 13 weeks \u00b7 one tick per week</span>'
+        '<span class="ends"><span>Aug 11, 2026</span><span>This week</span></span></div>'
+    )
+    for name in ("index.html", "month.html", "all.html", "place/test-cafe-100-central-ave-sw.html"):
+        assert read(site, name).count(axis) == 1, name
+    assert f'<div class="rowshead">{axis}</div><ul class="rows">' in read(site, "index.html")
+    assert f'<div class="rowshead" id="axis" hidden>{axis}</div>' in read(site, "places.html")
+
+
 def test_places_json_shape(tmp_path: Path) -> None:
     """One row per place: slug, names, address, strip, statuses, flags, closure start, coordinates, reopened."""
     site = build(tmp_path, visit("2026-10-29", ROACHES), feed_only("2026-11-06"))

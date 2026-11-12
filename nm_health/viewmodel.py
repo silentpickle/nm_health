@@ -419,7 +419,17 @@ def strip_label(inspections: tuple[Inspection, ...], weeks: int = WEEKS) -> str:
     listed = "; ".join(f"{nice_date(i.date)}: {i.status}" for i in inspections[:ARIA_LIST_MAX])
     extra = len(inspections) - ARIA_LIST_MAX
     more = f"; and {extra} more" if extra > 0 else ""
-    return f"Inspections in the last {weeks} weeks: {listed}{more}"
+    return f"Inspections in the last {plural(weeks, 'week', 'weeks')}: {listed}{more}"
+
+
+def strip_start(today: date, weeks: int = WEEKS) -> date:
+    """The oldest day the strip's leftmost cell covers."""
+    return today - timedelta(days=weeks * DAYS_PER_WEEK - 1)
+
+
+def strip_caption(weeks: int = WEEKS) -> str:
+    """What a strip covers, said once above it: 'Past 52 weeks · one tick per week'."""
+    return f"Past {plural(weeks, 'week', 'weeks')} {MIDDOT} one tick per week"
 
 
 def recent_text(inspections: tuple[Inspection, ...]) -> str:

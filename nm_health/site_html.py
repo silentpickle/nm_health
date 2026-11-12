@@ -32,8 +32,10 @@ from nm_health.viewmodel import (
     short_date,
     source_label,
     stated,
+    strip_caption,
     strip_cells,
     strip_label,
+    strip_start,
 )
 
 FONTS_URL = (
@@ -223,6 +225,22 @@ def strip_html(place: Place, today: date, weeks: int, *, big: bool = False) -> s
     size = " big" if big else ""
     label = esc(strip_label(place.inspections, weeks))
     return f'<div class="strip{size}" role="img" aria-label="{label}">{cells}</div>'
+
+
+STRIP_END_LABEL = "This week"
+
+
+def strip_axis_html(today: date, weeks: int) -> str:
+    """Above a strip, or a list of them: the span in weeks, the first day the left end covers, and 'This week'."""
+    ends = f"<span>{nice_date(strip_start(today, weeks).isoformat())}</span><span>{STRIP_END_LABEL}</span>"
+    return f'<div class="axis" aria-hidden="true"><span>{esc(strip_caption(weeks))}</span><span class="ends">{ends}</span></div>'
+
+
+def rows_axis_html(today: date, weeks: int, *, element_id: str = "") -> str:
+    """The strip axis lined up over the strip column of a list of place rows (hidden where the strips are)."""
+    if not element_id:
+        return f'<div class="rowshead">{strip_axis_html(today, weeks)}</div>'
+    return f'<div class="rowshead" id="{element_id}" hidden>{strip_axis_html(today, weeks)}</div>'
 
 
 def months_html(today: date, weeks: int) -> str:
