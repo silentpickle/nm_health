@@ -148,6 +148,31 @@ nav.tabs a[aria-current="page"] {
   background: var(--ink);
 }
 
+/* Time-range switcher on This week / Last month / All time: the place-list filter pills, as links. */
+nav.range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 12px;
+}
+nav.range a {
+  font: 500 0.9rem var(--font-body);
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--edge);
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+}
+nav.range a[aria-current="page"] {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+
 h1.view {
   font: 700 2.1rem/1.05 var(--font-display);
   text-transform: uppercase;

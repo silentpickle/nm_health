@@ -1,5 +1,5 @@
 # Copyright (c) 2026 nm_health contributors
-"""The site's pages as HTML bodies: This week, Places, Map, About, and one place's whole record."""
+"""The site's pages as HTML bodies: This week (and Last month, All time), Places, Map, About, one place's record."""
 
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -27,6 +27,7 @@ from nm_health.site_html import (
 )
 from nm_health.viewmodel import (
     MIDDOT,
+    MONTH_SPAN_DAYS,
     RED_GROUP,
     TAG_LABEL,
     WEEK_SPAN_DAYS,
@@ -87,19 +88,26 @@ YEAR_LEN = len("2026")
 SHA_SHOWN = 12  # hex digits of a report's SHA-256 shown on the About page
 
 
-# ---------- This week ----------
+# ---------- This week, Last month, All time ----------
+
+
+def _more_note(total: int) -> str:
+    """Under a list cut at PAGE_SIZE: where the rest are."""
+    if total <= PAGE_SIZE:
+        return ""
+    return f'<p class="note">Newest {PAGE_SIZE} shown. Every place is on the <a href="places.html">Places</a> tab.</p>'
 
 
 def _cards(cards: list[str], empty: str) -> str:
     if not cards:
         return f'<p class="muted">{esc(empty)}</p>'
-    return f'<div class="lead">{"".join(cards)}</div>'
+    return f'<div class="lead">{"".join(cards[:PAGE_SIZE])}</div>' + _more_note(len(cards))
 
 
-def _pest_section(period: Period) -> str:
+def _pest_section(period: Period, no_pests: str) -> str:
     cards = [notice_html(p, i, pest=True) for p, i in period.pest_visits]
-    if period.covered:
-        return heading("Roaches or rodents cited", len(cards)) + _cards(cards, "None cited in that report.")
+    if period.own_pests:
+        return heading("Roaches or rodents cited", len(cards)) + _cards(cards, no_pests)
     report = period.pest_report
     if report is None or report.week_start is None or report.week_end is None:
         empty = "No weekly report on file yet, so pest citations can't be shown."
@@ -114,6 +122,15 @@ BANNER = (
     "The city's weekly report for this week isn't on file yet. Statuses below come from the city's "
     "inspection-status feed; inspector notes and pest citations appear once the report is saved."
 )
+
+
+LONG_BANNER = (
+    "The city's weekly report for the newest dates isn't on file yet. Statuses for those dates come from the "
+    "city's inspection-status feed; their inspector notes and pest citations appear once the report is saved."
+)
+NO_PESTS_IN_REPORT = "None cited in that report."
+NO_PESTS_IN_RANGE = "None cited in the inspector notes on file for these dates."
+RANGE_TAB = "week"  # the tab every time-range page sits under
 
 
 DISCLAIMER = (
@@ -161,32 +178,54 @@ def date_span(first: str, last: str) -> str:
 
 @dataclass(frozen=True)
 class TimeRange:
-    """One of the time-range pages: the newest inspection date and span_days before it."""
+    """One of the time-range pages: the newest inspection date and span_days before it (None: everything on file)."""
 
-    key: str  # which tab is current
     file: str
     title: str
-    span_days: int
+    span_days: int | None
     banner: str  # shown when no weekly report on file covers the newest date
+    no_pests: str  # shown when the range's own inspections cite no roaches or rodents
 
 
-WEEK_RANGE = TimeRange("week", "index.html", "This week", WEEK_SPAN_DAYS, BANNER)
+WEEK_RANGE = TimeRange("index.html", "This week", WEEK_SPAN_DAYS, BANNER, NO_PESTS_IN_REPORT)
+MONTH_RANGE = TimeRange("month.html", "Last month", MONTH_SPAN_DAYS, LONG_BANNER, NO_PESTS_IN_RANGE)
+ALL_RANGE = TimeRange("all.html", "All time", None, LONG_BANNER, NO_PESTS_IN_RANGE)
+RANGES = (WEEK_RANGE, MONTH_RANGE, ALL_RANGE)
+
+
+def _range_link(time_range: TimeRange, current: TimeRange) -> str:
+    here = ' aria-current="page"' if time_range == current else ""
+    return f'<a href="{time_range.file}"{here}>{esc(time_range.title)}</a>'
+
+
+def range_switch(current: TimeRange) -> str:
+    """Links between the time-range pages, the current one marked."""
+    links = "".join(_range_link(r, current) for r in RANGES)
+    return f'<nav class="range" aria-label="Time range">{links}</nav>'
+
+
+def _range_head(time_range: TimeRange) -> str:
+    return f'{disclaimer_html()}\n<h1 class="view">{esc(time_range.title)}</h1>\n{range_switch(time_range)}'
+
+
+def _other_rows(data: SiteData, period: Period) -> str:
+    places = unique_places(period.other)
+    rows = rows_html([row_html(p, data.today, data.covered) for p in places[:PAGE_SIZE]])
+    return rows + _more_note(len(places))
 
 
 def _range_body(data: SiteData, time_range: TimeRange, period: Period) -> str:
     red = [notice_html(p, i, pest=False) for p, i in period.red]
-    other = unique_places(period.other)[:PAGE_SIZE]
     parts = [
-        disclaimer_html(),
-        f'<h1 class="view">{esc(time_range.title)}</h1>',
+        _range_head(time_range),
         latest_report_html(data),
         f'<p class="eyebrow">Inspections {date_span(period.start, period.end)}</p>',
         "" if period.covered else f'<p class="banner">{esc(time_range.banner)}</p>',
         heading(RED_GROUP, len(red)),
         _cards(red, "None in the city's records for these dates."),
-        _pest_section(period),
+        _pest_section(period, time_range.no_pests),
         heading("Other inspections", len(period.other)),
-        rows_html([row_html(p, data.today, data.covered) for p in other]),
+        _other_rows(data, period),
     ]
     return "\n".join(parts)
 
@@ -195,10 +234,9 @@ def range_page(data: SiteData, time_range: TimeRange) -> Page:
     """One time-range page: closures, pest citations and every other inspection in the range."""
     period = select_period(data.places, data.reports, time_range.span_days)
     if period is None:
-        empty = '<p class="muted">No inspections on file yet.</p>'
-        body = f'{disclaimer_html()}<h1 class="view">{esc(time_range.title)}</h1>{empty}'
-        return Page(time_range.title, body, time_range.key)
-    return Page(time_range.title, _range_body(data, time_range, period), time_range.key)
+        body = f'{_range_head(time_range)}<p class="muted">No inspections on file yet.</p>'
+        return Page(time_range.title, body, RANGE_TAB)
+    return Page(time_range.title, _range_body(data, time_range, period), RANGE_TAB)
 
 
 def week_page(data: SiteData) -> Page:

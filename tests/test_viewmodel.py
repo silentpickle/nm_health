@@ -10,6 +10,7 @@ from nm_health.model import Inspection, Violation
 from nm_health.rebuild import Report
 from nm_health.viewmodel import (
     ELLIPSIS,
+    MONTH_SPAN_DAYS,
     QUOTE_CHARS,
     WEEKS,
     Cell,
@@ -36,6 +37,7 @@ from nm_health.viewmodel import (
     recent_text,
     redact,
     reopened_flag,
+    select_period,
     select_week,
     stated,
     strip_cells,
@@ -413,6 +415,30 @@ def test_week_without_any_report_or_inspection() -> None:
     assert week is not None
     assert (week.covered, week.pest_report, week.pest_visits) == (False, None, ())
     assert select_week([], ()) is None
+
+
+def test_month_without_a_covering_report_cites_its_own_pests() -> None:
+    """Longer than a week: pest citations from the period's own inspections, even when the newest isn't covered."""
+    places = group_places(
+        (
+            visit("2026-11-06", notes=False),
+            replace(visit("2026-10-28", ROACHES), name="BUGS", address="3 C ST"),
+            replace(visit("2026-10-03", ROACHES), name="OLDER", address="4 D ST"),
+        )
+    )
+    month = select_period(places, (report("2026-10-25", "2026-10-31"),), MONTH_SPAN_DAYS)
+    assert month is not None
+    assert (month.start, month.end, month.covered, month.own_pests) == ("2026-10-08", "2026-11-06", False, True)
+    assert (month.pest_report, [p.name for p, _ in month.pest_visits]) == (None, ["BUGS"])
+
+
+def test_all_time_starts_at_the_oldest_inspection() -> None:
+    """No span: every inspection on file, pests from all of them."""
+    places = group_places((visit("2026-10-30"), replace(visit("2021-07-12", ROACHES), name="OLD", address="1 A ST")))
+    everything = select_period(places, (report("2026-10-25", "2026-10-31"),), None)
+    assert everything is not None
+    assert (everything.start, everything.end, everything.own_pests) == ("2021-07-12", "2026-10-30", True)
+    assert [p.name for p, _ in everything.pest_visits] == ["OLD"]
 
 
 # ---------- Status today and closures ----------

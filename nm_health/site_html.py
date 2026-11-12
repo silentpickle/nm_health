@@ -44,7 +44,7 @@ EN_DASH = "\u2013"
 LEFT_ARROW = "\u2190"
 WHERE = f"Albuquerque, NM {MIDDOT} last 12 months"
 TABS = (
-    ("week", "index.html", "This week"),
+    ("week", "index.html", "Inspections"),  # This week, with links to Last month and All time
     ("places", "places.html", "Places"),
     ("map", "map.html", "Map"),
     ("data", "data.html", "Data"),

@@ -35,7 +35,7 @@ ROACHES = Violation(
     (("Pest Type", "Cockroach"),),
 )
 PLACES_JSON_LIMIT = 300_000  # bytes
-TOP_PAGES = ("index.html", "places.html", "map.html", "data.html", "about.html")
+TOP_PAGES = ("index.html", "month.html", "all.html", "places.html", "map.html", "data.html", "about.html")
 H1 = re.compile(r"<h1\b")
 PDF_LINK = re.compile(r'href="([^"]+\.pdf)(?:#page=\d+)?"')
 # A real weekly report stands in for the test report, so the build can read its text as it does in production.
@@ -131,12 +131,14 @@ def test_write_site_writes_every_page(tmp_path: Path) -> None:
         ".nojekyll",
         "about.html",
         "albuquerque.geojson",
+        "all.html",
         "citymap.css",
         "citymap.js",
         "data.html",
         "index.html",
         "map.html",
         "map.js",
+        "month.html",
         "place/test-cafe-100-central-ave-sw.html",
         "places.html",
         "places.js",

@@ -1,5 +1,5 @@
 # Copyright (c) 2026 nm_health contributors
-"""Static site for GitHub Pages: This week, Places, Map, About, and one page per place.
+"""Static site for GitHub Pages: This week, Last month, All time, Places, Map, About, and one page per place.
 
 Every page is plain HTML that reads without JavaScript. places.js adds search, filters and strips to the place list
 from places.json; map.js draws the map with packages/citymap (copied in at build time, never forked). Text from the
@@ -22,7 +22,7 @@ from nm_health.site_html import (
     site_data,
     unsourced,
 )
-from nm_health.site_pages import about_page, data_page, map_page, place_page, places_page, week_page
+from nm_health.site_pages import RANGES, about_page, data_page, map_page, place_page, places_page, range_page
 from nm_health.viewmodel import ARIA_LIST_MAX, Coverage, Place, level, reopened_flag, strip_cells, strip_code
 
 STATIC_DIR = Path(__file__).resolve().parent / "site_static"
@@ -120,7 +120,7 @@ def _copy_assets(out: Path) -> None:
 
 def _write_pages(data: SiteData, out: Path) -> None:
     pages = {
-        "index.html": week_page(data),
+        **{r.file: range_page(data, r) for r in RANGES},
         "places.html": places_page(data),
         "map.html": map_page(data),
         "about.html": about_page(data),

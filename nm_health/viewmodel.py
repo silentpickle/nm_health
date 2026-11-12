@@ -33,6 +33,7 @@ from nm_health.signals import (
 WEEKS = 52
 DAYS_PER_WEEK = 7
 WEEK_SPAN_DAYS = 6  # "this week" is the newest inspection date and the six days before it
+MONTH_SPAN_DAYS = 29  # "last month" is the newest inspection date and the 29 days before it: 30 days
 ARIA_LIST_MAX = 8  # dated statuses spelled out in a strip's accessible name
 RECENT_MAX = 3  # dated statuses in a row's phone-width text list
 QUOTE_CHARS = 180  # an observation quoted without labelled fields is cut at this length, on a word
@@ -642,14 +643,15 @@ def visits_between(places: list[Place], first: str, last: str) -> list[Visit]:
 
 @dataclass(frozen=True)
 class Period:
-    """The newest stretch of inspections (a week, say) and where its pest citations come from."""
+    """The newest stretch of inspections (a week, a month, everything) and where its pest citations come from."""
 
     start: str
     end: str
     visits: tuple[Visit, ...]
     covered: bool  # an archived weekly report covers the newest date
-    pest_report: Report | None  # the report pest citations come from when not covered
+    pest_report: Report | None  # the report pest citations come from when not taken from the period's own visits
     pest_visits: tuple[Visit, ...]
+    own_pests: bool = False  # pest citations come from the period's own visits
 
     @property
     def red(self) -> list[Visit]:
@@ -662,21 +664,30 @@ class Period:
         return [v for v in self.visits if level(v[1].status) != LEVEL_RED]
 
 
-def select_period(places: list[Place], reports: tuple[Report, ...], span_days: int) -> Period | None:
-    """The newest date and the span_days before it; pests from those days if a report covers the newest date.
+def select_period(places: list[Place], reports: tuple[Report, ...], span_days: int | None) -> Period | None:
+    """The newest date and the span_days before it (None: every inspection on file), and its pest citations.
 
-    When no report covers the newest date, pest citations come from the latest report on file instead.
+    Pest citations come from the period's own visits when a report covers the newest date, or when the period is
+    longer than a week (its older days are in reports on file). A week whose newest date no report covers takes
+    them from the latest report on file instead.
     """
     newest = max((p.latest.date for p in places), default=None)
     if newest is None:
         return None
-    start = (date.fromisoformat(newest) - timedelta(days=span_days)).isoformat()
+    start = _first_day(places, newest, span_days)
     visits = visits_between(places, start, newest)
     covered = covering_report(reports, newest) is not None
-    report = None if covered else latest_report(reports)
-    pest_pool = visits if covered else _report_visits(places, report)
+    own = covered or span_days is None or span_days > WEEK_SPAN_DAYS
+    report = None if own else latest_report(reports)
+    pest_pool = visits if own else _report_visits(places, report)
     pests = tuple(v for v in pest_pool if cites_headline_pests(v[1]))
-    return Period(start, newest, tuple(visits), covered, report, pests)
+    return Period(start, newest, tuple(visits), covered, report, pests, own)
+
+
+def _first_day(places: list[Place], newest: str, span_days: int | None) -> str:
+    if span_days is None:
+        return min(i.date for p in places for i in p.inspections)
+    return (date.fromisoformat(newest) - timedelta(days=span_days)).isoformat()
 
 
 def select_week(places: list[Place], reports: tuple[Report, ...]) -> Period | None:
