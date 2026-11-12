@@ -348,6 +348,29 @@ def test_month_ticks_skip_the_first_columns() -> None:
 
 
 @pytest.mark.parametrize(
+    ("today", "row"),
+    [
+        pytest.param(
+            TODAY,
+            "- - - - - - - Jan - - - Feb? - - - Mar? - - - - Apr - - - May? - - - Jun? - - - - Jul - - - Aug? - - - "
+            "- Sep? - - - Oct - - - Nov? -",
+            id="month_mid_lead",
+        ),
+        pytest.param(
+            date(2026, 11, 4),
+            "- - - Dec - - - - Jan? - - - Feb? - - - Mar - - - Apr? - - - - May? - - - Jun - - - Jul? - - - - Aug? - "
+            "- - Sep - - - - Oct? - - - Nov?",
+            id="month_after_lead",
+        ),
+    ],
+)
+def test_month_ticks_whole_row(today: date, row: str) -> None:
+    """Every column's tick ('-' none, '?' hidden on phones), including a month that starts just past the lead."""
+    ticks = month_ticks(today)
+    assert " ".join((text or "-") + ("?" if quiet else "") for text, quiet in ticks) == row
+
+
+@pytest.mark.parametrize(
     ("status", "expected"),
     [
         pytest.param(FAILED, "r", id="unsatisfactory"),

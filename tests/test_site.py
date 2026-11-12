@@ -21,6 +21,7 @@ from nm_health.site import UnsourcedError, write_site
 from nm_health.site_html import NO_SOURCE, site_data
 from nm_health.viewmodel import build_place, stated
 from tests.test_archive import make_settings
+from tests.test_range_pages import check_golden
 
 TODAY = datetime(2026, 11, 9, 12, tzinfo=UTC)
 REPORT_FILE = "2026-10-25_2026-10-31_abc.pdf"
@@ -315,6 +316,17 @@ def test_places_page_lists_every_place_without_javascript(tmp_path: Path) -> Non
     assert text.count('<a class="row" href="place/') == len(["TEST CAFE"])
     assert '<div class="search" id="tools" hidden>' in text
     assert '<script type="module" src="places.js"></script>' in text
+
+
+RECORD_SECTION = re.compile(r'<section class="record".*?</section>', re.DOTALL)
+
+
+def test_place_record_section_unchanged(tmp_path: Path) -> None:
+    """A place page's strip, month names, legend and coverage, pinned whole (characterization test)."""
+    site = build(tmp_path, visit("2026-10-29", ROACHES), visit("2026-10-26", status="Conditional Approved"))
+    match = RECORD_SECTION.search(read(site, "place/test-cafe-100-central-ave-sw.html"))
+    assert match is not None
+    check_golden("place_record_section", match.group(0))
 
 
 def test_places_json_shape(tmp_path: Path) -> None:
