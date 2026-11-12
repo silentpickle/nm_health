@@ -395,7 +395,7 @@ def audit_data(
 
 def load(settings: Settings) -> AuditData:
     """The whole archive (every week, not just the site's window), its permit blocks and the whole feed."""
-    rebuilt = rebuild(settings)
+    rebuilt = rebuild(settings, feed_details=True)
     blocks = tuple(
         block
         for report in rebuilt.reports

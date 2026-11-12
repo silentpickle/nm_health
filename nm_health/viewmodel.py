@@ -496,19 +496,6 @@ def _in_week(inspection: Inspection, week: tuple[str | None, str | None] | None)
     return (first or inspection.date) <= inspection.date <= (last or inspection.date)
 
 
-def later_records(inspections: tuple[Inspection, ...], places: list[Place]) -> dict[str, Inspection]:
-    """For each place, the newest inspection in the city's records that is newer than anything its reports state."""
-    latest = {p.slug: p.latest.date for p in places}
-    found: dict[str, Inspection] = {}
-    for inspection in inspections:
-        slug = establishment_slug(inspection.name, inspection.address)
-        if slug not in latest or inspection.date <= latest[slug]:
-            continue
-        if slug not in found or inspection.date > found[slug].date:
-            found[slug] = inspection
-    return found
-
-
 Coverage = frozenset[str]  # ISO dates that some weekly report on file covers
 
 
@@ -556,14 +543,6 @@ def latest_result_text(place: Place) -> str:
     )
 
 
-def later_record_text(later: Inspection) -> str:
-    """A neutral note that the city has a newer inspection whose weekly report isn't on file."""
-    return (
-        f"The city's inspection-status system lists a later inspection on {nice_date(later.date)}. Its weekly report "
-        "isn't on file yet, so this site doesn't state its result."
-    )
-
-
 def _span(start: str | None, end: str | None) -> str:
     """' (11:30 am → 4:00 pm)' when both times are known."""
     if start is None or end is None:
@@ -601,17 +580,6 @@ def reopened_flag(place: Place, covered: Coverage) -> str:
     if spell.days == 0:
         return f"Closed and reopened {short_date(spell.start)}"
     return f"Closed {plural(spell.days or 0, 'day', 'days')}, reopened {short_date(spell.end or spell.start)}"
-
-
-def feed_only_text(inspection: Inspection) -> str:
-    """What the site can say about an inspection known only from the status feed."""
-    count = inspection.violation_count
-    number = "an unknown number of" if count is None else str(count)
-    noun = "violation" if count == 1 else "violations"
-    return (
-        "Inspector notes not on file: the city replaces its weekly report every week, and the one covering this "
-        f"date isn't in our archive. The city's status feed lists {number} {noun}."
-    )
 
 
 def notice_count_text(inspection: Inspection) -> str:

@@ -23,10 +23,7 @@ from nm_health.viewmodel import (
     closure_start,
     coverage_line,
     covered_days,
-    feed_only_text,
     group_places,
-    later_record_text,
-    later_records,
     latest_result_text,
     level,
     month_ticks,
@@ -268,15 +265,6 @@ def test_pest_citations_name_reading_status_and_next_approval() -> None:
 def test_notice_count_text(inspection: Inspection, expected: str) -> None:
     """A This-week card says how many violations, and when the notes aren't on file."""
     assert notice_count_text(inspection) == expected
-
-
-def test_feed_only_text_states_the_feed_count() -> None:
-    """Feed-only inspections say the notes aren't on file and give the feed's count."""
-    one = feed_only_text(visit("2026-10-01", OTHER, notes=False))
-    assert one.endswith("The city's status feed lists 1 violation.")
-    assert one.startswith("Inspector notes not on file")
-    unknown = feed_only_text(replace(visit("2026-10-01", notes=False), violation_count=None))
-    assert unknown.endswith("lists an unknown number of violations.")
 
 
 # ---------- Strip ----------
@@ -541,15 +529,3 @@ def test_stated_keeps_only_report_inspections_inside_their_week() -> None:
     typo = replace(visit("2027-10-27", number="TYPO"), report_file=week.file)
     feed_only = visit("2026-10-28", number="FEED", notes=False)
     assert stated((inside, typo, feed_only), (week,)) == (inside,)
-
-
-def test_later_record_is_noted_not_stated() -> None:
-    """A newer inspection in the city's records, whose report isn't on file, is noted without its result."""
-    on_file = place(visit("2026-10-27", status=CLOSED))
-    newer = visit("2026-11-03", status=APPROVED, number="FEED", notes=False)
-    later = later_records((on_file.latest, newer), [on_file])
-    assert later == {on_file.slug: newer}
-    assert later_record_text(newer) == (
-        "The city's inspection-status system lists a later inspection on Nov 3, 2026. Its weekly report isn't on "
-        "file yet, so this site doesn't state its result."
-    )

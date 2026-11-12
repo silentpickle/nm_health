@@ -10,10 +10,13 @@ makes the declaration, the site repeats it. Incomplete is better than wrong, and
   report prints a typo date, "1/29/2026" in its Jan 27-31, 2025 week; it stays off).
 - A place's status is the city's own "Operational Status" line for each permit, quoted from the latest report that
   lists it, followed by the latest result in the reports on file.
-- The status feed makes no statement. It has no document a reader can open, and it lists routine inspections only:
-  no corrective-action visits (which often reopen a place) and no complaint inspections. The site uses it to order
-  same-day inspections, to place map dots, and to note that a newer inspection exists whose report isn't on file
-  (without stating its result), so a closure is never presented as current when the city has inspected since.
+- The status feed makes no statement and is not affiliated with the weekly reports. It has no document a reader can
+  open, and it lists routine inspections only: no corrective-action visits and no complaint inspections. The site
+  uses it for one thing, the coordinates of map dots (a location anyone can check against the city's system today).
+  Its start times, violation counts and feed-only inspections stay out of every page; same-day order therefore falls
+  back to the untimed rule (a failure is assumed to come first). Reason: once a place passes, the inspector leaves, so a pass
+  is the last word of the day; a failure the same day came before it, and the place was fixed and re-inspected. `nm-health audit` still reads the full feed to
+  check it against the reports.
 - A closure's length is stated only when every day between the closure and the reopening inspection is in a report on
   file; across a gap the site says the place may have reopened sooner.
 

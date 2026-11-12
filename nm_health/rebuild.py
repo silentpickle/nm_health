@@ -44,6 +44,8 @@ class Report:
     seen_at: str
     layout: str
     inspections: int
+    amended_on: str | None = None  # the date the header says it was amended, as printed
+    letterhead: bool = False  # page 1 carries the Environmental Health Department letterhead
 
 
 @dataclass(frozen=True)
@@ -133,6 +135,8 @@ def _report(entry: dict[str, Any], layout: str, count: int) -> Report:
         seen_at=str(entry.get("seen_at", "")),
         layout=layout,
         inspections=count,
+        amended_on=entry.get("amended_on"),
+        letterhead=bool(entry.get("letterhead", False)),
     )
 
 
@@ -176,8 +180,15 @@ def _from_feed(record: FeedRecord) -> Inspection:
     )
 
 
-def merge_feed(detailed: list[Inspection], records: list[FeedRecord]) -> list[Inspection]:
-    """Detailed inspections gain the feed's coordinates, count and time; feed-only ones are added without text."""
+def merge_feed(
+    detailed: list[Inspection], records: list[FeedRecord], *, feed_details: bool = False
+) -> list[Inspection]:
+    """Report inspections gain the feed's coordinates and nothing else.
+
+    The weekly report PDFs are the only source of what the site states. With `feed_details` (the audit only) the
+    feed's count and start time are added too, and feed-only inspections are appended, so the feed can be checked
+    against the reports.
+    """
     by_key = {(r.number, r.date): r for r in records}
     by_address = {normalized_address(r.address): r for r in records if r.lat is not None}
     merged: list[Inspection] = []
@@ -186,14 +197,14 @@ def merge_feed(detailed: list[Inspection], records: list[FeedRecord]) -> list[In
         nearby = match or by_address.get(normalized_address(inspection.address))
         if nearby is not None:
             inspection = replace(inspection, lat=nearby.lat, lng=nearby.lng)  # noqa: PLW2901 - enriching the loop item
-        if match is not None:
+        if match is not None and feed_details:
             inspection = replace(inspection, violation_count=match.violations, time=match.time)  # noqa: PLW2901 - enriching the loop item
         merged.append(inspection)
-    return merged + [_from_feed(r) for r in by_key.values()]
+    return merged + [_from_feed(r) for r in by_key.values()] if feed_details else merged
 
 
-def rebuild(settings: Settings, since: date | None = None) -> Rebuilt:
-    """Every archived PDF (oldest week first, later reports win) merged with the status feed.
+def rebuild(settings: Settings, since: date | None = None, *, feed_details: bool = False) -> Rebuilt:
+    """Every archived PDF (oldest week first, later reports win), given the status feed's coordinates.
 
     With `since`, only inspections on or after that date are kept (the site's 12-month window); without it,
     everything archived and the whole feed.
@@ -209,6 +220,6 @@ def rebuild(settings: Settings, since: date | None = None) -> Rebuilt:
             latest[key] = _supersede(latest.get(key), inspection)
     cutoff = (since or date.min).isoformat()
     detailed = [i for i in latest.values() if i.date >= cutoff]
-    merged = merge_feed(detailed, load_records(settings, since or date.min))
+    merged = merge_feed(detailed, load_records(settings, since or date.min), feed_details=feed_details)
     ordered = sorted(merged, key=lambda i: (i.date, i.name, i.inspection_id))
     return Rebuilt(inspections=tuple(ordered), reports=tuple(reports))

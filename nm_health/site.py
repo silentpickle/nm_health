@@ -22,7 +22,7 @@ from nm_health.site_html import (
     site_data,
     unsourced,
 )
-from nm_health.site_pages import about_page, map_page, place_page, places_page, week_page
+from nm_health.site_pages import about_page, data_page, map_page, place_page, places_page, week_page
 from nm_health.viewmodel import ARIA_LIST_MAX, Coverage, Place, level, reopened_flag, strip_cells, strip_code
 
 STATIC_DIR = Path(__file__).resolve().parent / "site_static"
@@ -124,6 +124,7 @@ def _write_pages(data: SiteData, out: Path) -> None:
         "places.html": places_page(data),
         "map.html": map_page(data),
         "about.html": about_page(data),
+        "data.html": data_page(data),
     }
     for name, page in pages.items():
         _write(out / name, page_html(data, page))
@@ -145,7 +146,7 @@ def _require_sources(data: SiteData) -> None:
 
 def _copy_reports(data: SiteData, out: Path) -> None:
     files = {i.report_file for p in data.places for i in p.inspections if i.report_file} | {
-        r.file for r in data.reports
+        r.file for r in data.all_reports
     }
     (out / REPORTS_DIR).mkdir(parents=True, exist_ok=True)
     for name in files:

@@ -158,15 +158,21 @@ def feed_record(number: str, day: str, status: str = "Approved", violations: int
 
 
 def test_merge_feed() -> None:
-    """A matching record adds coordinates and the count; an unmatched one becomes a status-only inspection."""
+    """A matching record adds coordinates only; the feed's count, time and unmatched records stay out."""
     detailed = inspection("Approved", "r.pdf")
-    merged = merge_feed(
-        [detailed],
+    records = [feed_record("PT0000001", "2026-10-29", violations=1), feed_record("RT-9", "2026-06-08", "Closure", 28)]
+    (enriched,) = merge_feed([detailed], records)
+    assert (enriched.lat, enriched.lng, enriched.violation_count, enriched.time) == (35.08, -106.65, None, None)
+
+
+def test_merge_feed_details_for_audit() -> None:
+    """With feed_details (audit only) the count, time and feed-only inspections are added."""
+    enriched, feed_only = merge_feed(
+        [inspection("Approved", "r.pdf")],
         [feed_record("PT0000001", "2026-10-29", violations=1), feed_record("RT-9", "2026-06-08", "Closure", 28)],
+        feed_details=True,
     )
-    enriched, feed_only = merged
-    assert (enriched.lat, enriched.lng, enriched.violation_count, enriched.has_details) == (35.08, -106.65, 1, True)
-    assert (enriched.time, feed_only.time) == ("14:20", "14:20")
+    assert (enriched.violation_count, enriched.time, feed_only.time) == (1, "14:20", "14:20")
     assert (feed_only.inspection_id, feed_only.status, feed_only.violation_count) == ("RT-9", "Closure", 28)
     assert (feed_only.has_details, feed_only.violations, feed_only.report_file) == (False, (), "")
 
@@ -174,7 +180,7 @@ def test_merge_feed() -> None:
 def test_unmatched_inspection_gets_coordinates_by_address() -> None:
     """A follow-up the feed doesn't carry still lands on the map via its address."""
     follow_up = replace(inspection("Approved", "r.pdf"), inspection_id="CAC-1")
-    (enriched, _feed_only) = merge_feed([follow_up], [feed_record("RT-9", "2026-06-08")])
+    (enriched,) = merge_feed([follow_up], [feed_record("RT-9", "2026-06-08")])
     assert (enriched.lat, enriched.violation_count, enriched.time) == (35.08, None, None)
 
 
