@@ -36,6 +36,7 @@ ROACHES = Violation(
     (("Pest Type", "Cockroach"),),
 )
 PLACES_JSON_LIMIT = 300_000  # bytes
+STRIP_FIELD = 4  # a places.json row's strip code
 TOP_PAGES = ("index.html", "month.html", "all.html", "places.html", "map.html", "data.html", "about.html")
 H1 = re.compile(r"<h1\b")
 PDF_LINK = re.compile(r'href="([^"]+\.pdf)(?:#page=\d+)?"')
@@ -327,6 +328,26 @@ def test_place_record_section_unchanged(tmp_path: Path) -> None:
     match = RECORD_SECTION.search(read(site, "place/test-cafe-100-central-ave-sw.html"))
     assert match is not None
     check_golden("place_record_section", match.group(0))
+
+
+QUARTER_WEEKS = 13
+
+
+def test_strip_weeks_setting_sets_every_strip(tmp_path: Path) -> None:
+    """strip_weeks from settings sets the place page strip, its month names, its accessible name and places.json."""
+    settings = replace(make_settings(tmp_path), strip_weeks=QUARTER_WEEKS)
+    site = build(tmp_path, visit("2026-10-29", ROACHES), settings=settings)
+    text = read(site, "place/test-cafe-100-central-ave-sw.html")
+    strip = re.search(r'<div class="strip big"[^>]*>(.*?)</div>', text)
+    months = re.search(r'<div class="months"[^>]*>(.*?)</div>', text)
+    assert strip is not None
+    assert months is not None
+    assert strip.group(1).count("<i") == QUARTER_WEEKS
+    assert months.group(1).count("<span") == QUARTER_WEEKS
+    assert f"Inspections in the last {QUARTER_WEEKS} weeks: Oct 29, 2026" in text
+    (row,) = json.loads(read(site, "places.json"))["places"]
+    newest_two = "1."  # roaches eleven days ago, nothing this week
+    assert row[STRIP_FIELD] == "." * (QUARTER_WEEKS - len(newest_two)) + newest_two
 
 
 def test_places_json_shape(tmp_path: Path) -> None:

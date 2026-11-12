@@ -10,10 +10,16 @@ CONFIG_PATH = ROOT / "config.toml"
 DEFAULT_SITE_NAME = "Food Inspection History"
 DEFAULT_REPORT_ERROR_URL = "https://github.com/silentpickle/nm_health/issues"
 DEFAULT_WINDOW_DAYS = 365
+DEFAULT_STRIP_WEEKS = 52
+DAYS_PER_WEEK = 7
 DEFAULT_FEED_LOOKBACK_DAYS = 2200
 DEFAULT_SPOTCHECK_PLACES = 6
 DEFAULT_LONG_CLOSURE_DAYS = 14
 DEFAULT_JUDGE_TIMEOUT_SECONDS = 240
+
+
+class SettingsError(ValueError):
+    """A setting in config.toml is out of its allowed range."""
 
 
 @dataclass(frozen=True)
@@ -36,6 +42,8 @@ class Settings:
     report_error_url: str = DEFAULT_REPORT_ERROR_URL
     # Only inspections this recent are collected and shown (archived PDFs are kept regardless).
     window_days: int = DEFAULT_WINDOW_DAYS
+    # Weeks each place's tick strip covers, one tick per week, newest on the right: 1 to window_days // 7.
+    strip_weeks: int = DEFAULT_STRIP_WEEKS
     feed_url: str = ""
     feed_categories: str = ""
     feed_bounds: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)  # lat1, lat2, lng1, lng2
@@ -49,6 +57,13 @@ class Settings:
     judge_command: str = "agy"
     judge_timeout_seconds: int = DEFAULT_JUDGE_TIMEOUT_SECONDS
     judge_cache: Path = ROOT / "data" / "judgements.json"
+
+    def __post_init__(self) -> None:
+        """Reject a strip longer than the data kept, or empty."""
+        most = self.window_days // DAYS_PER_WEEK
+        if not 1 <= self.strip_weeks <= most:
+            message = f"[site] strip_weeks is {self.strip_weeks}; it must be 1 to {most} (window_days // 7)"
+            raise SettingsError(message)
 
 
 def load(path: Path = CONFIG_PATH) -> Settings:
@@ -71,6 +86,7 @@ def load(path: Path = CONFIG_PATH) -> Settings:
         indexable=bool(site["indexable"]),
         report_error_url=str(site["report_error_url"]),
         window_days=int(site["window_days"]),
+        strip_weeks=int(site.get("strip_weeks", DEFAULT_STRIP_WEEKS)),
         feed_url=str(feed["details_url"]),
         feed_categories=str(feed["categories"]),
         feed_bounds=(

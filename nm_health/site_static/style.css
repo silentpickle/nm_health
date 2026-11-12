@@ -275,11 +275,12 @@ h2 .n {
   background: var(--none-cell);
 }
 
-/* 52-week strip, newest on the right. Shape as well as colour: full = approved, half = conditional,
+/* Week strip (config.toml strip_weeks columns, any number), newest on the right. Shape as well as colour: full = approved, half = conditional,
    full + stripes = closure/unsatisfactory, outlined = status only (no inspector notes on file). */
 .strip {
   display: grid;
-  grid-template-columns: repeat(52, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 2px;
   height: 16px;
   align-items: end;
@@ -331,7 +332,8 @@ h2 .n {
 }
 .months {
   display: grid;
-  grid-template-columns: repeat(52, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   font: 500 0.7rem var(--font-data);
   color: var(--muted);
   margin-top: 5px;
@@ -362,7 +364,7 @@ h2 .n {
 }
 .legend .k .strip {
   height: 14px;
-  grid-template-columns: 12px;
+  grid-auto-columns: 12px;
 }
 
 .lead {

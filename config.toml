@@ -29,6 +29,9 @@ name = "Food Inspection History"
 indexable = false
 # Only inspections from the last this-many days are collected and shown. Archived PDFs are kept regardless.
 window_days = 365
+# Weeks each place's tick strip covers (one tick per week, newest on the right), on the time-range pages, Places and
+# each place's page. 1 to window_days // 7 (52 with 365 days): older inspections aren't kept. 13 = a quarter, 26 = half.
+strip_weeks = 52
 # Where the archived PDFs can be opened from the site (GitHub blob view of data/archive). The site also publishes a
 # byte-for-byte copy of each PDF it cites, under reports/, so a link can open at the cited page.
 pdf_base_url = "https://github.com/silentpickle/nm_health/blob/main/data/archive/"

@@ -1,5 +1,5 @@
 # Copyright (c) 2026 nm_health contributors
-"""The page frame and the pieces pages share: status chips, 52-week strips, place rows, This-week cards.
+"""The page frame and the pieces pages share: status chips, week strips, place rows, This-week cards.
 
 Every piece of text goes through `esc`: names, addresses and observations come from PDFs and are untrusted.
 """
@@ -217,18 +217,19 @@ def _cell(code: str) -> str:
     return f'<i class="{classes}"></i>' if classes else "<i></i>"
 
 
-def strip_html(place: Place, today: date, *, big: bool = False) -> str:
-    """The 52-week strip, shape-coded, with every dated status in its accessible name."""
-    cells = "".join(_cell(cell_code(c)) for c in strip_cells(place.inspections, today))
+def strip_html(place: Place, today: date, weeks: int, *, big: bool = False) -> str:
+    """The week strip, shape-coded, with every dated status in its accessible name."""
+    cells = "".join(_cell(cell_code(c)) for c in strip_cells(place.inspections, today, weeks))
     size = " big" if big else ""
-    label = esc(strip_label(place.inspections))
+    label = esc(strip_label(place.inspections, weeks))
     return f'<div class="strip{size}" role="img" aria-label="{label}">{cells}</div>'
 
 
-def months_html(today: date) -> str:
+def months_html(today: date, weeks: int) -> str:
     """Month names under a big strip."""
     spans = "".join(
-        f'<span class="q">{text}</span>' if quiet else f"<span>{text}</span>" for text, quiet in month_ticks(today)
+        f'<span class="q">{text}</span>' if quiet else f"<span>{text}</span>"
+        for text, quiet in month_ticks(today, weeks)
     )
     return f'<div class="months" aria-hidden="true">{spans}</div>'
 
@@ -269,7 +270,7 @@ def _row_flags(place: Place, covered: Coverage) -> str:
     return "".join(flags)
 
 
-def row_html(place: Place, today: date, covered: Coverage) -> str:
+def row_html(place: Place, today: date, covered: Coverage, weeks: int) -> str:
     """One place in a list: name, address, latest status and date, flags, recent statuses (phones) and strip."""
     latest = place.latest
     meta = (
@@ -279,7 +280,7 @@ def row_html(place: Place, today: date, covered: Coverage) -> str:
     return (
         f'<li><a class="row" href="{place_href(place)}"><div class="info"><div class="nm">{esc(place.name)}</div>'
         f'<div class="meta">{meta}</div><div class="recent">{esc(recent_text(place.inspections))}</div></div>'
-        f"{strip_html(place, today)}</a></li>"
+        f"{strip_html(place, today, weeks)}</a></li>"
     )
 
 

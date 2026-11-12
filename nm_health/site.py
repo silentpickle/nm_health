@@ -23,7 +23,7 @@ from nm_health.site_html import (
     unsourced,
 )
 from nm_health.site_pages import RANGES, about_page, data_page, map_page, place_page, places_page, range_page
-from nm_health.viewmodel import ARIA_LIST_MAX, Coverage, Place, level, reopened_flag, strip_cells, strip_code
+from nm_health.viewmodel import ARIA_LIST_MAX, Place, level, reopened_flag, strip_cells, strip_code
 
 STATIC_DIR = Path(__file__).resolve().parent / "site_static"
 STATIC_FILES = ("style.css", "shared.js", "places.js", "map.js")
@@ -63,7 +63,8 @@ def _lat_lng(place: Place) -> list[float] | None:
     return [round(lat, COORD_DIGITS), round(lng, COORD_DIGITS)]
 
 
-def _place_row(place: Place, today: date, statuses: dict[str, int], covered: Coverage) -> list[object]:
+def _place_row(data: SiteData, place: Place, statuses: dict[str, int]) -> list[object]:
+    today = data.today
     history = [
         [(today - date.fromisoformat(i.date)).days, statuses.setdefault(i.status, len(statuses))]
         for i in place.inspections[:ARIA_LIST_MAX]
@@ -74,25 +75,25 @@ def _place_row(place: Place, today: date, statuses: dict[str, int], covered: Cov
         place.name,
         place.legal_name,
         place.address,
-        strip_code(strip_cells(place.inspections, today)),
+        strip_code(strip_cells(place.inspections, today, data.settings.strip_weeks)),
         history,
         max(len(place.inspections) - ARIA_LIST_MAX, 0),
         _flags(place),
         closure,
         _lat_lng(place),
-        reopened_flag(place, covered),
+        reopened_flag(place, data.covered),
     ]
 
 
 def places_json(data: SiteData) -> str:
     """The slim index places.js and map.js read.
 
-    Each place is [slug, name, legal name, address, strip code (52 chars), [[days before today, status index], ...]
+    Each place is [slug, name, legal name, address, strip code (one char per week, settings.strip_weeks), [[days before today, status index], ...]
     newest first (up to 8), how many more inspections, flags (1 roaches/rodents, 2 employee items, 4 a closure in force), latest closure start or "",
     [lat, lng] or null, reopened flag text or "" (viewmodel.reopened_flag)]. `statuses` lists [status, level] by index.
     """
     statuses: dict[str, int] = {}
-    rows = [_place_row(p, data.today, statuses, data.covered) for p in data.places]
+    rows = [_place_row(data, p, statuses) for p in data.places]
     body = {
         "today": data.today.isoformat(),
         "statuses": [[status, level(status)] for status in statuses],

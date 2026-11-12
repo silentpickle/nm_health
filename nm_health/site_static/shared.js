@@ -1,5 +1,5 @@
 // Copyright (c) 2026 nm_health contributors
-// Shared by places.js and map.js: reading places.json, dates, status chips and 52-week strips.
+// Shared by places.js and map.js: reading places.json, dates, status chips and week strips.
 // The pages work without any of this: every place is listed and linked in the HTML.
 
 /** @typedef {[number, number]} VisitRow  [days before places.json's "today", index into statuses] */
@@ -128,11 +128,11 @@ function stripLabel(place) {
     .map((v) => `${fmt(v.date)}: ${v.status}`)
     .join("; ");
   const extra = place.more > 0 ? `; and ${count(place.more)} more` : "";
-  return `Inspections in the last 52 weeks: ${listed}${extra}`;
+  return `Inspections in the last ${String(place.strip.length)} weeks: ${listed}${extra}`;
 }
 
 /**
- * The 52-week strip, newest week on the right.
+ * The week strip (one cell per week in place.strip), newest week on the right.
  * @param {Place} place
  */
 export function strip(place) {

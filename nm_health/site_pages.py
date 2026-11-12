@@ -210,7 +210,7 @@ def _range_head(time_range: TimeRange) -> str:
 
 def _other_rows(data: SiteData, period: Period) -> str:
     places = unique_places(period.other)
-    rows = rows_html([row_html(p, data.today, data.covered) for p in places[:PAGE_SIZE]])
+    rows = rows_html([row_html(p, data.today, data.covered, data.settings.strip_weeks) for p in places[:PAGE_SIZE]])
     return rows + _more_note(len(places))
 
 
@@ -569,10 +569,11 @@ def _place_head(data: SiteData, place: Place) -> str:
 def place_page(data: SiteData, place: Place) -> Page:
     """place/<slug>.html: the strip, what the records show, and every inspection with its source."""
     timeline = "".join(_timeline_item(data, i, n) for n, i in enumerate(place.inspections))
+    weeks = data.settings.strip_weeks
     body = (
         f"{_place_head(data, place)}\n"
         '<section class="record" aria-label="What the city\'s records show">'
-        f"{strip_html(place, data.today, big=True)}{months_html(data.today)}{legend_html()}"
+        f"{strip_html(place, data.today, weeks, big=True)}{months_html(data.today, weeks)}{legend_html()}"
         f'<p class="coverage">{esc(coverage_line(place))}</p>{_facts(data, place)}'
         f'<p class="quiet">{esc(NOT_A_CERTIFICATE)}</p></section>\n'
         f"{heading('Inspections', len(place.inspections))}\n"

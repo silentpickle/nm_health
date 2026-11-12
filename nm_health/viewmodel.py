@@ -13,6 +13,7 @@ from datetime import date, datetime, timedelta
 from nm_health.identity import establishment_slug, normalized_address
 from nm_health.model import Inspection, Violation
 from nm_health.rebuild import Report
+from nm_health.settings import DEFAULT_STRIP_WEEKS
 from nm_health.signals import (
     ALL_PESTS,
     HEADLINE_PESTS,
@@ -30,13 +31,14 @@ from nm_health.signals import (
     standing,
 )
 
-WEEKS = 52
+WEEKS = DEFAULT_STRIP_WEEKS  # strip span when the caller names none; the site passes settings.strip_weeks
 DAYS_PER_WEEK = 7
 WEEK_SPAN_DAYS = 6  # "this week" is the newest inspection date and the six days before it
 MONTH_SPAN_DAYS = 29  # "last month" is the newest inspection date and the 29 days before it: 30 days
 ARIA_LIST_MAX = 8  # dated statuses spelled out in a strip's accessible name
 RECENT_MAX = 3  # dated statuses in a row's phone-width text list
 QUOTE_CHARS = 180  # an observation quoted without labelled fields is cut at this length, on a word
+# Month-name spacing for a WEEKS-wide strip; scaled to the strip's width in weeks (columns get wider as weeks drop).
 MONTH_TICK_LEAD = 3  # no month name over the first columns: it would hang off the left edge
 MONTH_TICK_EVERY = 3  # every third month name stays visible on phones
 RED_GROUP = "Closure or unsatisfactory"
@@ -360,7 +362,7 @@ def group_places(inspections: tuple[Inspection, ...]) -> list[Place]:
     return places
 
 
-# ---------- 52-week strip ----------
+# ---------- Week strip (settings.strip_weeks wide) ----------
 
 
 @dataclass(frozen=True)
@@ -386,14 +388,14 @@ def _add(cell: Cell, inspection: Inspection) -> Cell:
     )
 
 
-def strip_cells(inspections: tuple[Inspection, ...], today: date) -> tuple[Cell, ...]:
-    """The last 52 weeks, oldest on the left, newest (this week) on the right."""
-    cells = [Cell() for _ in range(WEEKS)]
+def strip_cells(inspections: tuple[Inspection, ...], today: date, weeks: int = WEEKS) -> tuple[Cell, ...]:
+    """The last `weeks` weeks, oldest on the left, newest (this week) on the right."""
+    cells = [Cell() for _ in range(weeks)]
     for inspection in inspections:
         weeks_ago = week_index(today, inspection.date)
-        if not 0 <= weeks_ago < WEEKS:
+        if not 0 <= weeks_ago < weeks:
             continue
-        column = WEEKS - 1 - weeks_ago
+        column = weeks - 1 - weeks_ago
         cells[column] = _add(cells[column], inspection)
     return tuple(cells)
 
@@ -412,12 +414,12 @@ def strip_code(cells: tuple[Cell, ...]) -> str:
     return "".join(cell_code(c) for c in cells)
 
 
-def strip_label(inspections: tuple[Inspection, ...]) -> str:
+def strip_label(inspections: tuple[Inspection, ...], weeks: int = WEEKS) -> str:
     """The strip's accessible name: the newest dated statuses, then how many more."""
     listed = "; ".join(f"{nice_date(i.date)}: {i.status}" for i in inspections[:ARIA_LIST_MAX])
     extra = len(inspections) - ARIA_LIST_MAX
     more = f"; and {extra} more" if extra > 0 else ""
-    return f"Inspections in the last 52 weeks: {listed}{more}"
+    return f"Inspections in the last {weeks} weeks: {listed}{more}"
 
 
 def recent_text(inspections: tuple[Inspection, ...]) -> str:
@@ -425,17 +427,23 @@ def recent_text(inspections: tuple[Inspection, ...]) -> str:
     return f" {MIDDOT} ".join(f"{short_date(i.date)} {i.status}" for i in inspections[:RECENT_MAX])
 
 
-def month_ticks(today: date) -> list[tuple[str, bool]]:
+def tick_spacing(base: int, weeks: int) -> int:
+    """A month-tick spacing set for a WEEKS-wide strip, scaled to `weeks` columns (rounded up, at least 1)."""
+    return max(1, -(-base * weeks // WEEKS))
+
+
+def month_ticks(today: date, weeks: int = WEEKS) -> list[tuple[str, bool]]:
     """(month name or '', hidden on phones) for each strip column: a name where a new month starts."""
+    lead, every = tick_spacing(MONTH_TICK_LEAD, weeks), tick_spacing(MONTH_TICK_EVERY, weeks)
     ticks: list[tuple[str, bool]] = []
     last_month, shown = 0, 0
-    for column in range(WEEKS):
-        day = today - timedelta(days=(WEEKS - 1 - column) * DAYS_PER_WEEK)
+    for column in range(weeks):
+        day = today - timedelta(days=(weeks - 1 - column) * DAYS_PER_WEEK)
         fresh, last_month = day.month != last_month, day.month
-        if column < MONTH_TICK_LEAD or not fresh:
+        if column < lead or not fresh:
             ticks.append(("", False))
             continue
-        ticks.append((f"{day:%b}", shown % MONTH_TICK_EVERY != 0))
+        ticks.append((f"{day:%b}", shown % every != 0))
         shown += 1
     return ticks
 
