@@ -193,14 +193,10 @@ class TimeRange:
     span_days: int | None
     banner: str  # shown when no weekly report on file covers the newest date
     no_pests: str  # shown when the range's own inspections cite no roaches or rodents
-    reopened_title: str
-    no_reopened: str  # shown when no place reopened in the range
-    closed_before_start: bool  # count only closures from before the range began (This week: since the prior report)
 
 
-REOPENED_SINCE_PRIOR = "Reopened since the prior report"
+# Every range: a reopening dated inside it, on a later day than the closure (before the range or inside it).
 REOPENED_IN_RANGE = "Reopened after a closure"
-NO_REOPENED_SINCE_PRIOR = "No place closed before these dates reopened during them."
 NO_REOPENED_IN_RANGE = "No place reopened after a closure during these dates."
 WEEK_RANGE = TimeRange(
     "index.html",
@@ -208,9 +204,6 @@ WEEK_RANGE = TimeRange(
     WEEK_SPAN_DAYS,
     BANNER,
     NO_PESTS_IN_REPORT,
-    REOPENED_SINCE_PRIOR,
-    NO_REOPENED_SINCE_PRIOR,
-    closed_before_start=True,
 )
 MONTH_RANGE = TimeRange(
     "month.html",
@@ -218,9 +211,6 @@ MONTH_RANGE = TimeRange(
     MONTH_SPAN_DAYS,
     LONG_BANNER,
     NO_PESTS_IN_RANGE,
-    REOPENED_IN_RANGE,
-    NO_REOPENED_IN_RANGE,
-    closed_before_start=False,
 )
 ALL_RANGE = TimeRange(
     "all.html",
@@ -228,9 +218,6 @@ ALL_RANGE = TimeRange(
     None,
     LONG_BANNER,
     NO_PESTS_IN_RANGE,
-    REOPENED_IN_RANGE,
-    NO_REOPENED_IN_RANGE,
-    closed_before_start=False,
 )
 RANGES = (WEEK_RANGE, MONTH_RANGE, ALL_RANGE)
 
@@ -257,15 +244,14 @@ def _other_rows(data: SiteData, period: Period) -> str:
     return rows_axis_html(data.today, weeks) + rows + _more_note(len(places))
 
 
-def range_reopenings(data: SiteData, time_range: TimeRange, period: Period) -> list[Reopening]:
-    """Places reopened in the range after a closure (before the range began, for This week)."""
-    closed_before = period.start if time_range.closed_before_start else None
-    return reopenings(data.places, period.start, period.end, closed_before)
+def range_reopenings(data: SiteData, period: Period) -> list[Reopening]:
+    """Places reopened in the range after a closure on an earlier day, the closure before the range or inside it."""
+    return reopenings(data.places, period.start, period.end)
 
 
-def _reopened_section(data: SiteData, time_range: TimeRange, period: Period) -> str:
-    cards = [reopened_html(data, r) for r in range_reopenings(data, time_range, period)]
-    return heading(time_range.reopened_title, len(cards)) + _cards(cards, time_range.no_reopened)
+def _reopened_section(data: SiteData, period: Period) -> str:
+    cards = [reopened_html(data, r) for r in range_reopenings(data, period)]
+    return heading(REOPENED_IN_RANGE, len(cards)) + _cards(cards, NO_REOPENED_IN_RANGE)
 
 
 def _range_body(data: SiteData, time_range: TimeRange, period: Period) -> str:
@@ -277,7 +263,7 @@ def _range_body(data: SiteData, time_range: TimeRange, period: Period) -> str:
         "" if period.covered else f'<p class="banner">{esc(time_range.banner)}</p>',
         heading(RED_GROUP, len(red)),
         _cards(red, "None in the city's records for these dates."),
-        _reopened_section(data, time_range, period),
+        _reopened_section(data, period),
         _pest_section(period, time_range.no_pests),
         heading("Other inspections", len(period.other)),
         _other_rows(data, period),

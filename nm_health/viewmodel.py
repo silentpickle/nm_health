@@ -782,18 +782,18 @@ def _reopening(place: Place, spell: ClosedSpell) -> Reopening | None:
     return Reopening(place, spell, closure, reopening)
 
 
-def reopenings(places: list[Place], first: str, last: str, closed_before: str | None = None) -> list[Reopening]:
-    """Places reopened by an inspection dated first..last after a closure, newest reopening first.
+def _reopened_between(spell: ClosedSpell, first: str, last: str) -> bool:
+    """Reopened on a day first..last, a later day than the closure: closed and reopened the same day never counts."""
+    return spell.end is not None and first <= spell.end <= last and spell.start < spell.end
 
-    The closure may be any time before the reopening, or only before `closed_before` when given (This week: closed
-    before the week began, so in an earlier report on file, and still closed when it began).
-    """
+
+def reopenings(places: list[Place], first: str, last: str) -> list[Reopening]:
+    """Places reopened by an inspection dated first..last after a closure on an earlier day, newest reopening first."""
     found = [
         reopened
         for place in places
         for spell in place.spells
-        if spell.end is not None and first <= spell.end <= last
-        if closed_before is None or spell.start < closed_before
+        if _reopened_between(spell, first, last)
         for reopened in [_reopening(place, spell)]
         if reopened is not None
     ]

@@ -125,7 +125,7 @@ def reopened_json(data: SiteData) -> dict[str, list[list[object]]]:
     found: dict[str, list[list[object]]] = {}
     for time_range in RANGES:
         period = select_period(data.places, data.reports, time_range.span_days)
-        reopened = range_reopenings(data, time_range, period) if period else []
+        reopened = range_reopenings(data, period) if period else []
         found[time_range.file] = [_reopened_row(data, r) for r in reopened]
     return found
 

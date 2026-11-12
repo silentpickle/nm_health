@@ -15,6 +15,7 @@ import pytest
 
 from nm_health.model import Inspection
 from nm_health.rebuild import Rebuilt, Report
+from nm_health.site import reopened_json
 from nm_health.site_html import SiteData, site_data
 from nm_health.site_pages import ALL_RANGE, MONTH_RANGE, PAGE_SIZE, WEEK_RANGE, TimeRange, range_page, week_page
 from nm_health.viewmodel import RED_GROUP
@@ -227,17 +228,39 @@ def reopened_names(body: str) -> list[str]:
 @pytest.mark.parametrize(
     ("time_range", "names"),
     [
-        pytest.param(WEEK_RANGE, ["GAP", "FIRST DAY"], id="week_since_prior"),
+        pytest.param(WEEK_RANGE, ["OPENING DAY", "SAME WEEK", "GAP", "FIRST DAY"], id="week_in_range"),
         pytest.param(MONTH_RANGE, ["OPENING DAY", "SAME WEEK", "GAP", "FIRST DAY", "DAY BEFORE"], id="month_in_range"),
         pytest.param(ALL_RANGE, ["OPENING DAY", "SAME WEEK", "GAP", "FIRST DAY", "DAY BEFORE"], id="all_in_range"),
     ],
 )
 def test_reopened_section_edges(tmp_path: Path, time_range: TimeRange, names: list[str]) -> None:
-    """This week: closed before the week, reopened on its first day or later (not the day before).
+    """Every range: reopened on its first day or later (not the day before), the closure before or inside it.
 
-    Longer ranges also count a closure inside the range. A place with no reopening is never listed.
+    A place with no reopening is never listed.
     """
     assert reopened_names(body_for(tmp_path, reopened_edges(), time_range)) == names
+
+
+MONDAY, TUESDAY = "2026-10-26", "2026-10-27"
+
+
+@pytest.mark.parametrize("time_range", [WEEK_RANGE, MONTH_RANGE, ALL_RANGE], ids=["week", "month", "all"])
+def test_reopened_next_day_listed_same_day_not(tmp_path: Path, time_range: TimeRange) -> None:
+    """Closed Monday, reopened Tuesday: listed, This week included. Closed and reopened Monday: never listed.
+
+    LAST DAY reopened on the range's last (newest) day: listed.
+    """
+    inspections = (
+        at(visit(MONDAY, status=CLOSED), "NEXT DAY", COVERING),
+        at(visit(TUESDAY), "NEXT DAY", COVERING),
+        at(visit(MONDAY, status=CLOSED), "SAME DAY", COVERING),
+        at(visit(MONDAY, status=CONDITIONAL), "SAME DAY", COVERING),
+        at(visit("2026-10-30", status=CLOSED), "LAST DAY", COVERING),
+        at(visit("2026-10-31"), "LAST DAY", COVERING),
+    )
+    data = data_for(tmp_path, Rebuilt(inspections, (COVERING,)))
+    assert reopened_names(range_page(data, time_range).body) == ["LAST DAY", "NEXT DAY"]
+    assert [r[0] for r in reopened_json(data)[time_range.file]] == ["last-day-8-last-day-st", "next-day-8-next-day-st"]
 
 
 def test_reopened_card_states_days_and_sources(tmp_path: Path) -> None:
