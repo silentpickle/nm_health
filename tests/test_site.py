@@ -212,7 +212,7 @@ def test_email_and_phone_never_published(tmp_path: Path) -> None:
     site = build(tmp_path, visit("2026-10-29", leak))
     for path in [*pages(site), site / "places.json"]:
         text = path.read_text(encoding="utf-8")
-        assert "cabq.gov" not in text
+        assert "inspector@cabq.gov" not in text
         assert "768" not in text
     assert "[email removed]" in read(site, "place/test-cafe-100-central-ave-sw.html")
 
@@ -263,6 +263,38 @@ def test_landing_page_disclaimer_and_latest(tmp_path: Path) -> None:
     assert 'class="disclaimer"' in index
     assert "not endorsed by" in index
     assert "Latest weekly report on file: week ending" in index
+
+
+NEW_WINDOW = 'target="_blank" rel="noopener noreferrer"'
+CITY_RESULTS = "https://www.cabq.gov/environmentalhealth/food-safety/restaurant-inspection-results"
+CITY_MOST_RECENT = "https://www.cabq.gov/environmentalhealth/documents/chpd_main_inspection_report.pdf"
+
+
+def test_disclaimer_links_city_results_page(tmp_path: Path) -> None:
+    """The disclaimer points to the city's own results page, in a new window with no referrer."""
+    index = read(build(tmp_path, visit("2026-10-29", ROACHES)), "index.html")
+    assert f'<a href="{CITY_RESULTS}" {NEW_WINDOW}>' in index
+
+
+def test_recent_violation_links_most_recent(tmp_path: Path) -> None:
+    """A violation dated in the newest report's week gets a 'most recent' link to the city's current report."""
+    place = read(build(tmp_path, visit("2026-10-29", ROACHES)), "place/test-cafe-100-central-ave-sw.html")
+    assert f'<a href="{CITY_MOST_RECENT}" {NEW_WINDOW}>most recent</a>' in place
+
+
+def test_old_violation_has_no_most_recent_link(tmp_path: Path) -> None:
+    """A violation from an earlier week than the newest report gets no 'most recent' link."""
+    old_file = "2026-10-18_2026-10-24_def.pdf"
+    old_report = Report(old_file, "def", "2026-10-18", "2026-10-24", "test", "2026-10-28", "current", 2)
+    old_visit = replace(visit("2026-10-20", ROACHES), report_file=old_file)
+    settings = make_settings(tmp_path)
+    inspections = (visit("2026-10-29"), old_visit)
+    save_sources(settings, inspections)
+    shutil.copy(STAND_IN_PDF, settings.archive_dir / old_file)
+    write_site(Rebuilt(inspections, (old_report, REPORT)), settings)
+    place = read(settings.site_dir, "place/test-cafe-100-central-ave-sw.html")
+    assert "<q>Pest Type: Cockroach</q>" in place
+    assert CITY_MOST_RECENT not in place
 
 
 def test_data_page_lists_reports_and_front_page_links_it(tmp_path: Path) -> None:
