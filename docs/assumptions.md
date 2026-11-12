@@ -27,7 +27,9 @@ makes the declaration, the site repeats it. Incomplete is better than wrong, and
   inspection date and the six days before it), so it holds the same way when the newest week's report isn't on file
   yet. A closure and a reopening on the same calendar day never count, on any range: the place may not have shut its
   doors at all (the place page and its row flag still state both results). Each card gives both dates, the closure's
-  length as above, and links both reports' pages. `places.json` carries each page's list under
+  length as above, and links both reports' pages. A place reopened by an Unsatisfactory result is listed too, but its
+  card reads "Open again, still failing:" before the city's status, on a red card with a red chip; Approved and
+  Conditional reopenings read as before. `places.json`'s `reopened` rows end with `still_failing` (true / false). `places.json` carries each page's list under
   `reopened`, keyed by page file, for tracking.
 
 ## Checking the assumptions

@@ -117,6 +117,7 @@ def _reopened_row(data: SiteData, reopened: Reopening) -> list[object]:
         spell.days,
         spell.end_status,
         unbroken(spell.start, spell.end or spell.start, data.covered),
+        reopened.still_failing,
     ]
 
 
@@ -137,7 +138,8 @@ def places_json(data: SiteData) -> str:
     newest first (up to 8), how many more inspections, flags (1 roaches/rodents, 2 employee items, 4 a closure in force, 8 may be the same business as another place, 16 merged by permit with names that differ), latest closure start or "",
     [lat, lng] or null, reopened flag text or "" (viewmodel.reopened_flag)]. `statuses` lists [status, level] by index.
     `reopened` lists each time-range page's Reopened section, keyed by page file: [slug, closure date, reopening date,
-    days closed, reopening status, every day between in a report on file (else it may have reopened sooner)].
+    days closed, reopening status, every day between in a report on file (else it may have reopened sooner), still
+    failing (reopened by an Unsatisfactory result)].
     """
     statuses: dict[str, int] = {}
     rows = [_place_row(data, p, statuses) for p in data.places]

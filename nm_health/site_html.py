@@ -336,17 +336,27 @@ def notice_html(place: Place, inspection: Inspection, *, pest: bool) -> str:
     )
 
 
+STILL_FAILING = "Open again, still failing:"
+
+
+def _reopening_status(reopened: Reopening) -> str:
+    """The reopening result's chip; an Unsatisfactory one says the place is open but still failing."""
+    status = chip(reopened.reopening.status)
+    return f"{esc(STILL_FAILING)} {status}" if reopened.still_failing else status
+
+
 def reopened_html(data: SiteData, reopened: Reopening) -> str:
     """A reopened card: reopening date, name, address, the reopening status, how long it was closed, both sources."""
     place, closure, reopening = reopened.place, reopened.closure, reopened.reopening
+    failing = " failing" if reopened.still_failing else ""
     sources = (
         f"Closed {short_date(closure.date)}: {source_links(data, closure)}; "
         f"reopened {short_date(reopening.date)}: {source_links(data, reopening)}"
     )
     return (
-        f'<div class="notice reopened"><span class="eyebrow">{nice_date(reopening.date)}</span>'
+        f'<div class="notice reopened{failing}"><span class="eyebrow">{nice_date(reopening.date)}</span>'
         f'<a class="nm" href="{place_href(place)}#insp-{place.inspections.index(reopening)}">{esc(place.name)}</a>'
-        f'<span class="data muted">{esc(place.address)}</span><span>{chip(reopening.status)}</span>'
+        f'<span class="data muted">{esc(place.address)}</span><span>{_reopening_status(reopened)}</span>'
         f'<span class="quiet">{esc(closed_text(reopened.spell, data.covered))}</span>'
         f'<span class="src">Source: {sources}</span></div>'
     )

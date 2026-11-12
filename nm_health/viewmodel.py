@@ -752,6 +752,11 @@ class Reopening:
     closure: Inspection
     reopening: Inspection
 
+    @property
+    def still_failing(self) -> bool:
+        """Reopened by an Unsatisfactory result: open under a red sticker, not passed."""
+        return is_red(self.reopening.status)
+
 
 def _spell_inspection(place: Place, day: str | None, time: str | None, wanted: str | None) -> Inspection | None:
     """The oldest of the place's inspections on that day, at that time, with that status."""

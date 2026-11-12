@@ -291,3 +291,28 @@ def test_other_permit_passing_is_not_a_reopening(tmp_path: Path) -> None:
     newest = at(visit("2026-10-31"), "NEWEST", COVERING)
     body = week_page(data_for(tmp_path, Rebuilt((closed, other, newest), (OLDER, COVERING)))).body
     assert reopened_names(body) == []
+
+
+def test_reopened_by_unsatisfactory_reads_still_failing(tmp_path: Path) -> None:
+    """Reopened by Unsatisfactory: "Open again, still failing", a red chip and card. Reopened by Approved: as before."""
+    inspections = (
+        at(visit(MONDAY, status=CLOSED), "FAILING", COVERING),
+        at(visit(TUESDAY, status=FAILED), "FAILING", COVERING),
+        at(visit(MONDAY, status=CLOSED), "PASSING", COVERING),
+        at(visit(TUESDAY), "PASSING", COVERING),
+    )
+    data = data_for(tmp_path, Rebuilt(inspections, (COVERING,)))
+    body = week_page(data).body
+    assert (
+        '<div class="notice reopened failing"><span class="eyebrow">Oct 27, 2026</span>'
+        '<a class="nm" href="place/failing-7-failing-st.html#insp-0">FAILING</a>'
+        '<span class="data muted">7 FAILING ST</span>'
+        f'<span>Open again, still failing: <span class="chip r">{FAILED}</span></span>'
+    ) in body
+    assert (
+        '<div class="notice reopened"><span class="eyebrow">Oct 27, 2026</span>'
+        '<a class="nm" href="place/passing-7-passing-st.html#insp-0">PASSING</a>'
+        '<span class="data muted">7 PASSING ST</span><span><span class="chip g">Approved</span></span>'
+    ) in body
+    rows = {row[0]: row[-1] for row in reopened_json(data)["index.html"]}
+    assert rows == {"failing-7-failing-st": True, "passing-7-passing-st": False}

@@ -415,6 +415,9 @@ h2 .n {
 .notice.reopened {
   border-top-color: var(--ok-cell);
 }
+.notice.reopened.failing {
+  border-top-color: var(--bad-cell);
+}
 .notice.reopened a.nm {
   color: inherit;
 }
