@@ -212,10 +212,19 @@ which one leads.
 | Most frequent | tie 1–1 | Ties are common for new places |
 | Earliest | El Branco | A real rename on the same permit keeps the old name |
 | Feed's DBA | El Branco | The feed would be making a statement, which the rules forbid… |
-| **Feed's DBA only to choose among names the reports printed**, else most frequent, ties to the most recent | **El Branco** | Uses the feed to pick, never to supply a word. Owner's call (§5) |
+| Feed's DBA only to choose among names the reports printed | El Branco | Uses the feed to pick, never to supply a word. Built in `cb1ef28`, then withdrawn |
 
-Display: **"El Branco Restaurant"**, with a line under the address: *"Also listed in the city's reports as: Maria
-Cabrera (Nov 3, 2026)"*, linked to that report page. Every name printed stays visible and sourced.
+**Owner's decision (2026-11-12): the name comes only from the PDF.** A place is shown under its title as printed
+in the latest report that lists it: name and address exactly as printed, with no spelling corrections, no
+normalized street type or quadrant, and no outside source. The title block, including the permit type, permit
+number and Operational Status, is what the city states, and the site repeats the city's statement at face value.
+Letting the feed choose, even only among printed names, would make the feed a source for the place's heading. The
+feed's company and DBA fields stay unused for naming until the trade-name vs business-name question (§5, #3) is
+settled.
+
+Display for El Branco: **"Maria Cabrera"**, at "100 Coors AVE SW" exactly as the Nov 1–7 report prints it, with a
+neutral line under it: *"Also printed as: El Branco Restaurant (Oct 30, 2026)"*, linked to that inspection on the
+page. Every printed name stays visible and sourced. The URL keeps the earliest name's slug (§3.5).
 
 ### 3.4 Interaction with "Status today per permit" (`9dddd45`)
 
@@ -252,11 +261,11 @@ of the 20 judged slugs is in a merged group or a CAN'T TELL pair today.
    share a permit, an address, or a name and street number). It joins only the **same** pairs and records each
    **CAN'T TELL** pair on both sides. `viewmodel.group_places` builds places from these groups, and the site, audit,
    spot-check and judge all go through it.
-3. **The shown name**: of the names the reports printed for the group, the one the feed's trade (DBA) name confirms
-   for any of the group's inspections. The feed only chooses; it never supplies a word. With no confirmation, the
-   most recent printed name wins, as before the change. Under the shown name, the place
-   page says *"Also listed in the city's reports as: Maria Cabrera"*. To make this possible, each inspection keeps
-   the feed's DBA for the same (ID, date) as `feed_name`. It is used for nothing else.
+3. **The shown title** (owner's decision, §3.3): the name and address as printed in the latest report that lists
+   the place, at face value. Under it, each other printed name, with the date of its latest inspection: *"Also
+   printed as: El Branco Restaurant (Oct 30, 2026)"*. The feed plays no part in naming; it still gives map
+   coordinates and, in the audit only, the status-only records. (An earlier version let the feed's DBA choose among
+   printed names, carried on each inspection as `feed_name`; both are removed.)
 4. **The URL** stays the slug of the group's earliest key, so El Branco keeps
    `el-branco-restaurant-100-coors-ave-sw`. The other keys' URLs stop being written. **Redirects are deferred**
    (§5).
@@ -264,7 +273,7 @@ of the 20 judged slugs is in a merged group or a CAN'T TELL pair today.
    way we come back and really deal with it". This applies to a **same** merge whose names still differ once
    punctuation and spacing are removed. ("PAPA JOHN’S" against "PAPA JOHNS" is not a difference.) Such a place
    carries a durable, low-key marker:
-   - **Place page**: a quiet note, *"Merged by permit; names differ."*, next to the "Also listed as" line.
+   - **Place page**: a quiet note, *"Merged by permit; names differ."*, next to the "Also printed as" line.
    - **`places.json`**: flag bit `FLAG_MERGED_BY_PERMIT = 16`, mirrored in `shared.js` as `mergedByPermit`.
    - **Audit**: a `place_identity` check that lists every such merge (permit, names, dates), alongside every
      CAN'T TELL pair.
@@ -284,7 +293,7 @@ of the 20 judged slugs is in a merged group or a CAN'T TELL pair today.
 
 | Case | Expected |
 |---|---|
-| Same permit, same address, unrelated names (El Branco / Maria Cabrera) | same; shown as El Branco when the feed confirms it; "also listed as" line; review marker |
+| Same permit, same address, unrelated names (El Branco / Maria Cabrera) | same; shown under the latest printed title (Maria Cabrera); "Also printed as" line; review marker |
 | Same permit, same address, apostrophe or spacing only (PAPA JOHN’S / PAPA JOHNS) | same; no review marker |
 | Same permit, different address (a misfiled row, as PT0155329 was before the parser fix) | CAN'T TELL, never merged |
 | One key, several permits (Albertsons, Quick Track 93's swapped rows) | one key, as today; `standing` unchanged |
@@ -310,15 +319,15 @@ of the 20 judged slugs is in a merged group or a CAN'T TELL pair today.
 
 ## 5. Owner's answers, and what stays open
 
-1. **Shown name**: yes, the feed's DBA chooses among the names the reports printed, with an "Also listed in the
-   city's reports as" line. Built.
+1. **Shown name**: first answered "the feed's DBA chooses among printed names", then reversed. The name comes only
+   from the PDF: the latest printed title at face value, with "Also printed as" for the others (§3.3). Built.
 2. **Same permit, same address, unrelated names**: merge automatically, and mark the merge so it gets dealt with
    properly (the review marker in §4.5). Built.
 3. **Open design question: a trade name and a legal/business name for every place.** The owner is still deciding;
    nothing is built. If two fields are adopted, my view is:
-   - *Trade name*: the name people know. It comes from the report where the report prints "DBA". Otherwise it is
-     the report-printed name the feed's DBA confirms. Failing both, it is the feed's DBA itself, which would be the
-     feed's first statement on the site, so it would need its own label ("listed in the city's status feed as").
+   - *Trade name*: the name people know. It comes from the report where the report prints "DBA". Otherwise only the
+     feed has it, which would be the feed's first statement on the site, so it would need its own label ("listed in
+     the city's status feed as"). Under the owner's face-value rule, the heading would stay the printed title.
    - *Legal/business name*: the report's pre-"DBA" part, or the feed's company column.
    - *Shown*: the trade name as the heading, with the legal name on a smaller line, as `legal_name` is today.
    - *Search*: both names, plus every name the reports printed. This would fix the 8 places where the site shows a

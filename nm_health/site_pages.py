@@ -599,19 +599,19 @@ def _city_status(data: SiteData, place: Place) -> str:
     )
 
 
-ALSO_LISTED = "Also listed in the city's reports as:"
+ALSO_PRINTED = "Also printed as:"
 MERGED_BY_PERMIT = "Merged by permit; names differ."
 
 
-def _also_listed(place: Place) -> str:
+def _also_printed(place: Place) -> str:
     """The other names the reports printed for this place, each linked to its newest inspection, and the review note."""
-    if not place.also_listed:
+    if not place.also_printed:
         return ""
     names = ", ".join(
         f'<a href="#insp-{place.inspections.index(i)}">{esc(i.name)}</a> ({esc(nice_date(i.date))})'
-        for i in place.also_listed
+        for i in place.also_printed
     )
-    return f'<p class="also">{esc(ALSO_LISTED)} {names}. <span class="quiet">{esc(MERGED_BY_PERMIT)}</span></p>'
+    return f'<p class="also">{esc(ALSO_PRINTED)} {names}. <span class="quiet">{esc(MERGED_BY_PERMIT)}</span></p>'
 
 
 CANT_TELL_NOTE = "The city's records don't say whether they are one business, so the site keeps them apart."
@@ -630,7 +630,7 @@ def _place_head(data: SiteData, place: Place) -> str:
     return (
         f'<div class="place-head"><a href="../places.html">{LEFT_ARROW} All places</a>'
         f'<h1 class="view">{esc(place.name)}</h1><div class="addr">{esc(place.address + legal)}</div>'
-        f"{_also_listed(place)}{_maybe_same(place)}{_city_status(data, place)}</div>"
+        f"{_also_printed(place)}{_maybe_same(place)}{_city_status(data, place)}</div>"
     )
 
 

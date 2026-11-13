@@ -170,7 +170,7 @@ def _identity_claims(place: Place) -> list[str]:
     claims = [unclear] if place.maybe_same else []
     if not place.merged_by_permit:
         return claims
-    others = ", ".join(f"{i.name} ({i.date})" for i in place.also_listed)
+    others = ", ".join(f"{i.name} ({i.date})" for i in place.also_printed)
     claim = (
         f"One place (merged by permit; names differ, marked for review): the reports give {place.name} and {others} "
         f"the same permit at {place.address}, so the site shows them as one place under {place.name}."

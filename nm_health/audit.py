@@ -371,7 +371,7 @@ def check_long_closures(data: AuditData) -> CheckResult:
 
 
 def _merged_line(place: Place) -> str:
-    others = "; ".join(f"{i.name} ({i.date})" for i in place.also_listed)
+    others = "; ".join(f"{i.name} ({i.date})" for i in place.also_printed)
     permits = ", ".join(sorted({p for i in place.inspections if (p := permit_of(i)) is not None}))
     return f"{place.name}, {place.address} (permit {permits}): the reports also print {others}"
 

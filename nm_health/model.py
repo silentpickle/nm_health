@@ -49,6 +49,3 @@ class Inspection:
     # The weekly report's own "Operational Status" (Open / Closed) on the permit line above this inspection's row;
     # None when the report prints no permit line for it.
     operational_status: str | None = None
-    # The status feed's trade (DBA) name for this same inspection (ID + date). It only chooses which of the names the
-    # reports printed a place is shown under (identity.shown_name); the site never prints it.
-    feed_name: str | None = None

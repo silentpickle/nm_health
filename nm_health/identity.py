@@ -3,7 +3,7 @@
 
 A place starts as a key: normalized name + normalized address (establishment_slug). Two keys are one place when the
 records show it: the same permit at the same address (docs/place-identity.md). Names are never compared for
-likeness, and the status feed never decides; its trade name only chooses which printed name a place is shown under.
+likeness, and the status feed never decides. A place is shown under its title as the latest report printed it.
 """
 
 import re
@@ -253,14 +253,12 @@ def _printed(newest_first: tuple[Inspection, ...]) -> tuple[Inspection, ...]:
     return tuple(i for i in newest_first if i.has_details) or newest_first
 
 
-def shown_name(newest_first: tuple[Inspection, ...]) -> str:
-    """The printed name the feed's trade name confirms, most recent first; else the most recent printed name."""
-    confirmed = {compact_name(i.feed_name) for i in newest_first if i.feed_name}
-    printed = _printed(newest_first)
-    return next((i.name for i in printed if compact_name(i.name) in confirmed), printed[0].name)
+def title(newest_first: tuple[Inspection, ...]) -> Inspection:
+    """The inspection whose printed title (name, address) the place is shown under: the latest a report prints."""
+    return _printed(newest_first)[0]
 
 
-def also_listed(newest_first: tuple[Inspection, ...], shown: str) -> tuple[Inspection, ...]:
+def also_printed(newest_first: tuple[Inspection, ...], shown: str) -> tuple[Inspection, ...]:
     """The newest inspection printed under each other name (one that differs beyond case and punctuation)."""
     seen = {compact_name(shown)}
     found: list[Inspection] = []

@@ -10,9 +10,13 @@ makes the declaration, the site repeats it. Incomplete is better than wrong, and
   report prints a typo date, "1/29/2026" in its Jan 27-31, 2025 week; it stays off).
 - A place's status is the city's own "Operational Status" line for each permit, quoted from the latest report that
   lists it, followed by the latest result in the reports on file.
+- A place's name and address are its title as printed in the latest report that lists it, at face value: no spelling
+  fixed, no street type or quadrant normalized, nothing from another source. Records printed under other names are
+  one place when the reports give them the same permit at one address; the page then lists each other name ("Also
+  printed as: …", with its date) and marks the merge for review (docs/place-identity.md).
 - The status feed makes no statement and is not affiliated with the weekly reports. It has no document a reader can
   open, and it lists routine inspections only: no corrective-action visits and no complaint inspections. The site
-  uses it for one thing, the coordinates of map dots (a location anyone can check against the city's system today).
+  uses it for one thing, the coordinates of map dots (never for a name) (a location anyone can check against the city's system today).
   Its start times, violation counts and feed-only inspections stay out of every page; same-day order therefore falls
   back to the untimed rule (a failure is assumed to come first). Reason: once a place passes, the inspector leaves, so a pass
   is the last word of the day; a failure the same day came before it, and the place was fixed and re-inspected. `nm-health audit` still reads the full feed to

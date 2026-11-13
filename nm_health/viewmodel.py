@@ -9,7 +9,7 @@ import re
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 
-from nm_health.identity import also_listed, group, normalized_address, shown_name
+from nm_health.identity import also_printed, group, title
 from nm_health.model import Inspection, Violation
 from nm_health.rebuild import Report
 from nm_health.settings import DEFAULT_STRIP_WEEKS
@@ -264,7 +264,7 @@ class Place:
     spells: tuple[ClosedSpell, ...] = ()  # every closure and what reopened it, oldest first
     standing: tuple[Inspection, ...] = ()  # results still in force, one per permit as far as known, oldest first
     # The newest inspection printed under each other name: places joined by permit (identity.group).
-    also_listed: tuple[Inspection, ...] = ()
+    also_printed: tuple[Inspection, ...] = ()
     # (slug, name) of each place the records can't tell apart from this one: kept apart, flagged (identity.group).
     maybe_same: tuple[tuple[str, str], ...] = ()
 
@@ -276,7 +276,7 @@ class Place:
     @property
     def merged_by_permit(self) -> bool:
         """Records under different names joined because they share a permit at this address: due a review."""
-        return bool(self.also_listed)
+        return bool(self.also_printed)
 
     @property
     def latest(self) -> Inspection:
@@ -344,20 +344,19 @@ def build_place(slug: str, inspections: list[Inspection]) -> Place:
     """One place from its inspections (any order); newest first, same-day ones by the feed's time."""
     ordered = tuple(_redacted(i) for i in reversed(chronological(tuple(inspections))))
     spells = tuple(closed_spells(ordered))
-    latest = ordered[0]
-    name = shown_name(ordered)
+    printed = title(ordered)
     return Place(
         slug=slug,
-        name=name,
+        name=printed.name,
         legal_name=next((i.legal_name for i in ordered if i.legal_name), None),
-        address=normalized_address(latest.address),
+        address=printed.address.strip(),
         lat_lng=_lat_lng(ordered),
         inspections=ordered,
         closures=_closures(ordered, spells),
         pests=_citations(ordered),
         spells=spells,
         standing=tuple(standing(ordered)),
-        also_listed=also_listed(ordered, name),
+        also_printed=also_printed(ordered, printed.name),
     )
 
 
