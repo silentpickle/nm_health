@@ -29,11 +29,13 @@ from nm_health.site_html import (
     strip_html,
 )
 from nm_health.viewmodel import (
+    CLOSED_GROUP,
     MAYBE_SAME,
     MIDDOT,
     MONTH_SPAN_DAYS,
     RED_GROUP,
     TAG_LABEL,
+    UNSATISFACTORY_GROUP,
     WEEK_SPAN_DAYS,
     ClosureRun,
     Period,
@@ -85,7 +87,8 @@ MAP_NOTE = (
 MAP_LEGEND = (
     ("--ok-cell", False, "Approved"),
     ("--warn-cell", False, "Conditional approved"),
-    ("--bad-cell", False, RED_GROUP),
+    ("--bad-cell", False, CLOSED_GROUP),
+    ("--unsat-cell", False, UNSATISFACTORY_GROUP),
     ("--surface", True, "Roaches or rodents cited in notes on file"),
 )
 NOT_A_CERTIFICATE = "An inspection reports what one inspector found on one day. No citation is not a certification."
@@ -256,13 +259,16 @@ def _reopened_section(data: SiteData, period: Period) -> str:
 
 def _range_body(data: SiteData, time_range: TimeRange, period: Period) -> str:
     red = [notice_html(p, i, pest=False) for p, i in period.red]
+    unsatisfactory = [notice_html(p, i, pest=False) for p, i in period.unsatisfactory]
     parts = [
         _range_head(time_range),
         latest_report_html(data),
         f'<p class="eyebrow">Inspections {date_span(period.start, period.end)}</p>',
         "" if period.covered else f'<p class="banner">{esc(time_range.banner)}</p>',
-        heading(RED_GROUP, len(red)),
+        heading(CLOSED_GROUP, len(red)),
         _cards(red, "None in the city's records for these dates."),
+        heading(UNSATISFACTORY_GROUP, len(unsatisfactory)),
+        _cards(unsatisfactory, "None in the city's records for these dates."),
         _reopened_section(data, period),
         _pest_section(period, time_range.no_pests),
         heading("Other inspections", len(period.other)),

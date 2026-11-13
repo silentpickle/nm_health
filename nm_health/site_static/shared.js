@@ -48,14 +48,17 @@ const CELL_CLASSES = {
   g: "g",
   y: "y",
   r: "r",
+  o: "o",
   n: "n2",
   G: "g so",
   Y: "y so",
   R: "r so",
+  O: "o so",
   N: "n2 so",
   1: "g p",
   2: "y p",
   3: "r p",
+  4: "o p",
   0: "n2 p",
 };
 

@@ -18,7 +18,7 @@ from nm_health.rebuild import Rebuilt, Report
 from nm_health.site import reopened_json
 from nm_health.site_html import SiteData, site_data
 from nm_health.site_pages import ALL_RANGE, MONTH_RANGE, PAGE_SIZE, WEEK_RANGE, TimeRange, range_page, week_page
-from nm_health.viewmodel import RED_GROUP
+from nm_health.viewmodel import CLOSED_GROUP
 from tests.test_archive import make_settings
 from tests.test_viewmodel import CLOSED, CONDITIONAL, FAILED, ROACHES, report, visit
 
@@ -172,7 +172,7 @@ def test_all_time_page_lists_older_closures(tmp_path: Path) -> None:
     """All time reaches the oldest inspection on file, closures and pest citations included."""
     body = body_for(tmp_path, month_edges(), ALL_RANGE)
     assert "Inspections Sep 30 \u2013 Oct 30, 2026</p>" in body
-    assert f'{RED_GROUP}<span class="n">1</span>' in body
+    assert f'{CLOSED_GROUP}<span class="n">1</span>' in body
     assert 'Roaches or rodents cited<span class="n">2</span>' in body
 
 
@@ -190,7 +190,7 @@ def test_range_cards_capped(tmp_path: Path) -> None:
     many = tuple(at(visit("2026-10-30", status=CLOSED), f"PLACE {n:03d}", COVERING) for n in range(PAGE_SIZE + 1))
     body = body_for(tmp_path, Rebuilt(many, (COVERING,)), ALL_RANGE)
     assert body.count('<a class="notice"') == PAGE_SIZE
-    assert f'{RED_GROUP}<span class="n">{PAGE_SIZE + 1}</span>' in body
+    assert f'{CLOSED_GROUP}<span class="n">{PAGE_SIZE + 1}</span>' in body
     assert f'<p class="note">Newest {PAGE_SIZE} shown.' in body
 
 
@@ -294,7 +294,7 @@ def test_other_permit_passing_is_not_a_reopening(tmp_path: Path) -> None:
 
 
 def test_reopened_by_unsatisfactory_reads_still_failing(tmp_path: Path) -> None:
-    """Reopened by Unsatisfactory: "Open again, still failing", a red chip and card. Reopened by Approved: as before."""
+    """Reopened by Unsatisfactory: "Open again, still failing", a dark-orange chip and card. Reopened by Approved: as before."""
     inspections = (
         at(visit(MONDAY, status=CLOSED), "FAILING", COVERING),
         at(visit(TUESDAY, status=FAILED), "FAILING", COVERING),
@@ -307,7 +307,7 @@ def test_reopened_by_unsatisfactory_reads_still_failing(tmp_path: Path) -> None:
         '<div class="notice reopened failing"><span class="eyebrow">Oct 27, 2026</span>'
         '<a class="nm" href="place/failing-7-failing-st.html#insp-0">FAILING</a>'
         '<span class="data muted">7 FAILING ST</span>'
-        f'<span>Open again, still failing: <span class="chip r">{FAILED}</span></span>'
+        f'<span>Open again, still failing: <span class="chip o">{FAILED}</span></span>'
     ) in body
     assert (
         '<div class="notice reopened"><span class="eyebrow">Oct 27, 2026</span>'
