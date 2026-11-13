@@ -61,7 +61,7 @@ function flags(place) {
   }
   if (place.reopened) {
     out.push(el("span", { class: "flag", text: place.reopened }));
-  } else if (place.closure && latest?.level !== "r") {
+  } else if (place.closure && latest?.level !== "r" && latest?.level !== "o") {
     out.push(
       el("span", {
         class: "flag",

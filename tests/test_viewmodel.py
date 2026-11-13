@@ -283,7 +283,7 @@ def test_notice_count_text(inspection: Inspection, expected: str) -> None:
         pytest.param((visit("2026-11-09", status=CLOSED),), "r", id="closure_notes"),
         pytest.param((visit("2026-11-09", status="Non-Graded"),), "n", id="other_status"),
         pytest.param((visit("2026-11-09", notes=False),), "G", id="approved_feed"),
-        pytest.param((visit("2026-11-09", status=FAILED, notes=False),), "R", id="unsatisfactory_feed"),
+        pytest.param((visit("2026-11-09", status=FAILED, notes=False),), "O", id="unsatisfactory_feed"),
         pytest.param((visit("2026-11-09", ROACHES),), "1", id="approved_pests"),
         pytest.param((visit("2026-11-09", ROACHES, status=CLOSED),), "3", id="closure_pests"),
         pytest.param((visit("2026-11-09", FLIES),), "g", id="flies_unmarked"),
@@ -402,7 +402,7 @@ def test_month_ticks_whole_row(today: date, row: str) -> None:
 @pytest.mark.parametrize(
     ("status", "expected"),
     [
-        pytest.param(FAILED, "r", id="unsatisfactory"),
+        pytest.param(FAILED, "o", id="unsatisfactory"),
         pytest.param("Immediate Closure - Imminent Health Hazard", "r", id="closure"),
         pytest.param(CONDITIONAL, "y", id="conditional"),
         pytest.param(APPROVED, "g", id="approved"),

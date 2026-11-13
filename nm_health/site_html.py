@@ -12,10 +12,14 @@ from datetime import date, timedelta
 from nm_health.model import Inspection
 from nm_health.rebuild import Rebuilt, Report, permit_line_pages, report_text
 from nm_health.settings import Settings
+from nm_health.signals import is_red
 from nm_health.viewmodel import (
     CELL_CLASSES,
+    CLOSED_GROUP,
+    LEVEL_UNSATISFACTORY,
     MIDDOT,
     RED_GROUP,
+    UNSATISFACTORY_GROUP,
     Coverage,
     Place,
     Reopening,
@@ -265,7 +269,8 @@ def legend_html() -> str:
     keys = (
         ("g", "Approved"),
         ("y", "Conditional approved"),
-        ("r", RED_GROUP),
+        ("r", CLOSED_GROUP),
+        ("o", UNSATISFACTORY_GROUP),
         ("g so", "Status only (no inspector notes on file)"),
         ("", "No inspection"),
         ("g p", "Roaches or rodents cited"),
@@ -285,7 +290,7 @@ def _row_flags(place: Place, covered: Coverage) -> str:
     reopened = reopened_flag(place, covered)
     if reopened:
         flags.append(f'<span class="flag">{esc(reopened)}</span>')
-    elif place.closures and level(place.latest.status) != "r":
+    elif place.closures and not is_red(place.latest.status):
         start = short_date(place.closures[-1].episode.start)
         flags.append(f'<span class="flag">{esc(RED_GROUP)} {start}</span>')
     maybe = maybe_same_text(place)
@@ -327,7 +332,7 @@ def notice_html(place: Place, inspection: Inspection, *, pest: bool) -> str:
     """A This-week card: date, name, address, status, and either the inspector's pest words or the count."""
     quote = notice_quote(place, inspection) if pest else None
     why = f"<q>{esc(quote)}</q>" if quote else f'<span class="quiet">{esc(notice_count_text(inspection))}</span>'
-    kind = " pest" if pest else ""
+    kind = (" pest" if pest else "") + (" unsat" if level(inspection.status) == LEVEL_UNSATISFACTORY else "")
     return (
         f'<a class="notice{kind}" href="{place_href(place)}#insp-{place.inspections.index(inspection)}">'
         f'<span class="eyebrow">{nice_date(inspection.date)}</span>'

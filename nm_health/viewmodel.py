@@ -41,6 +41,8 @@ QUOTE_CHARS = 180  # an observation quoted without labelled fields is cut at thi
 MONTH_TICK_LEAD = 3  # no month name over the first columns: it would hang off the left edge
 MONTH_TICK_EVERY = 3  # every third month name stays visible on phones
 RED_GROUP = "Closure or unsatisfactory"
+CLOSED_GROUP = "Closed"
+UNSATISFACTORY_GROUP = "Unsatisfactory"
 REDACTED_EMAIL = "[email removed]"
 REDACTED_PHONE = "[phone removed]"
 ELLIPSIS = "\u2026"
@@ -78,30 +80,53 @@ TAG_LABEL = {
 }
 EMPLOYEE_TAG = "employee_items"
 
-# Status levels: r = closure or unsatisfactory, y = conditional, g = approved, n = any other status.
-LEVEL_RED, LEVEL_CONDITIONAL, LEVEL_APPROVED, LEVEL_OTHER, LEVEL_NONE = "r", "y", "g", "n", ""
+# Status levels: r = closure, o = unsatisfactory (open, failing), y = conditional, g = approved, n = any other status.
+LEVEL_RED, LEVEL_UNSATISFACTORY, LEVEL_CONDITIONAL, LEVEL_APPROVED, LEVEL_OTHER, LEVEL_NONE = (
+    "r",
+    "o",
+    "y",
+    "g",
+    "n",
+    "",
+)
 CONDITIONAL_WORD = "conditional"
 # A week's cell shows its worst status. Any status outranks "no inspection".
-LEVEL_RANK = {LEVEL_NONE: 0, LEVEL_OTHER: 1, LEVEL_APPROVED: 2, LEVEL_CONDITIONAL: 3, LEVEL_RED: 4}
+LEVEL_RANK = {
+    LEVEL_NONE: 0,
+    LEVEL_OTHER: 1,
+    LEVEL_APPROVED: 2,
+    LEVEL_CONDITIONAL: 3,
+    LEVEL_UNSATISFACTORY: 4,
+    LEVEL_RED: 5,
+}
 # One character per strip cell (places.json; places.js decodes it with the same table).
 # Lowercase: inspector notes on file. Uppercase: status only. Digit: roaches or rodents cited (notes always on file).
 NO_INSPECTION_CODE = "."
-NOTES_CODES = {LEVEL_APPROVED: "g", LEVEL_CONDITIONAL: "y", LEVEL_RED: "r", LEVEL_OTHER: "n"}
-STATUS_ONLY_CODES = {LEVEL_APPROVED: "G", LEVEL_CONDITIONAL: "Y", LEVEL_RED: "R", LEVEL_OTHER: "N"}
-PEST_CODES = {LEVEL_APPROVED: "1", LEVEL_CONDITIONAL: "2", LEVEL_RED: "3", LEVEL_OTHER: "0"}
+NOTES_CODES = {LEVEL_APPROVED: "g", LEVEL_CONDITIONAL: "y", LEVEL_UNSATISFACTORY: "o", LEVEL_RED: "r", LEVEL_OTHER: "n"}
+STATUS_ONLY_CODES = {
+    LEVEL_APPROVED: "G",
+    LEVEL_CONDITIONAL: "Y",
+    LEVEL_UNSATISFACTORY: "O",
+    LEVEL_RED: "R",
+    LEVEL_OTHER: "N",
+}
+PEST_CODES = {LEVEL_APPROVED: "1", LEVEL_CONDITIONAL: "2", LEVEL_RED: "3", LEVEL_UNSATISFACTORY: "4", LEVEL_OTHER: "0"}
 CELL_CLASSES = {
     NO_INSPECTION_CODE: "",
     "g": "g",
     "y": "y",
     "r": "r",
+    "o": "o",
     "n": "n2",
     "G": "g so",
     "Y": "y so",
     "R": "r so",
+    "O": "o so",
     "N": "n2 so",
     "1": "g p",
     "2": "y p",
     "3": "r p",
+    "4": "o p",
     "0": "n2 p",
 }
 
@@ -197,9 +222,11 @@ def thousands(count: int) -> str:
 
 
 def level(status: str) -> str:
-    """The status's placard level: r (closure/unsatisfactory), y (conditional), g (approved), n (other)."""
-    if is_red(status):
+    """The status's placard level: r (closure), o (unsatisfactory), y (conditional), g (approved), n (other)."""
+    if is_closed(status):
         return LEVEL_RED
+    if is_red(status):
+        return LEVEL_UNSATISFACTORY
     if CONDITIONAL_WORD in status.lower():
         return LEVEL_CONDITIONAL
     if is_pass(status):
@@ -693,13 +720,18 @@ class Period:
 
     @property
     def red(self) -> list[Visit]:
-        """Closure or unsatisfactory results."""
+        """Closure results."""
         return [v for v in self.visits if level(v[1].status) == LEVEL_RED]
+
+    @property
+    def unsatisfactory(self) -> list[Visit]:
+        """Unsatisfactory results: the place stays open."""
+        return [v for v in self.visits if level(v[1].status) == LEVEL_UNSATISFACTORY]
 
     @property
     def other(self) -> list[Visit]:
         """Every other result."""
-        return [v for v in self.visits if level(v[1].status) != LEVEL_RED]
+        return [v for v in self.visits if level(v[1].status) not in (LEVEL_RED, LEVEL_UNSATISFACTORY)]
 
 
 def select_period(places: list[Place], reports: tuple[Report, ...], span_days: int | None) -> Period | None:
