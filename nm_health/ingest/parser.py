@@ -247,7 +247,9 @@ class InspectionReportParser:
         current_est = None
         current_permit = None
 
-        est_re = re.compile(r"^([A-Za-z0-9\s#&\'\.\,\-]+?)\s+-\s+(\d+[A-Za-z0-9\s\,\-\.#/]+)$")
+        # Names may carry typographic apostrophes ("PAPA JOHN\u2019S PIZZA"): a header that fails here files its rows
+        # under the place listed before it.
+        est_re = re.compile(r"^([A-Za-z0-9\s#&\'\u2018\u2019\.\,\-]+?)\s+-\s+(\d+[A-Za-z0-9\s\,\-\.#/]+)$")
         permit_re = re.compile(
             r"^(.*?)\(Permit\s*#\s*-\s*([A-Za-z0-9-]+)\)\s*-\s*Operational\s*Status\s*[-–]\s*([A-Za-z]+)",  # noqa: RUF001
             re.IGNORECASE,

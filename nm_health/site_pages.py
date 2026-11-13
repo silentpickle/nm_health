@@ -1,7 +1,8 @@
 # Copyright (c) 2026 nm_health contributors
-"""The site's pages as HTML bodies: This week, Places, Map, About, and one place's whole record."""
+"""The site's pages as HTML bodies: This week (and Last month, All time), Places, Map, About, one place's record."""
 
 from collections.abc import Callable
+from dataclasses import dataclass
 
 from nm_health.model import Inspection, Violation
 from nm_health.rebuild import Report
@@ -19,19 +20,26 @@ from nm_health.site_html import (
     months_html,
     notice_html,
     plain_row_html,
+    reopened_html,
     row_html,
+    rows_axis_html,
     rows_html,
     source_links,
+    strip_axis_html,
     strip_html,
 )
 from nm_health.viewmodel import (
+    MAYBE_SAME,
     MIDDOT,
+    MONTH_SPAN_DAYS,
     RED_GROUP,
     TAG_LABEL,
+    WEEK_SPAN_DAYS,
     ClosureRun,
+    Period,
     PestCitation,
     Place,
-    Week,
+    Reopening,
     amended_text,
     closed_text,
     closure_end,
@@ -47,8 +55,9 @@ from nm_health.viewmodel import (
     permit_lines,
     pest_reading,
     plural,
+    reopenings,
     report_text,
-    select_week,
+    select_period,
     short_date,
     source_label,
     thousands,
@@ -59,12 +68,14 @@ from nm_health.viewmodel import (
 )
 
 PAGE_SIZE = 60  # rows shown before "Show more" (places.js pages the same way)
+PLACES_AXIS_ID = "axis"  # places.js shows this strip axis above the rows it draws
 FILTERS = (
     ("all", "All"),
     ("red", RED_GROUP),
     ("reopened", "Open again after a red result"),
     ("pests", "Roaches or rodents"),
     ("employee", "Employee items"),
+    ("maybe", "May be the same business"),
 )
 NO_JS_MAP = "The map needs JavaScript."
 MAP_NOTE = (
@@ -81,23 +92,31 @@ NOT_A_CERTIFICATE = "An inspection reports what one inspector found on one day. 
 NO_LATER_APPROVAL = "No later approved inspection in the weekly reports on file."
 UP = "../"  # place pages sit one folder below the site root
 ISO_DATE_LEN = len("2026-01-01")
+YEAR_LEN = len("2026")
 SHA_SHOWN = 12  # hex digits of a report's SHA-256 shown on the About page
 
 
-# ---------- This week ----------
+# ---------- This week, Last month, All time ----------
+
+
+def _more_note(total: int) -> str:
+    """Under a list cut at PAGE_SIZE: where the rest are."""
+    if total <= PAGE_SIZE:
+        return ""
+    return f'<p class="note">Newest {PAGE_SIZE} shown. Every place is on the <a href="places.html">Places</a> tab.</p>'
 
 
 def _cards(cards: list[str], empty: str) -> str:
     if not cards:
         return f'<p class="muted">{esc(empty)}</p>'
-    return f'<div class="lead">{"".join(cards)}</div>'
+    return f'<div class="lead">{"".join(cards[:PAGE_SIZE])}</div>' + _more_note(len(cards))
 
 
-def _pest_section(week: Week) -> str:
-    cards = [notice_html(p, i, pest=True) for p, i in week.pest_visits]
-    if week.covered:
-        return heading("Roaches or rodents cited", len(cards)) + _cards(cards, "None cited in that report.")
-    report = week.pest_report
+def _pest_section(period: Period, no_pests: str) -> str:
+    cards = [notice_html(p, i, pest=True) for p, i in period.pest_visits]
+    if period.own_pests:
+        return heading("Roaches or rodents cited", len(cards)) + _cards(cards, no_pests)
+    report = period.pest_report
     if report is None or report.week_start is None or report.week_end is None:
         empty = "No weekly report on file yet, so pest citations can't be shown."
         return heading("Roaches or rodents cited", 0) + f'<p class="muted">{esc(empty)}</p>'
@@ -111,6 +130,15 @@ BANNER = (
     "The city's weekly report for this week isn't on file yet. Statuses below come from the city's "
     "inspection-status feed; inspector notes and pest citations appear once the report is saved."
 )
+
+
+LONG_BANNER = (
+    "The city's weekly report for the newest dates isn't on file yet. Statuses for those dates come from the "
+    "city's inspection-status feed; their inspector notes and pest citations appear once the report is saved."
+)
+NO_PESTS_IN_REPORT = "None cited in that report."
+NO_PESTS_IN_RANGE = "None cited in the inspector notes on file for these dates."
+RANGE_TAB = "week"  # the tab every time-range page sits under
 
 
 DISCLAIMER = (
@@ -150,31 +178,111 @@ def latest_report_html(data: SiteData) -> str:
     return f'<p class="eyebrow">{stamp}</p>' + data_link_html()
 
 
-def _week_body(data: SiteData, week: Week) -> str:
-    red = [notice_html(p, i, pest=False) for p, i in week.red]
-    other = unique_places(week.other)[:PAGE_SIZE]
+def date_span(first: str, last: str) -> str:
+    """'Oct 24 - Oct 30, 2026' (en dash), naming the first day's year too when it differs from the last day's."""
+    shown = short_date(first) if first[:YEAR_LEN] == last[:YEAR_LEN] else nice_date(first)
+    return f"{shown} {EN_DASH} {nice_date(last)}"
+
+
+@dataclass(frozen=True)
+class TimeRange:
+    """One of the time-range pages: the newest inspection date and span_days before it (None: everything on file)."""
+
+    file: str
+    title: str
+    span_days: int | None
+    banner: str  # shown when no weekly report on file covers the newest date
+    no_pests: str  # shown when the range's own inspections cite no roaches or rodents
+
+
+# Every range: a reopening dated inside it, on a later day than the closure (before the range or inside it).
+REOPENED_IN_RANGE = "Reopened after a closure"
+NO_REOPENED_IN_RANGE = "No place reopened after a closure during these dates."
+WEEK_RANGE = TimeRange(
+    "index.html",
+    "This week",
+    WEEK_SPAN_DAYS,
+    BANNER,
+    NO_PESTS_IN_REPORT,
+)
+MONTH_RANGE = TimeRange(
+    "month.html",
+    "Last month",
+    MONTH_SPAN_DAYS,
+    LONG_BANNER,
+    NO_PESTS_IN_RANGE,
+)
+ALL_RANGE = TimeRange(
+    "all.html",
+    "All time",
+    None,
+    LONG_BANNER,
+    NO_PESTS_IN_RANGE,
+)
+RANGES = (WEEK_RANGE, MONTH_RANGE, ALL_RANGE)
+
+
+def _range_link(time_range: TimeRange, current: TimeRange) -> str:
+    here = ' aria-current="page"' if time_range == current else ""
+    return f'<a href="{time_range.file}"{here}>{esc(time_range.title)}</a>'
+
+
+def range_switch(current: TimeRange) -> str:
+    """Links between the time-range pages, the current one marked."""
+    links = "".join(_range_link(r, current) for r in RANGES)
+    return f'<nav class="range" aria-label="Time range">{links}</nav>'
+
+
+def _range_head(time_range: TimeRange) -> str:
+    return f'{disclaimer_html()}\n<h1 class="view">{esc(time_range.title)}</h1>\n{range_switch(time_range)}'
+
+
+def _other_rows(data: SiteData, period: Period) -> str:
+    places = unique_places(period.other)
+    weeks = data.settings.strip_weeks
+    rows = rows_html([row_html(p, data.today, data.covered, weeks) for p in places[:PAGE_SIZE]])
+    return rows_axis_html(data.today, weeks) + rows + _more_note(len(places))
+
+
+def range_reopenings(data: SiteData, period: Period) -> list[Reopening]:
+    """Places reopened in the range after a closure on an earlier day, the closure before the range or inside it."""
+    return reopenings(data.places, period.start, period.end)
+
+
+def _reopened_section(data: SiteData, period: Period) -> str:
+    cards = [reopened_html(data, r) for r in range_reopenings(data, period)]
+    return heading(REOPENED_IN_RANGE, len(cards)) + _cards(cards, NO_REOPENED_IN_RANGE)
+
+
+def _range_body(data: SiteData, time_range: TimeRange, period: Period) -> str:
+    red = [notice_html(p, i, pest=False) for p, i in period.red]
     parts = [
-        disclaimer_html(),
-        '<h1 class="view">This week</h1>',
+        _range_head(time_range),
         latest_report_html(data),
-        f'<p class="eyebrow">Inspections {short_date(week.start)} {EN_DASH} {nice_date(week.end)}</p>',
-        "" if week.covered else f'<p class="banner">{esc(BANNER)}</p>',
+        f'<p class="eyebrow">Inspections {date_span(period.start, period.end)}</p>',
+        "" if period.covered else f'<p class="banner">{esc(time_range.banner)}</p>',
         heading(RED_GROUP, len(red)),
         _cards(red, "None in the city's records for these dates."),
-        _pest_section(week),
-        heading("Other inspections", len(week.other)),
-        rows_html([row_html(p, data.today, data.covered) for p in other]),
+        _reopened_section(data, period),
+        _pest_section(period, time_range.no_pests),
+        heading("Other inspections", len(period.other)),
+        _other_rows(data, period),
     ]
     return "\n".join(parts)
 
 
+def range_page(data: SiteData, time_range: TimeRange) -> Page:
+    """One time-range page: closures, pest citations and every other inspection in the range."""
+    period = select_period(data.places, data.reports, time_range.span_days)
+    if period is None:
+        body = f'{_range_head(time_range)}<p class="muted">No inspections on file yet.</p>'
+        return Page(time_range.title, body, RANGE_TAB)
+    return Page(time_range.title, _range_body(data, time_range, period), RANGE_TAB)
+
+
 def week_page(data: SiteData) -> Page:
     """index.html: the newest seven days of inspections."""
-    week = select_week(data.places, data.reports)
-    if week is None:
-        body = disclaimer_html() + '<h1 class="view">This week</h1><p class="muted">No inspections on file yet.</p>'
-        return Page("This week", body, "week")
-    return Page("This week", _week_body(data, week), "week")
+    return range_page(data, WEEK_RANGE)
 
 
 # ---------- Data ----------
@@ -240,6 +348,7 @@ def places_page(data: SiteData) -> Page:
         '<h1 class="view">Places</h1>\n'
         '<div class="search" id="tools" hidden><input id="q" type="search" placeholder="Name or street" '
         f'aria-label="Search places by name or street">{_filter_buttons()}</div>\n'
+        f"{rows_axis_html(data.today, data.settings.strip_weeks, element_id=PLACES_AXIS_ID)}\n"
         f'<div id="list"><p class="eyebrow">{count} of {count} places</p>'
         f"{rows_html([plain_row_html(p) for p in data.places])}</div>"
     )
@@ -490,22 +599,49 @@ def _city_status(data: SiteData, place: Place) -> str:
     )
 
 
+ALSO_PRINTED = "Also printed as:"
+MERGED_BY_PERMIT = "Merged by permit; names differ."
+
+
+def _also_printed(place: Place) -> str:
+    """The other names the reports printed for this place, each linked to its newest inspection, and the review note."""
+    if not place.also_printed:
+        return ""
+    names = ", ".join(
+        f'<a href="#insp-{place.inspections.index(i)}">{esc(i.name)}</a> ({esc(nice_date(i.date))})'
+        for i in place.also_printed
+    )
+    return f'<p class="also">{esc(ALSO_PRINTED)} {names}. <span class="quiet">{esc(MERGED_BY_PERMIT)}</span></p>'
+
+
+CANT_TELL_NOTE = "The city's records don't say whether they are one business, so the site keeps them apart."
+
+
+def _maybe_same(place: Place) -> str:
+    """Each place the records can't tell apart from this one, linked."""
+    if not place.maybe_same:
+        return ""
+    links = " and ".join(f'<a href="{esc(slug)}.html">{esc(name)}</a>' for slug, name in place.maybe_same)
+    return f'<p class="also">{esc(MAYBE_SAME)} {links}. <span class="quiet">{esc(CANT_TELL_NOTE)}</span></p>'
+
+
 def _place_head(data: SiteData, place: Place) -> str:
     legal = f" {MIDDOT} {place.legal_name}" if place.legal_name else ""
     return (
         f'<div class="place-head"><a href="../places.html">{LEFT_ARROW} All places</a>'
         f'<h1 class="view">{esc(place.name)}</h1><div class="addr">{esc(place.address + legal)}</div>'
-        f"{_city_status(data, place)}</div>"
+        f"{_also_printed(place)}{_maybe_same(place)}{_city_status(data, place)}</div>"
     )
 
 
 def place_page(data: SiteData, place: Place) -> Page:
     """place/<slug>.html: the strip, what the records show, and every inspection with its source."""
     timeline = "".join(_timeline_item(data, i, n) for n, i in enumerate(place.inspections))
+    weeks = data.settings.strip_weeks
     body = (
         f"{_place_head(data, place)}\n"
         '<section class="record" aria-label="What the city\'s records show">'
-        f"{strip_html(place, data.today, big=True)}{months_html(data.today)}{legend_html()}"
+        f"{strip_axis_html(data.today, weeks)}{strip_html(place, data.today, weeks, big=True)}{months_html(data.today, weeks)}{legend_html()}"
         f'<p class="coverage">{esc(coverage_line(place))}</p>{_facts(data, place)}'
         f'<p class="quiet">{esc(NOT_A_CERTIFICATE)}</p></section>\n'
         f"{heading('Inspections', len(place.inspections))}\n"

@@ -99,6 +99,8 @@ SAMPLES: tuple[tuple[str, Callable[[Place], bool]], ...] = (
     ("roaches or rodents cited", lambda p: p.headline_pests),
     ("several results on one day", _several_on_one_day),
     ("no closure or unsatisfactory result", lambda p: not p.closures),
+    ("merged by permit, names differ (review)", lambda p: p.merged_by_permit),
+    ("may be the same business as another place", lambda p: bool(p.maybe_same)),
 )
 RANDOM_REASON = "picked at random"
 
@@ -161,11 +163,27 @@ def _pest_claims(place: Place) -> list[str]:
     ]
 
 
+def _identity_claims(place: Place) -> list[str]:
+    """Review: records under other names joined to this place by permit, and places the records can't tell apart."""
+    names = " and ".join(name for _, name in place.maybe_same)
+    unclear = f"{place.name}, {place.address}, may be the same business as {names}: the records can't tell, so the site keeps them apart."
+    claims = [unclear] if place.maybe_same else []
+    if not place.merged_by_permit:
+        return claims
+    others = ", ".join(f"{i.name} ({i.date})" for i in place.also_printed)
+    claim = (
+        f"One place (merged by permit; names differ, marked for review): the reports give {place.name} and {others} "
+        f"the same permit at {place.address}, so the site shows them as one place under {place.name}."
+    )
+    return [claim, *claims]
+
+
 def claims(place: Place, covered: Coverage) -> list[str]:
     """Everything the site states about the place, in the order a reader meets it."""
     flag = reopened_flag(place, covered)
     return [
         f"Name and address: {place.name}, {place.address}.",
+        *_identity_claims(place),
         *(f"The city's latest weekly report on file lists: {permit_line_text(line)}." for line in permit_lines(place)),
         f"{latest_result_text(place)}.",
         *([f"List flag: {flag}."] if flag else []),

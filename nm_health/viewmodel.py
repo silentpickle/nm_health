@@ -6,13 +6,13 @@ the only durations are between two inspections on record (a closure and the insp
 """
 
 import re
-from collections import defaultdict
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 
-from nm_health.identity import establishment_slug, normalized_address
+from nm_health.identity import also_printed, group, title
 from nm_health.model import Inspection, Violation
 from nm_health.rebuild import Report
+from nm_health.settings import DEFAULT_STRIP_WEEKS
 from nm_health.signals import (
     ALL_PESTS,
     HEADLINE_PESTS,
@@ -30,12 +30,14 @@ from nm_health.signals import (
     standing,
 )
 
-WEEKS = 52
+WEEKS = DEFAULT_STRIP_WEEKS  # strip span when the caller names none; the site passes settings.strip_weeks
 DAYS_PER_WEEK = 7
 WEEK_SPAN_DAYS = 6  # "this week" is the newest inspection date and the six days before it
+MONTH_SPAN_DAYS = 29  # "last month" is the newest inspection date and the 29 days before it: 30 days
 ARIA_LIST_MAX = 8  # dated statuses spelled out in a strip's accessible name
 RECENT_MAX = 3  # dated statuses in a row's phone-width text list
 QUOTE_CHARS = 180  # an observation quoted without labelled fields is cut at this length, on a word
+# Month-name spacing for a WEEKS-wide strip; scaled to the strip's width in weeks (columns get wider as weeks drop).
 MONTH_TICK_LEAD = 3  # no month name over the first columns: it would hang off the left edge
 MONTH_TICK_EVERY = 3  # every third month name stays visible on phones
 RED_GROUP = "Closure or unsatisfactory"
@@ -261,11 +263,20 @@ class Place:
     pests: tuple[PestCitation, ...]  # newest first
     spells: tuple[ClosedSpell, ...] = ()  # every closure and what reopened it, oldest first
     standing: tuple[Inspection, ...] = ()  # results still in force, one per permit as far as known, oldest first
+    # The newest inspection printed under each other name: places joined by permit (identity.group).
+    also_printed: tuple[Inspection, ...] = ()
+    # (slug, name) of each place the records can't tell apart from this one: kept apart, flagged (identity.group).
+    maybe_same: tuple[tuple[str, str], ...] = ()
 
     @property
     def closure_in_force(self) -> bool:
         """Some permit's result in force is a closure."""
         return any(is_closed(i.status) for i in self.standing)
+
+    @property
+    def merged_by_permit(self) -> bool:
+        """Records under different names joined because they share a permit at this address: due a review."""
+        return bool(self.also_printed)
 
     @property
     def latest(self) -> Inspection:
@@ -333,33 +344,35 @@ def build_place(slug: str, inspections: list[Inspection]) -> Place:
     """One place from its inspections (any order); newest first, same-day ones by the feed's time."""
     ordered = tuple(_redacted(i) for i in reversed(chronological(tuple(inspections))))
     spells = tuple(closed_spells(ordered))
-    latest = ordered[0]
+    printed = title(ordered)
     return Place(
         slug=slug,
-        name=latest.name,
+        name=printed.name,
         legal_name=next((i.legal_name for i in ordered if i.legal_name), None),
-        address=normalized_address(latest.address),
+        address=printed.address.strip(),
         lat_lng=_lat_lng(ordered),
         inspections=ordered,
         closures=_closures(ordered, spells),
         pests=_citations(ordered),
         spells=spells,
         standing=tuple(standing(ordered)),
+        also_printed=also_printed(ordered, printed.name),
     )
 
 
 def group_places(inspections: tuple[Inspection, ...]) -> list[Place]:
-    """Inspections grouped by place (identity.establishment_slug); most recently inspected first, then by name."""
-    by_slug: dict[str, list[Inspection]] = defaultdict(list)
-    for inspection in inspections:
-        by_slug[establishment_slug(inspection.name, inspection.address)].append(inspection)
-    places = [build_place(slug, found) for slug, found in by_slug.items()]
+    """Inspections grouped by place (identity.group); most recently inspected first, then by name."""
+    groups = group(inspections)
+    built = {g.slug: build_place(g.slug, list(g.inspections)) for g in groups}
+    places = [
+        replace(built[g.slug], maybe_same=tuple((other, built[other].name) for other in g.maybe_same)) for g in groups
+    ]
     places.sort(key=lambda p: p.name.casefold())
     places.sort(key=lambda p: p.latest.date, reverse=True)
     return places
 
 
-# ---------- 52-week strip ----------
+# ---------- Week strip (settings.strip_weeks wide) ----------
 
 
 @dataclass(frozen=True)
@@ -385,14 +398,14 @@ def _add(cell: Cell, inspection: Inspection) -> Cell:
     )
 
 
-def strip_cells(inspections: tuple[Inspection, ...], today: date) -> tuple[Cell, ...]:
-    """The last 52 weeks, oldest on the left, newest (this week) on the right."""
-    cells = [Cell() for _ in range(WEEKS)]
+def strip_cells(inspections: tuple[Inspection, ...], today: date, weeks: int = WEEKS) -> tuple[Cell, ...]:
+    """The last `weeks` weeks, oldest on the left, newest (this week) on the right."""
+    cells = [Cell() for _ in range(weeks)]
     for inspection in inspections:
         weeks_ago = week_index(today, inspection.date)
-        if not 0 <= weeks_ago < WEEKS:
+        if not 0 <= weeks_ago < weeks:
             continue
-        column = WEEKS - 1 - weeks_ago
+        column = weeks - 1 - weeks_ago
         cells[column] = _add(cells[column], inspection)
     return tuple(cells)
 
@@ -411,12 +424,22 @@ def strip_code(cells: tuple[Cell, ...]) -> str:
     return "".join(cell_code(c) for c in cells)
 
 
-def strip_label(inspections: tuple[Inspection, ...]) -> str:
+def strip_label(inspections: tuple[Inspection, ...], weeks: int = WEEKS) -> str:
     """The strip's accessible name: the newest dated statuses, then how many more."""
     listed = "; ".join(f"{nice_date(i.date)}: {i.status}" for i in inspections[:ARIA_LIST_MAX])
     extra = len(inspections) - ARIA_LIST_MAX
     more = f"; and {extra} more" if extra > 0 else ""
-    return f"Inspections in the last 52 weeks: {listed}{more}"
+    return f"Inspections in the last {plural(weeks, 'week', 'weeks')}: {listed}{more}"
+
+
+def strip_start(today: date, weeks: int = WEEKS) -> date:
+    """The oldest day the strip's leftmost cell covers."""
+    return today - timedelta(days=weeks * DAYS_PER_WEEK - 1)
+
+
+def strip_caption(weeks: int = WEEKS) -> str:
+    """What a strip covers, said once above it: 'Past 52 weeks · one tick per week'."""
+    return f"Past {plural(weeks, 'week', 'weeks')} {MIDDOT} one tick per week"
 
 
 def recent_text(inspections: tuple[Inspection, ...]) -> str:
@@ -424,17 +447,23 @@ def recent_text(inspections: tuple[Inspection, ...]) -> str:
     return f" {MIDDOT} ".join(f"{short_date(i.date)} {i.status}" for i in inspections[:RECENT_MAX])
 
 
-def month_ticks(today: date) -> list[tuple[str, bool]]:
+def tick_spacing(base: int, weeks: int) -> int:
+    """A month-tick spacing set for a WEEKS-wide strip, scaled to `weeks` columns (rounded up, at least 1)."""
+    return max(1, -(-base * weeks // WEEKS))
+
+
+def month_ticks(today: date, weeks: int = WEEKS) -> list[tuple[str, bool]]:
     """(month name or '', hidden on phones) for each strip column: a name where a new month starts."""
+    lead, every = tick_spacing(MONTH_TICK_LEAD, weeks), tick_spacing(MONTH_TICK_EVERY, weeks)
     ticks: list[tuple[str, bool]] = []
     last_month, shown = 0, 0
-    for column in range(WEEKS):
-        day = today - timedelta(days=(WEEKS - 1 - column) * DAYS_PER_WEEK)
+    for column in range(weeks):
+        day = today - timedelta(days=(weeks - 1 - column) * DAYS_PER_WEEK)
         fresh, last_month = day.month != last_month, day.month
-        if column < MONTH_TICK_LEAD or not fresh:
+        if column < lead or not fresh:
             ticks.append(("", False))
             continue
-        ticks.append((f"{day:%b}", shown % MONTH_TICK_EVERY != 0))
+        ticks.append((f"{day:%b}", shown % every != 0))
         shown += 1
     return ticks
 
@@ -517,6 +546,16 @@ def _dates(first: str, last: str) -> list[str]:
 def unbroken(first: str, last: str, covered: Coverage) -> bool:
     """Every day from first to last is in a weekly report on file, so no inspection between them can be missing."""
     return all(day in covered for day in _dates(first, last))
+
+
+MAYBE_SAME = "May be the same business as"
+
+
+def maybe_same_text(place: Place) -> str:
+    """'May be the same business as Taco Bell': the places the records can't tell apart from this one, else ""."""
+    if not place.maybe_same:
+        return ""
+    return f"{MAYBE_SAME} {' and '.join(name for _, name in place.maybe_same)}"
 
 
 def permit_lines(place: Place) -> list[Inspection]:
@@ -641,15 +680,16 @@ def visits_between(places: list[Place], first: str, last: str) -> list[Visit]:
 
 
 @dataclass(frozen=True)
-class Week:
-    """The newest seven days of inspections and where the pest citations come from."""
+class Period:
+    """The newest stretch of inspections (a week, a month, everything) and where its pest citations come from."""
 
     start: str
     end: str
     visits: tuple[Visit, ...]
     covered: bool  # an archived weekly report covers the newest date
-    pest_report: Report | None  # the report pest citations come from when not covered
+    pest_report: Report | None  # the report pest citations come from when not taken from the period's own visits
     pest_visits: tuple[Visit, ...]
+    own_pests: bool = False  # pest citations come from the period's own visits
 
     @property
     def red(self) -> list[Visit]:
@@ -662,24 +702,107 @@ class Week:
         return [v for v in self.visits if level(v[1].status) != LEVEL_RED]
 
 
-def select_week(places: list[Place], reports: tuple[Report, ...]) -> Week | None:
-    """The newest 7 days; pest citations from that week if a report covers its newest date, else the latest report."""
+def select_period(places: list[Place], reports: tuple[Report, ...], span_days: int | None) -> Period | None:
+    """The newest date and the span_days before it (None: every inspection on file), and its pest citations.
+
+    Pest citations come from the period's own visits when a report covers the newest date, or when the period is
+    longer than a week (its older days are in reports on file). A week whose newest date no report covers takes
+    them from the latest report on file instead.
+    """
     newest = max((p.latest.date for p in places), default=None)
     if newest is None:
         return None
-    start = (date.fromisoformat(newest) - timedelta(days=WEEK_SPAN_DAYS)).isoformat()
+    start = _first_day(places, newest, span_days)
     visits = visits_between(places, start, newest)
     covered = covering_report(reports, newest) is not None
-    report = None if covered else latest_report(reports)
-    pest_pool = visits if covered else _report_visits(places, report)
+    own = covered or span_days is None or span_days > WEEK_SPAN_DAYS
+    report = None if own else latest_report(reports)
+    pest_pool = visits if own else _report_visits(places, report)
     pests = tuple(v for v in pest_pool if cites_headline_pests(v[1]))
-    return Week(start, newest, tuple(visits), covered, report, pests)
+    return Period(start, newest, tuple(visits), covered, report, pests, own)
+
+
+def _first_day(places: list[Place], newest: str, span_days: int | None) -> str:
+    if span_days is None:
+        return min(i.date for p in places for i in p.inspections)
+    return (date.fromisoformat(newest) - timedelta(days=span_days)).isoformat()
+
+
+def select_week(places: list[Place], reports: tuple[Report, ...]) -> Period | None:
+    """The newest 7 days; pest citations from that week if a report covers its newest date, else the latest report."""
+    return select_period(places, reports, WEEK_SPAN_DAYS)
 
 
 def _report_visits(places: list[Place], report: Report | None) -> list[Visit]:
     if report is None or report.week_start is None or report.week_end is None:
         return []
     return visits_between(places, report.week_start, report.week_end)
+
+
+# ---------- Reopened after a closure ----------
+
+
+@dataclass(frozen=True)
+class Reopening:
+    """A place closed by one inspection and reopened by a later one (signals.closed_spells), with both inspections."""
+
+    place: Place
+    spell: ClosedSpell
+    closure: Inspection
+    reopening: Inspection
+
+    @property
+    def still_failing(self) -> bool:
+        """Reopened by an Unsatisfactory result: open under a red sticker, not passed."""
+        return is_red(self.reopening.status)
+
+
+def _spell_inspection(place: Place, day: str | None, time: str | None, wanted: str | None) -> Inspection | None:
+    """The oldest of the place's inspections on that day, at that time, with that status."""
+    return next((i for i in reversed(place.inspections) if (i.date, i.time, i.status) == (day, time, wanted)), None)
+
+
+def _closure_of(place: Place, spell: ClosedSpell) -> Inspection | None:
+    return next(
+        (
+            i
+            for i in reversed(place.inspections)
+            if (i.date, i.time) == (spell.start, spell.start_time) and is_closed(i.status)
+        ),
+        None,
+    )
+
+
+def _still_closed(place: Place, spell: ClosedSpell) -> bool:
+    """Some permit's result in force is a closure from this spell: that permit never reopened (only another did)."""
+    return any(is_closed(i.status) and spell.start <= i.date <= (spell.end or i.date) for i in place.standing)
+
+
+def _reopening(place: Place, spell: ClosedSpell) -> Reopening | None:
+    closure = _closure_of(place, spell)
+    reopening = _spell_inspection(place, spell.end, spell.end_time, spell.end_status)
+    if closure is None or reopening is None or _still_closed(place, spell):
+        return None
+    return Reopening(place, spell, closure, reopening)
+
+
+def _reopened_between(spell: ClosedSpell, first: str, last: str) -> bool:
+    """Reopened on a day first..last, a later day than the closure: closed and reopened the same day never counts."""
+    return spell.end is not None and first <= spell.end <= last and spell.start < spell.end
+
+
+def reopenings(places: list[Place], first: str, last: str) -> list[Reopening]:
+    """Places reopened by an inspection dated first..last after a closure on an earlier day, newest reopening first."""
+    found = [
+        reopened
+        for place in places
+        for spell in place.spells
+        if _reopened_between(spell, first, last)
+        for reopened in [_reopening(place, spell)]
+        if reopened is not None
+    ]
+    by_name = sorted(found, key=lambda r: r.place.name.casefold())
+    return sorted(by_name, key=lambda r: r.spell.end or "", reverse=True)
 
 
 def notice_quote(place: Place, inspection: Inspection) -> str | None:

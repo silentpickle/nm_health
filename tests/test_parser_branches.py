@@ -79,6 +79,31 @@ def test_hyphenated_permit_number_read(monkeypatch: pytest.MonkeyPatch) -> None:
     assert permits == {"PT0000001": "PT0000001", "RT-FOODEST-000191-2026": "FOODEST-2025-00423"}
 
 
+CURLY_APOSTROPHE = "\u2019"
+
+
+def test_P1_curly_apostrophe(monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: N802 - test ID keeps its code
+    """PAPA JOHN\u2019S PIZZA, Dec 2025: a header with a curly apostrophe starts its own place.
+
+    It used to fail the header pattern, so its row was filed under the place listed before it.
+    """
+    papa_row = "  12/24/2025     PT0155329     Routine Food Establishment Inspection     Approved     Pg. 8"
+    summary = (
+        f"Summary Table\n{EST_LINE}\n{HEADER_LINE}\n{PERMIT_LINE}\n{ROW_LINE}\n\n"
+        f"PAPA JOHN{CURLY_APOSTROPHE}S PIZZA - 9500 MONTGOMERY BLVD NE, 11\n{HEADER_LINE}\n"
+        "Food Establishment (Permit # - PT0155329) - Operational Status \u2013 Open\n"
+        f"{papa_row}"
+    )
+    parsed = parse_pages([summary], monkeypatch)
+    places = {
+        i["inspection_id_num"]: (i["establishment_name"], i["establishment_address"]) for i in parsed["inspections"]
+    }
+    assert places == {
+        "PT0000001": ("TEST CAFE", "100 CENTRAL AVE SW"),
+        "PT0155329": (f"PAPA JOHN{CURLY_APOSTROPHE}S PIZZA", "9500 MONTGOMERY BLVD NE, 11"),
+    }
+
+
 def test_metadata_title_without_amendment(monkeypatch: pytest.MonkeyPatch) -> None:
     """A first page with a Media Report title and no amendment line."""
     first = "Summary Table\nMedia Report 10.25.2026-10.31.2026\nWeek: October 25, 2026 to October 31, 2026"
@@ -187,3 +212,27 @@ def test_bare_page_number_column(monkeypatch: pytest.MonkeyPatch) -> None:
     summary = f"Summary Table\n{EST_LINE}\n{PERMIT_LINE}\n{HEADER_LINE}\n{bare_row}"
     (inspection,) = parse_pages([summary], monkeypatch)["inspections"]
     assert (inspection["inspection_id_num"], inspection["summary_page"]) == ("PT0142645", 4)
+
+
+@pytest.mark.parametrize(
+    ("report", "inspection_id", "name"),
+    [
+        pytest.param(
+            "2025-12-21_2025-12-27_b34ea77b33c8.pdf",
+            "PT0155329",
+            f"PAPA JOHN{CURLY_APOSTROPHE}S PIZZA",
+            id="papa_johns",
+        ),
+        pytest.param(
+            "2025-11-02_2025-11-08_65a9dffb67d8.pdf",
+            "PT0157002",
+            f"LET{CURLY_APOSTROPHE}S EAT THAI CUISINE LLC",
+            id="lets_eat",
+        ),
+    ],
+)
+def test_curly_apostrophe_headers_in_archive(report: str, inspection_id: str, name: str) -> None:
+    """The two archived headers with a curly apostrophe keep their own rows (they went to Fuel Ignited, Jimmy John's)."""
+    parsed = InspectionReportParser(ARCHIVE / report).parse()
+    names = {i["establishment_name"] for i in parsed["inspections"] if i["inspection_id_num"] == inspection_id}
+    assert names == {name}

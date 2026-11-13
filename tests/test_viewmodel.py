@@ -10,6 +10,7 @@ from nm_health.model import Inspection, Violation
 from nm_health.rebuild import Report
 from nm_health.viewmodel import (
     ELLIPSIS,
+    MONTH_SPAN_DAYS,
     QUOTE_CHARS,
     WEEKS,
     Cell,
@@ -36,11 +37,14 @@ from nm_health.viewmodel import (
     recent_text,
     redact,
     reopened_flag,
+    select_period,
     select_week,
     stated,
+    strip_caption,
     strip_cells,
     strip_code,
     strip_label,
+    strip_start,
     unbroken,
     violation_lead,
 )
@@ -63,6 +67,7 @@ FLIES = Violation("Pest Control", "Insect Control", "", "Observed flies near the
 OTHER = Violation("Plumbing", "System Maintained in Good Repair", "", "Observed leak.")
 LAST_COLUMN = WEEKS - 1
 NO_INSPECTION_WEEK = "." * WEEKS
+STRIP_FIRST_DAY = "2025-11-11"  # 52 weeks back from TODAY, less a day
 
 
 def visit(day: str, *violations: Violation, status: str = APPROVED, number: str = "", notes: bool = True) -> Inspection:
@@ -335,6 +340,32 @@ def test_strip_label_and_recent_text() -> None:
     assert not strip_label(p.inspections[:2]).endswith("more")
 
 
+@pytest.mark.parametrize(
+    ("day", "column"),
+    [
+        pytest.param("2025-11-11", 0, id="start_day"),
+        pytest.param("2025-11-10", None, id="day_before"),
+    ],
+)
+def test_strip_start_is_first_day_shown(day: str, column: int | None) -> None:
+    """The axis's first day is the oldest day the leftmost cell takes; the day before is off the strip."""
+    assert strip_start(TODAY).isoformat() == STRIP_FIRST_DAY
+    code = strip_code(strip_cells((visit(day),), TODAY))
+    assert (code.find("g") if "g" in code else None) == column
+
+
+@pytest.mark.parametrize(
+    ("weeks", "caption"),
+    [
+        pytest.param(1, "Past 1 week \u00b7 one tick per week", id="one_week"),
+        pytest.param(WEEKS, "Past 52 weeks \u00b7 one tick per week", id="default_weeks"),
+    ],
+)
+def test_strip_caption_names_weeks(weeks: int, caption: str) -> None:
+    """The caption over strips says how many weeks and that each tick is one week."""
+    assert strip_caption(weeks) == caption
+
+
 def test_month_ticks_skip_the_first_columns() -> None:
     """A month name where a month starts, none over the first three columns, every third one kept on phones."""
     ticks = month_ticks(TODAY)
@@ -343,6 +374,29 @@ def test_month_ticks_skip_the_first_columns() -> None:
     names = [(text, quiet) for text, quiet in ticks if text]
     assert names[:4] == [("Jan", False), ("Feb", True), ("Mar", True), ("Apr", False)]
     assert names[-1] == ("Nov", True)
+
+
+@pytest.mark.parametrize(
+    ("today", "row"),
+    [
+        pytest.param(
+            TODAY,
+            "- - - - - - - Jan - - - Feb? - - - Mar? - - - - Apr - - - May? - - - Jun? - - - - Jul - - - Aug? - - - "
+            "- Sep? - - - Oct - - - Nov? -",
+            id="month_mid_lead",
+        ),
+        pytest.param(
+            date(2026, 11, 4),
+            "- - - Dec - - - - Jan? - - - Feb? - - - Mar - - - Apr? - - - - May? - - - Jun - - - Jul? - - - - Aug? - "
+            "- - Sep - - - - Oct? - - - Nov?",
+            id="month_after_lead",
+        ),
+    ],
+)
+def test_month_ticks_whole_row(today: date, row: str) -> None:
+    """Every column's tick ('-' none, '?' hidden on phones), including a month that starts just past the lead."""
+    ticks = month_ticks(today)
+    assert " ".join((text or "-") + ("?" if quiet else "") for text, quiet in ticks) == row
 
 
 @pytest.mark.parametrize(
@@ -413,6 +467,30 @@ def test_week_without_any_report_or_inspection() -> None:
     assert week is not None
     assert (week.covered, week.pest_report, week.pest_visits) == (False, None, ())
     assert select_week([], ()) is None
+
+
+def test_month_without_a_covering_report_cites_its_own_pests() -> None:
+    """Longer than a week: pest citations from the period's own inspections, even when the newest isn't covered."""
+    places = group_places(
+        (
+            visit("2026-11-06", notes=False),
+            replace(visit("2026-10-28", ROACHES), name="BUGS", address="3 C ST"),
+            replace(visit("2026-10-03", ROACHES), name="OLDER", address="4 D ST"),
+        )
+    )
+    month = select_period(places, (report("2026-10-25", "2026-10-31"),), MONTH_SPAN_DAYS)
+    assert month is not None
+    assert (month.start, month.end, month.covered, month.own_pests) == ("2026-10-08", "2026-11-06", False, True)
+    assert (month.pest_report, [p.name for p, _ in month.pest_visits]) == (None, ["BUGS"])
+
+
+def test_all_time_starts_at_the_oldest_inspection() -> None:
+    """No span: every inspection on file, pests from all of them."""
+    places = group_places((visit("2026-10-30"), replace(visit("2021-07-12", ROACHES), name="OLD", address="1 A ST")))
+    everything = select_period(places, (report("2026-10-25", "2026-10-31"),), None)
+    assert everything is not None
+    assert (everything.start, everything.end, everything.own_pests) == ("2021-07-12", "2026-10-30", True)
+    assert [p.name for p, _ in everything.pest_visits] == ["OLD"]
 
 
 # ---------- Status today and closures ----------

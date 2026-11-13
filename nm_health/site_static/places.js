@@ -2,6 +2,7 @@
 // Places: search, filters, strips and paging over places.json. Without it the page lists every place as a plain link.
 
 import {
+  MAYBE_SAME_TEXT,
   PEST_FLAG_TEXT,
   RED_GROUP,
   chip,
@@ -33,6 +34,7 @@ const FILTERS = {
     OPEN_AGAIN.has(place.history[0]?.level ?? ""),
   pests: (place) => place.pests,
   employee: (place) => place.employee,
+  maybe: (place) => place.maybeSame,
 };
 const state = { q: "", f: ALL, shown: PAGE_SIZE };
 
@@ -66,6 +68,9 @@ function flags(place) {
         text: `${RED_GROUP} ${fmtShort(day(place.closure))}`,
       }),
     );
+  }
+  if (place.maybeSame) {
+    out.push(el("span", { class: "flag", text: MAYBE_SAME_TEXT }));
   }
   return out;
 }
@@ -162,7 +167,13 @@ async function main() {
     redraw();
   });
   listen(tools, redraw);
-  list.replaceChildren(view.caveat, view.status, view.rows, view.more);
+  // The strip axis (span in weeks, first day, "This week") is rendered once in the page, hidden until strips are.
+  const axis = document.getElementById("axis");
+  const head = axis ? [axis] : [];
+  list.replaceChildren(view.caveat, view.status, ...head, view.rows, view.more);
+  if (axis) {
+    axis.hidden = false;
+  }
   tools.hidden = false;
   redraw();
 }

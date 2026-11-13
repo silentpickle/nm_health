@@ -148,6 +148,31 @@ nav.tabs a[aria-current="page"] {
   background: var(--ink);
 }
 
+/* Time-range switcher on This week / Last month / All time: the place-list filter pills, as links. */
+nav.range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 12px;
+}
+nav.range a {
+  font: 500 0.9rem var(--font-body);
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--edge);
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+}
+nav.range a[aria-current="page"] {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+
 h1.view {
   font: 700 2.1rem/1.05 var(--font-display);
   text-transform: uppercase;
@@ -250,11 +275,12 @@ h2 .n {
   background: var(--none-cell);
 }
 
-/* 52-week strip, newest on the right. Shape as well as colour: full = approved, half = conditional,
+/* Week strip (config.toml strip_weeks columns, any number), newest on the right. Shape as well as colour: full = approved, half = conditional,
    full + stripes = closure/unsatisfactory, outlined = status only (no inspector notes on file). */
 .strip {
   display: grid;
-  grid-template-columns: repeat(52, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 2px;
   height: 16px;
   align-items: end;
@@ -306,7 +332,8 @@ h2 .n {
 }
 .months {
   display: grid;
-  grid-template-columns: repeat(52, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   font: 500 0.7rem var(--font-data);
   color: var(--muted);
   margin-top: 5px;
@@ -319,6 +346,29 @@ h2 .n {
   .months span.q {
     visibility: hidden;
   }
+}
+/* What a strip covers: span and tick size, then the first day (left end) and "This week" (right end). */
+.axis {
+  display: grid;
+  gap: 1px;
+  font: 500 0.7rem var(--font-data);
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.axis .ends {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+/* Over a list of rows: the same columns as a row, the axis over the strip column. */
+.rowshead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 32%);
+  gap: 6px 16px;
+  padding: 0 4px;
+}
+.rowshead .axis {
+  grid-column: 2;
 }
 .legend {
   display: flex;
@@ -337,7 +387,7 @@ h2 .n {
 }
 .legend .k .strip {
   height: 14px;
-  grid-template-columns: 12px;
+  grid-auto-columns: 12px;
 }
 
 .lead {
@@ -361,6 +411,20 @@ h2 .n {
 .notice:hover {
   border-color: var(--edge);
   border-top-color: var(--bad-cell);
+}
+.notice.reopened {
+  border-top-color: var(--ok-cell);
+}
+.notice.reopened.failing {
+  border-top-color: var(--bad-cell);
+}
+.notice.reopened a.nm {
+  color: inherit;
+}
+.notice .src {
+  font-size: 0.82rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
 }
 .notice.pest {
   border-top-color: var(--ink);
@@ -428,7 +492,8 @@ ul.rows a.row:hover {
   ul.rows a.row {
     grid-template-columns: minmax(0, 1fr);
   }
-  ul.rows a.row .strip {
+  ul.rows a.row .strip,
+  .rowshead {
     display: none;
   }
   .row .recent {
@@ -483,6 +548,10 @@ ul.rows a.row:hover {
   font: 500 0.95rem var(--font-data);
   color: var(--muted);
   overflow-wrap: anywhere;
+}
+.place-head .also {
+  margin: 4px 0 0;
+  font-size: 0.92rem;
 }
 .place-head .today {
   margin: 10px 0 0;

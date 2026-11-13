@@ -10,15 +10,31 @@ makes the declaration, the site repeats it. Incomplete is better than wrong, and
   report prints a typo date, "1/29/2026" in its Jan 27-31, 2025 week; it stays off).
 - A place's status is the city's own "Operational Status" line for each permit, quoted from the latest report that
   lists it, followed by the latest result in the reports on file.
+- A place's name and address are its title as printed in the latest report that lists it, at face value: no spelling
+  fixed, no street type or quadrant normalized, nothing from another source. Records printed under other names are
+  one place when the reports give them the same permit at one address; the page then lists each other name ("Also
+  printed as: …", with its date) and marks the merge for review (docs/place-identity.md).
 - The status feed makes no statement and is not affiliated with the weekly reports. It has no document a reader can
   open, and it lists routine inspections only: no corrective-action visits and no complaint inspections. The site
-  uses it for one thing, the coordinates of map dots (a location anyone can check against the city's system today).
+  uses it for one thing, the coordinates of map dots (never for a name) (a location anyone can check against the city's system today).
   Its start times, violation counts and feed-only inspections stay out of every page; same-day order therefore falls
   back to the untimed rule (a failure is assumed to come first). Reason: once a place passes, the inspector leaves, so a pass
   is the last word of the day; a failure the same day came before it, and the place was fixed and re-inspected. `nm-health audit` still reads the full feed to
   check it against the reports.
 - A closure's length is stated only when every day between the closure and the reopening inspection is in a report on
   file; across a gap the site says the place may have reopened sooner.
+- "Reopened" means what a closure's length already means (`signals.closed_spells`): after a closure, the first later
+  inspection with a result that lets the place operate (approved, conditional, or unsatisfactory: a red sticker, but
+  open). It doesn't count when the reopening result is another permit's and the closed permit's closure still stands
+  (`signals.standing`). On every range (This week, Last month, All time), "Reopened after a closure" lists
+  reopenings dated inside the range, the closure before or inside it; the week is the page's own (the newest
+  inspection date and the six days before it), so it holds the same way when the newest week's report isn't on file
+  yet. A closure and a reopening on the same calendar day never count, on any range: the place may not have shut its
+  doors at all (the place page and its row flag still state both results). Each card gives both dates, the closure's
+  length as above, and links both reports' pages. A place reopened by an Unsatisfactory result is listed too, but its
+  card reads "Open again, still failing:" before the city's status, on a red card with a red chip; Approved and
+  Conditional reopenings read as before. `places.json`'s `reopened` rows end with `still_failing` (true / false). `places.json` carries each page's list under
+  `reopened`, keyed by page file, for tracking.
 
 ## Checking the assumptions
 
@@ -32,7 +48,7 @@ a person judges the disagreements.
 | Only a Closure means closed; an Unsatisfactory place stays open (red sticker) | `operational_status` | Each PDF permit line's own "Operational Status – Open/Closed" against the latest result listed under it |
 | The feed's start time is when the inspection happened | `feed_times` | Flags times of exactly 00:00, a likely placeholder |
 | Results at the same minute are separate permits, so the failure stands | `same_minute` | Permit numbers of same-minute records with a failure among them |
-| Each permit's latest result stays in force until that permit is inspected again; an inspection with no permit number (most re-inspections since late 2025) replaces every earlier result; when permits' results differ, status today lists each one and says nothing about the place as a whole | `same_minute` (partly) | Permits are known from the PDF's summary table or an old-style ID that is the permit number; the feed names no permit |
+| Each permit's latest result stays in force until that permit is inspected again; an inspection with no permit number (in the weekly reports, only the 2021 to early-2025 layouts, which print none: every current-layout inspection, re-inspections included, gets one from the summary table; and every feed-only record in the audit) replaces every earlier result; when permits' results differ, status today lists each one and says nothing about the place as a whole | `same_minute` (partly) | Permits are known from the PDF's summary table or an old-style ID that is the permit number; the feed names no permit |
 | An untimed corrective-action visit came after that day's routine inspection | `follow_up_order` | Feed times, when both sides have one |
 | With no time, a same-day failure came before the pass | `untimed_order` | Lists the days where this guess decides the order |
 | The PDF and the feed agree on each inspection's status | `feed_status` | Status of every inspection found in both |
@@ -90,6 +106,6 @@ no claim about the place as a whole. Permits come from an old-style inspection I
 PDF's summary table; the ID wins because the table now and then files a row under the wrong permit (5 of 173 rows: Quick
 Track 93, Allsup's #102460, Sergio's Bakery).
 
-Not checked: that a place's name and address identify one place, that an inspection with no permit number re-inspected
-what failed before it, and that no reopening inspection is missing from the records (a missing one would make a closure
-look longer than it was).
+Not checked: that an inspection with no permit number re-inspected what failed before it, and that no reopening
+inspection is missing from the records (a missing one would make a closure look longer than it was). Which records
+are one place is measured in `docs/place-identity.md`.

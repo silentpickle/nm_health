@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from nm_health import feed, site
-from nm_health.identity import establishment_slug
+from nm_health.identity import group
 from nm_health.model import Inspection, Violation
 from nm_health.rebuild import Rebuilt, Report, rebuild
 from nm_health.settings import Settings, load
@@ -21,6 +21,7 @@ from nm_health.site import UnsourcedError, write_site
 from nm_health.site_html import NO_SOURCE, site_data
 from nm_health.viewmodel import build_place, stated
 from tests.test_archive import make_settings
+from tests.test_range_pages import check_golden
 
 TODAY = datetime(2026, 11, 9, 12, tzinfo=UTC)
 REPORT_FILE = "2026-10-25_2026-10-31_abc.pdf"
@@ -35,7 +36,8 @@ ROACHES = Violation(
     (("Pest Type", "Cockroach"),),
 )
 PLACES_JSON_LIMIT = 300_000  # bytes
-TOP_PAGES = ("index.html", "places.html", "map.html", "data.html", "about.html")
+STRIP_FIELD = 4  # a places.json row's strip code
+TOP_PAGES = ("index.html", "month.html", "all.html", "places.html", "map.html", "data.html", "about.html")
 H1 = re.compile(r"<h1\b")
 PDF_LINK = re.compile(r'href="([^"]+\.pdf)(?:#page=\d+)?"')
 # A real weekly report stands in for the test report, so the build can read its text as it does in production.
@@ -131,12 +133,14 @@ def test_write_site_writes_every_page(tmp_path: Path) -> None:
         ".nojekyll",
         "about.html",
         "albuquerque.geojson",
+        "all.html",
         "citymap.css",
         "citymap.js",
         "data.html",
         "index.html",
         "map.html",
         "map.js",
+        "month.html",
         "place/test-cafe-100-central-ave-sw.html",
         "places.html",
         "places.js",
@@ -315,6 +319,51 @@ def test_places_page_lists_every_place_without_javascript(tmp_path: Path) -> Non
     assert '<script type="module" src="places.js"></script>' in text
 
 
+RECORD_SECTION = re.compile(r'<section class="record".*?</section>', re.DOTALL)
+
+
+def test_place_record_section_unchanged(tmp_path: Path) -> None:
+    """A place page's strip, month names, legend and coverage, pinned whole (characterization test)."""
+    site = build(tmp_path, visit("2026-10-29", ROACHES), visit("2026-10-26", status="Conditional Approved"))
+    match = RECORD_SECTION.search(read(site, "place/test-cafe-100-central-ave-sw.html"))
+    assert match is not None
+    check_golden("place_record_section", match.group(0))
+
+
+QUARTER_WEEKS = 13
+
+
+def test_strip_weeks_setting_sets_every_strip(tmp_path: Path) -> None:
+    """strip_weeks from settings sets the place page strip, its month names, its accessible name and places.json."""
+    settings = replace(make_settings(tmp_path), strip_weeks=QUARTER_WEEKS)
+    site = build(tmp_path, visit("2026-10-29", ROACHES), settings=settings)
+    text = read(site, "place/test-cafe-100-central-ave-sw.html")
+    strip = re.search(r'<div class="strip big"[^>]*>(.*?)</div>', text)
+    months = re.search(r'<div class="months"[^>]*>(.*?)</div>', text)
+    assert strip is not None
+    assert months is not None
+    assert strip.group(1).count("<i") == QUARTER_WEEKS
+    assert months.group(1).count("<span") == QUARTER_WEEKS
+    assert f"Inspections in the last {QUARTER_WEEKS} weeks: Oct 29, 2026" in text
+    (row,) = json.loads(read(site, "places.json"))["places"]
+    newest_two = "1."  # roaches eleven days ago, nothing this week
+    assert row[STRIP_FIELD] == "." * (QUARTER_WEEKS - len(newest_two)) + newest_two
+
+
+def test_strip_axis_names_the_span(tmp_path: Path) -> None:
+    """Every page with strips says what they cover: weeks, one tick per week, the first day and This week."""
+    settings = replace(make_settings(tmp_path), strip_weeks=QUARTER_WEEKS)
+    site = build(tmp_path, visit("2026-10-29", ROACHES), settings=settings)
+    axis = (
+        '<div class="axis" aria-hidden="true"><span>Past 13 weeks \u00b7 one tick per week</span>'
+        '<span class="ends"><span>Aug 11, 2026</span><span>This week</span></span></div>'
+    )
+    for name in ("index.html", "month.html", "all.html", "place/test-cafe-100-central-ave-sw.html"):
+        assert read(site, name).count(axis) == 1, name
+    assert f'<div class="rowshead">{axis}</div><ul class="rows">' in read(site, "index.html")
+    assert f'<div class="rowshead" id="axis" hidden>{axis}</div>' in read(site, "places.html")
+
+
 def test_places_json_shape(tmp_path: Path) -> None:
     """One row per place: slug, names, address, strip, statuses, flags, closure start, coordinates, reopened."""
     site = build(tmp_path, visit("2026-10-29", ROACHES), feed_only("2026-11-06"))
@@ -335,6 +384,14 @@ def test_places_json_shape(tmp_path: Path) -> None:
         None,
         "",
     ]
+
+
+def test_places_json_tracks_reopened(tmp_path: Path) -> None:
+    """places.json lists each range page's Reopened section: slug, closed, reopened, days, status, days all on file."""
+    site = build(tmp_path, visit("2026-10-26", status="Closure Re-Inspection Required"), visit("2026-10-29"))
+    reopened = json.loads(read(site, "places.json"))["reopened"]
+    row = ["test-cafe-100-central-ave-sw", "2026-10-26", "2026-10-29", 3, "Approved", True, False]
+    assert reopened == {"index.html": [row], "month.html": [row], "all.html": [row]}
 
 
 def test_map_and_about_pages(tmp_path: Path) -> None:
@@ -359,10 +416,9 @@ def test_real_archive(tmp_path: Path) -> None:
     assert (site / "places.json").stat().st_size < PLACES_JSON_LIMIT
     assert len(json.loads(read(site, "places.json"))["places"]) == count
     expected: dict[str, set[str]] = defaultdict(set)
-    for inspection in stated(rebuilt.inspections, rebuilt.reports):
-        if inspection.report_file:
-            slug = establishment_slug(inspection.name, inspection.address)
-            expected[slug].add(html.escape(f"../reports/{inspection.report_file}"))
+    for found in group(stated(rebuilt.inspections, rebuilt.reports)):
+        files = {i.report_file for i in found.inspections if i.report_file}
+        expected[found.slug] |= {html.escape(f"../reports/{name}") for name in files}
     for slug, links in expected.items():
         page = read(site, f"place/{slug}.html")
         assert links <= set(PDF_LINK.findall(page)), slug

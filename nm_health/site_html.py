@@ -1,5 +1,5 @@
 # Copyright (c) 2026 nm_health contributors
-"""The page frame and the pieces pages share: status chips, 52-week strips, place rows, This-week cards.
+"""The page frame and the pieces pages share: status chips, week strips, place rows, This-week cards.
 
 Every piece of text goes through `esc`: names, addresses and observations come from PDFs and are untrusted.
 """
@@ -18,10 +18,13 @@ from nm_health.viewmodel import (
     RED_GROUP,
     Coverage,
     Place,
+    Reopening,
     cell_code,
+    closed_text,
     covered_days,
     group_places,
     level,
+    maybe_same_text,
     month_ticks,
     nice_date,
     notice_count_text,
@@ -32,8 +35,10 @@ from nm_health.viewmodel import (
     short_date,
     source_label,
     stated,
+    strip_caption,
     strip_cells,
     strip_label,
+    strip_start,
 )
 
 FONTS_URL = (
@@ -44,7 +49,7 @@ EN_DASH = "\u2013"
 LEFT_ARROW = "\u2190"
 WHERE = f"Albuquerque, NM {MIDDOT} last 12 months"
 TABS = (
-    ("week", "index.html", "This week"),
+    ("week", "index.html", "Inspections"),  # This week, with links to Last month and All time
     ("places", "places.html", "Places"),
     ("map", "map.html", "Map"),
     ("data", "data.html", "Data"),
@@ -217,18 +222,35 @@ def _cell(code: str) -> str:
     return f'<i class="{classes}"></i>' if classes else "<i></i>"
 
 
-def strip_html(place: Place, today: date, *, big: bool = False) -> str:
-    """The 52-week strip, shape-coded, with every dated status in its accessible name."""
-    cells = "".join(_cell(cell_code(c)) for c in strip_cells(place.inspections, today))
+def strip_html(place: Place, today: date, weeks: int, *, big: bool = False) -> str:
+    """The week strip, shape-coded, with every dated status in its accessible name."""
+    cells = "".join(_cell(cell_code(c)) for c in strip_cells(place.inspections, today, weeks))
     size = " big" if big else ""
-    label = esc(strip_label(place.inspections))
+    label = esc(strip_label(place.inspections, weeks))
     return f'<div class="strip{size}" role="img" aria-label="{label}">{cells}</div>'
 
 
-def months_html(today: date) -> str:
+STRIP_END_LABEL = "This week"
+
+
+def strip_axis_html(today: date, weeks: int) -> str:
+    """Above a strip, or a list of them: the span in weeks, the first day the left end covers, and 'This week'."""
+    ends = f"<span>{nice_date(strip_start(today, weeks).isoformat())}</span><span>{STRIP_END_LABEL}</span>"
+    return f'<div class="axis" aria-hidden="true"><span>{esc(strip_caption(weeks))}</span><span class="ends">{ends}</span></div>'
+
+
+def rows_axis_html(today: date, weeks: int, *, element_id: str = "") -> str:
+    """The strip axis lined up over the strip column of a list of place rows (hidden where the strips are)."""
+    if not element_id:
+        return f'<div class="rowshead">{strip_axis_html(today, weeks)}</div>'
+    return f'<div class="rowshead" id="{element_id}" hidden>{strip_axis_html(today, weeks)}</div>'
+
+
+def months_html(today: date, weeks: int) -> str:
     """Month names under a big strip."""
     spans = "".join(
-        f'<span class="q">{text}</span>' if quiet else f"<span>{text}</span>" for text, quiet in month_ticks(today)
+        f'<span class="q">{text}</span>' if quiet else f"<span>{text}</span>"
+        for text, quiet in month_ticks(today, weeks)
     )
     return f'<div class="months" aria-hidden="true">{spans}</div>'
 
@@ -266,10 +288,13 @@ def _row_flags(place: Place, covered: Coverage) -> str:
     elif place.closures and level(place.latest.status) != "r":
         start = short_date(place.closures[-1].episode.start)
         flags.append(f'<span class="flag">{esc(RED_GROUP)} {start}</span>')
+    maybe = maybe_same_text(place)
+    if maybe:
+        flags.append(f'<span class="flag">{esc(maybe)}</span>')
     return "".join(flags)
 
 
-def row_html(place: Place, today: date, covered: Coverage) -> str:
+def row_html(place: Place, today: date, covered: Coverage, weeks: int) -> str:
     """One place in a list: name, address, latest status and date, flags, recent statuses (phones) and strip."""
     latest = place.latest
     meta = (
@@ -279,7 +304,7 @@ def row_html(place: Place, today: date, covered: Coverage) -> str:
     return (
         f'<li><a class="row" href="{place_href(place)}"><div class="info"><div class="nm">{esc(place.name)}</div>'
         f'<div class="meta">{meta}</div><div class="recent">{esc(recent_text(place.inspections))}</div></div>'
-        f"{strip_html(place, today)}</a></li>"
+        f"{strip_html(place, today, weeks)}</a></li>"
     )
 
 
@@ -308,4 +333,30 @@ def notice_html(place: Place, inspection: Inspection, *, pest: bool) -> str:
         f'<span class="eyebrow">{nice_date(inspection.date)}</span>'
         f'<span class="nm">{esc(place.name)}</span><span class="data muted">{esc(place.address)}</span>'
         f"<span>{chip(inspection.status)}</span>{why}</a>"
+    )
+
+
+STILL_FAILING = "Open again, still failing:"
+
+
+def _reopening_status(reopened: Reopening) -> str:
+    """The reopening result's chip; an Unsatisfactory one says the place is open but still failing."""
+    status = chip(reopened.reopening.status)
+    return f"{esc(STILL_FAILING)} {status}" if reopened.still_failing else status
+
+
+def reopened_html(data: SiteData, reopened: Reopening) -> str:
+    """A reopened card: reopening date, name, address, the reopening status, how long it was closed, both sources."""
+    place, closure, reopening = reopened.place, reopened.closure, reopened.reopening
+    failing = " failing" if reopened.still_failing else ""
+    sources = (
+        f"Closed {short_date(closure.date)}: {source_links(data, closure)}; "
+        f"reopened {short_date(reopening.date)}: {source_links(data, reopening)}"
+    )
+    return (
+        f'<div class="notice reopened{failing}"><span class="eyebrow">{nice_date(reopening.date)}</span>'
+        f'<a class="nm" href="{place_href(place)}#insp-{place.inspections.index(reopening)}">{esc(place.name)}</a>'
+        f'<span class="data muted">{esc(place.address)}</span><span>{_reopening_status(reopened)}</span>'
+        f'<span class="quiet">{esc(closed_text(reopened.spell, data.covered))}</span>'
+        f'<span class="src">Source: {sources}</span></div>'
     )

@@ -370,6 +370,38 @@ def check_long_closures(data: AuditData) -> CheckResult:
     )
 
 
+def _merged_line(place: Place) -> str:
+    others = "; ".join(f"{i.name} ({i.date})" for i in place.also_printed)
+    permits = ", ".join(sorted({p for i in place.inspections if (p := permit_of(i)) is not None}))
+    return f"{place.name}, {place.address} (permit {permits}): the reports also print {others}"
+
+
+def _unclear_lines(places: list[Place]) -> list[str]:
+    """Each pair the records can't tell apart, once."""
+    by_slug = {p.slug: p for p in places}
+    return [
+        f"can't tell: {p.name}, {p.address} / {by_slug[slug].name}, {by_slug[slug].address}"
+        for p in places
+        for slug, _ in p.maybe_same
+        if p.slug < slug
+    ]
+
+
+def check_place_identity(data: AuditData) -> CheckResult:
+    """Which records are one place? Merges under different names and pairs the records can't tell, for review."""
+    merged = [_merged_line(p) for p in data.places if p.merged_by_permit]
+    unclear = _unclear_lines(data.places)
+    return CheckResult(
+        "place_identity",
+        "Records under different names are one place when the reports give them the same permit at one address "
+        "(merged, marked for review); pairs the records can't tell apart stay two places, flagged "
+        "(docs/place-identity.md)",
+        len(data.places),
+        tuple(merged + unclear),
+        (("merged by permit, names differ", len(merged)), ("can't tell, kept apart", len(unclear))),
+    )
+
+
 CHECKS: tuple[Callable[[AuditData], CheckResult], ...] = (
     check_operational_status,
     check_follow_up_order,
@@ -379,6 +411,7 @@ CHECKS: tuple[Callable[[AuditData], CheckResult], ...] = (
     check_feed_status,
     check_dates_in_week,
     check_long_closures,
+    check_place_identity,
 )
 
 

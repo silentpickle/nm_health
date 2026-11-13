@@ -1,5 +1,5 @@
 // Copyright (c) 2026 nm_health contributors
-// Shared by places.js and map.js: reading places.json, dates, status chips and 52-week strips.
+// Shared by places.js and map.js: reading places.json, dates, status chips and week strips.
 // The pages work without any of this: every place is listed and linked in the HTML.
 
 /** @typedef {[number, number]} VisitRow  [days before places.json's "today", index into statuses] */
@@ -23,15 +23,20 @@
  * @property {string} closure latest closure or unsatisfactory start, or ""
  * @property {[number, number] | null} latLng
  * @property {boolean} closureInForce some permit's result in force is a closure
+ * @property {boolean} maybeSame the records can't tell this place apart from another; kept apart
+ * @property {boolean} mergedByPermit records under different names joined by permit, due a review
  * @property {string} reopened status flag, e.g. "1 of 2 permits closed" or "Closed 6 days, reopened Oct 9", else ""
  */
 /** @typedef {{ inspections: number, withNotes: number, places: Place[] }} Places */
 
 export const RED_GROUP = "Closure or unsatisfactory";
 export const PEST_FLAG_TEXT = "Roaches or rodents cited";
+export const MAYBE_SAME_TEXT = "May be the same business as another place";
 const FLAG_PESTS = 1;
 const FLAG_EMPLOYEE = 2;
 const FLAG_CLOSURE_IN_FORCE = 4;
+const FLAG_MAYBE_SAME = 8;
+const FLAG_MERGED_BY_PERMIT = 16;
 const RECENT_MAX = 3;
 const NOON = "T12:00:00";
 const LOCALE = "en-US";
@@ -128,11 +133,11 @@ function stripLabel(place) {
     .map((v) => `${fmt(v.date)}: ${v.status}`)
     .join("; ");
   const extra = place.more > 0 ? `; and ${count(place.more)} more` : "";
-  return `Inspections in the last 52 weeks: ${listed}${extra}`;
+  return `Inspections in the last ${String(place.strip.length)} weeks: ${listed}${extra}`;
 }
 
 /**
- * The 52-week strip, newest week on the right.
+ * The week strip (one cell per week in place.strip), newest week on the right.
  * @param {Place} place
  */
 export function strip(place) {
@@ -198,6 +203,8 @@ function decode(file, row) {
     pests: (flags & FLAG_PESTS) !== 0,
     employee: (flags & FLAG_EMPLOYEE) !== 0,
     closureInForce: (flags & FLAG_CLOSURE_IN_FORCE) !== 0,
+    maybeSame: (flags & FLAG_MAYBE_SAME) !== 0,
+    mergedByPermit: (flags & FLAG_MERGED_BY_PERMIT) !== 0,
     closure,
     latLng,
     reopened,
