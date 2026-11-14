@@ -25,7 +25,3 @@ HTTP_USER_AGENT = os.getenv(
     "NM_HEALTH_USER_AGENT",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 NMHealthSafetyBot/1.0",
 )
-
-# Firebase configuration
-FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "abq-food-inspections")
-FIREBASE_CREDENTIALS_PATH = os.getenv("FIREBASE_CREDENTIALS_PATH", "")
