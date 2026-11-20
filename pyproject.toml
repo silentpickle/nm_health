@@ -6,9 +6,6 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
 
-[project.optional-dependencies]
-firebase = ["firebase-admin>=6.0.0"]
-
 [project.scripts]
 nm-health = "nm_health.cli:main"
 
@@ -88,7 +85,6 @@ testpaths = ["tests"]
 [[tool.mypy.overrides]]
 module = [
     "nm_health.cli",
-    "nm_health.db.firebase_sync",
     "nm_health.db.local_store",
     "nm_health.ingest.parser",
     "nm_health.ingest.normalizer",
