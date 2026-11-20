@@ -1,8 +1,9 @@
 # Copyright (c) 2026 nm_health contributors
 """The site's pages as HTML bodies: This week (and Last month, All time), Places, Map, About, one place's record."""
 
+import re
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from nm_health.model import Inspection, NewsSource, Violation
 from nm_health.rebuild import Report
@@ -27,6 +28,7 @@ from nm_health.site_html import (
     source_links,
     strip_axis_html,
     strip_html,
+    used_news,
 )
 from nm_health.site_news import news_about, news_table
 from nm_health.viewmodel import (
@@ -304,19 +306,58 @@ def archive_tree_url(data: SiteData) -> str:
     return data.settings.pdf_base_url.replace("/blob/", "/tree/")
 
 
+WEEK_NOT_STATED = "Week not stated"
+AMENDED_DATE = re.compile(r"^(\d{1,2})/(\d{1,2})/(\d{4})$")
+WAYBACK_SOURCE = "wayback:"
+PROTOTYPE_SOURCE = "prototype fetch from report_url"
+WAYBACK_STAMP_DATE_LEN = 8  # yyyymmdd at the front of a capture's timestamp
+
+
+def report_week(report: Report) -> str:
+    """'Nov 8 - Nov 14, 2026', or 'Week not stated' for a file whose week the PDF doesn't give."""
+    if not (report.week_start and report.week_end):
+        return WEEK_NOT_STATED
+    return date_span(report.week_start, report.week_end)
+
+
+def amended_words(printed: str | None) -> str:
+    """'Amended Sep 28, 2026'; a date that doesn't read is quoted as printed, never guessed at."""
+    if not printed:
+        return "Not marked amended"
+    match = AMENDED_DATE.match(printed)
+    if match is None:
+        return f"Amended \u201c{printed}\u201d (as printed)"
+    month, day, year = (int(part) for part in match.groups())
+    return f"Amended {nice_date(f'{year:04d}-{month:02d}-{day:02d}')}"
+
+
+def source_html(data: SiteData, report: Report) -> str:
+    """Where a saved PDF came from, in words, linked where it can be."""
+    source = report.source
+    if source.startswith(WAYBACK_SOURCE):
+        stamp = source.removeprefix(WAYBACK_SOURCE)
+        day = f"{stamp[:4]}-{stamp[4:6]}-{stamp[6:WAYBACK_STAMP_DATE_LEN]}"
+        url = data.settings.snapshot_url_template.format(timestamp=stamp, url=data.settings.report_url)
+        return f'<a href="{esc(url)}">Internet Archive copy</a> of the city\'s site, captured {esc(nice_date(day))}'
+    if source.startswith("https://"):
+        return f'<a href="{esc(source)}">The city\'s site</a>'
+    if source == PROTOTYPE_SOURCE:
+        return "The city's site, before this archive kept a log"
+    return esc(source)
+
+
 def _data_row(data: SiteData, report: Report) -> str:
-    start = short_date(report.week_start) if report.week_start else "?"
-    end = nice_date(report.week_end) if report.week_end else "week not stated"
+    week = report_week(report)
     letterhead = HEADER_SEEN if report.letterhead else HEADER_ABSENT
-    amended = f"Amended {esc(report.amended_on)}" if report.amended_on else "Not marked amended"
     saved = nice_date(report.seen_at[:ISO_DATE_LEN])
     return (
-        f"<tr><td>{start} {EN_DASH} {end}</td>"
-        f'<td><a href="{REPORTS_DIR}/{esc(report.file)}">PDF</a> {MIDDOT} '
-        f'<a href="{esc(data.settings.pdf_base_url + report.file)}">GitHub</a></td>'
-        f"<td>{esc(letterhead)}</td><td>{amended}</td>"
+        f"<tr><td>{esc(week)}</td>"
+        f'<td><a href="{REPORTS_DIR}/{esc(report.file)}" aria-label="{esc(week)} report (PDF)">PDF</a> {MIDDOT} '
+        f'<a href="{esc(data.settings.pdf_base_url + report.file)}" aria-label="{esc(week)} report on GitHub">'
+        "GitHub</a></td>"
+        f"<td>{esc(letterhead)}</td><td>{esc(amended_words(report.amended_on))}</td>"
         f"<td>{report.inspections}</td><td>{saved}</td>"
-        f'<td class="data">{esc(report.source)}</td>'
+        f"<td>{source_html(data, report)}</td>"
         f'<td class="data">{esc(report.sha256[:SHA_SHOWN])}</td></tr>'
     )
 
@@ -331,7 +372,8 @@ def data_page(data: SiteData) -> Page:
     )
     body = f"""<section class="about">
 <h1 class="view">Data we have pulled</h1>
-<p>Every weekly report PDF saved so far: {len(ordered)} files, byte for byte as the city published them.
+<p>Every weekly report PDF saved so far: {len(ordered)} files ({len(data.reports)} from the last 12 months), byte for
+byte as the city published them.
 Browse the whole folder on <a href="{esc(archive_tree_url(data))}">GitHub (data/archive)</a>.</p>
 <div class="tablewrap"><table class="datatable"><thead>{head}</thead><tbody>{rows}</tbody></table></div>
 {news_table(data)}
@@ -396,17 +438,17 @@ def map_page(_data: SiteData) -> Page:
 
 
 def _report_item(data: SiteData, report: Report) -> str:
-    start = short_date(report.week_start) if report.week_start else "?"
-    end = nice_date(report.week_end) if report.week_end else "?"
+    week = report_week(report)
     count = plural(report.inspections, "inspection", "inspections")
     saved = nice_date(report.seen_at[:ISO_DATE_LEN])
     history = esc(data.settings.pdf_base_url + report.file)
-    amended = f" {MIDDOT} Amended {esc(report.amended_on)} per its header" if report.amended_on else ""
+    amended = f" {MIDDOT} {esc(amended_words(report.amended_on))} per its header" if report.amended_on else ""
     return (
-        f'<li>{start} {EN_DASH} {end} {MIDDOT} {count} {MIDDOT} <a href="{REPORTS_DIR}/{esc(report.file)}">PDF</a>'
-        f'<div class="quiet">Saved {saved}{amended} from <span class="data">{esc(report.source)}</span> {MIDDOT} '
+        f"<li>{esc(week)} {MIDDOT} {count} {MIDDOT} "
+        f'<a href="{REPORTS_DIR}/{esc(report.file)}" aria-label="{esc(week)} report (PDF)">PDF</a>'
+        f'<div class="quiet">Saved {saved}{amended} from {source_html(data, report)} {MIDDOT} '
         f'SHA-256 <span class="data">{esc(report.sha256[:SHA_SHOWN])}</span> {MIDDOT} '
-        f'<a href="{history}">archive history</a></div></li>'
+        f'<a href="{history}" aria-label="{esc(week)} report: archive history on GitHub">archive history</a></div></li>'
     )
 
 
@@ -422,6 +464,13 @@ def about_page(data: SiteData) -> Page:
         f"of {thousands(len(data.places))} places. Weeks whose report wasn't saved aren't shown: the site states only "
         "what a weekly report on file says."
     )
+    if data.news_links:
+        counts = (
+            f"For the last 12 months, {plural(len(data.reports), 'weekly report', 'weekly reports')} and "
+            f"{plural(used_news(data), 'Albuquerque Journal summary', 'Albuquerque Journal summaries')} of weeks whose "
+            f"report wasn't saved are on file: {thousands(data.total)} inspections of {thousands(len(data.places))} "
+            "places. Weeks with neither aren't shown."
+        )
     body = f"""<section class="about">
 <h1 class="view">About this data</h1>
 <h2>Where it comes from</h2>
@@ -442,7 +491,7 @@ inspector's notes, which are always quoted beside them. Email addresses and phon
 <h2>Report an error</h2>
 <p>If something here doesn't match the city's report, open an issue on the project's GitHub page with the place and
 the date.</p>
-<p><a href="{esc(data.settings.report_error_url)}">Report an error</a></p>
+<p><a href="{esc(data.settings.report_error_url)}">Open an issue on GitHub</a></p>
 </section>"""
     return Page("About this data", body, "about")
 
@@ -626,7 +675,9 @@ def _permit_line(data: SiteData, line: Inspection) -> str:
     page = data.permit_pages.get((line.report_file, line.permit_number or ""))
     href = f"{UP}{REPORTS_DIR}/{esc(line.report_file)}" + (f"#page={page}" if page else "")
     where = f"p. {page}" if page else "PDF"
-    return f'<li><q>{esc(permit_line_text(line))}</q> <a href="{href}">{where}</a></li>'
+    opened = replace(line, page=page)  # the label names the page the link opens, not the inspection's own
+    label = source_label(opened, data.week_starts.get(line.report_file)).replace("PDF, p.", "PDF, page")
+    return f'<li><q>{esc(permit_line_text(line))}</q> <a href="{href}" aria-label="{esc(label)}">{where}</a></li>'
 
 
 def _city_status(data: SiteData, place: Place) -> str:
@@ -644,7 +695,7 @@ def _city_status(data: SiteData, place: Place) -> str:
     )
 
 
-NEWS_LATEST = "Latest on file: the Albuquerque Journal's summary of the city's weekly report"
+NEWS_LATEST = "Latest on file: a newspaper's summary of the city's weekly report"
 ALSO_PRINTED = "Also printed as:"
 MERGED_BY_PERMIT = "Merged by permit; names differ."
 

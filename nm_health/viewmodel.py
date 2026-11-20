@@ -499,8 +499,16 @@ def strip_caption(weeks: int = WEEKS) -> str:
 
 
 def recent_text(inspections: tuple[Inspection, ...]) -> str:
-    """The newest dated statuses as one line, for phones where the strip is hidden."""
-    return f" {MIDDOT} ".join(f"{short_date(i.date)} {i.status}" for i in inspections[:RECENT_MAX])
+    """The newest dated statuses as one line, for phones where the strip is hidden; a day's repeats said once."""
+    groups: list[tuple[str, str, int]] = []
+    for inspection in inspections:
+        key = (short_date(inspection.date), inspection.status)
+        if groups and groups[-1][:2] == key:
+            groups[-1] = (*key, groups[-1][2] + 1)
+            continue
+        groups.append((*key, 1))
+    shown = [f"{day} {status}" + (f" ({count} results)" if count > 1 else "") for day, status, count in groups]
+    return f" {MIDDOT} ".join(shown[:RECENT_MAX])
 
 
 def tick_spacing(base: int, weeks: int) -> int:
@@ -552,9 +560,9 @@ def other_pest_kinds(citation: PestCitation) -> str:
 
 
 def closure_start(run: ClosureRun) -> str:
-    """'Oct 3, 2026: Closure Re-Inspection Required (2 inspections in a row with this kind of result)'."""
+    """'Oct 3, 2026: Closure Re-Inspection Required (2 failing inspections in a row)'."""
     count = run.episode.failed_inspections
-    repeat = f" ({count} inspections in a row with this kind of result)" if count > 1 else ""
+    repeat = f" ({count} failing inspections in a row)" if count > 1 else ""
     return f"{nice_date(run.episode.start)}: {run.start_status}{repeat}"
 
 
@@ -776,6 +784,9 @@ class Period:
 def select_period(places: list[Place], reports: tuple[Report, ...], span_days: int | None) -> Period | None:
     """The newest date and the span_days before it (None: every inspection on file), and its pest citations.
 
+    A week is the covering report's own week when a report on file covers the newest date, so the page and the report
+    name the same days; otherwise the newest date and the six days before it.
+
     Pest citations come from the period's own visits when a report covers the newest date, or when the period is
     longer than a week (its older days are in reports on file). A week whose newest date no report covers takes
     them from the latest report on file instead.
@@ -783,14 +794,22 @@ def select_period(places: list[Place], reports: tuple[Report, ...], span_days: i
     newest = max((p.latest.date for p in places), default=None)
     if newest is None:
         return None
-    start = _first_day(places, newest, span_days)
-    visits = visits_between(places, start, newest)
+    start, end = _report_week(reports, newest, span_days) or (_first_day(places, newest, span_days), newest)
+    visits = visits_between(places, start, end)
     covered = covering_report(reports, newest) is not None
     own = covered or span_days is None or span_days > WEEK_SPAN_DAYS
     report = None if own else latest_report(reports)
     pest_pool = visits if own else _report_visits(places, report)
     pests = tuple(v for v in pest_pool if cites_headline_pests(v[1]))
-    return Period(start, newest, tuple(visits), covered, report, pests, own)
+    return Period(start, end, tuple(visits), covered, report, pests, own)
+
+
+def _report_week(reports: tuple[Report, ...], newest: str, span_days: int | None) -> tuple[str, str] | None:
+    """A week page's span is the report's own week when a report on file covers the newest date."""
+    report = covering_report(reports, newest) if span_days == WEEK_SPAN_DAYS else None
+    if report is None or not (report.week_start and report.week_end):
+        return None
+    return report.week_start, report.week_end
 
 
 def _first_day(places: list[Place], newest: str, span_days: int | None) -> str:

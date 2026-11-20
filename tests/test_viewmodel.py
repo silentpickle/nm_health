@@ -226,7 +226,7 @@ def test_closure_lines_ended_and_open() -> None:
         visit("2026-10-01", status=CLOSED),
     )
     old, new = ended.closures
-    assert closure_start(old) == f"Mar 2, 2026: {CLOSED} (2 inspections in a row with this kind of result)"
+    assert closure_start(old) == f"Mar 2, 2026: {CLOSED} (2 failing inspections in a row)"
     assert closure_end(old) == f"Next inspection: {CONDITIONAL}, Mar 9, 2026."
     assert closure_start(new) == f"Oct 1, 2026: {CLOSED}"
     assert closure_end(new) is None
@@ -428,7 +428,7 @@ def test_group_places_keeps_legal_name_and_orders_newest_first() -> None:
 
 
 def test_week_with_a_covering_report() -> None:
-    """The newest date is in an archived report: no banner, pest citations from the same seven days."""
+    """The newest date is in an archived report: the week is that report's (Oct 25-31), no banner, its own pests."""
     places = group_places(
         (
             visit("2026-10-30", ROACHES),
@@ -438,8 +438,8 @@ def test_week_with_a_covering_report() -> None:
     )
     week = select_week(places, (report("2026-10-25", "2026-10-31"),))
     assert week is not None
-    assert (week.start, week.end, week.covered, week.pest_report) == ("2026-10-24", "2026-10-30", True, None)
-    assert [p.name for p, _ in week.pest_visits] == ["TEST CAFE", "OLD"]
+    assert (week.start, week.end, week.covered, week.pest_report) == ("2026-10-25", "2026-10-31", True, None)
+    assert [p.name for p, _ in week.pest_visits] == ["TEST CAFE"]  # OLD, Oct 24, is the week before
     assert [p.name for p, _ in week.red] == ["SHUT"]
 
 
@@ -632,3 +632,9 @@ THIS_WEEK_FIRST = "2026-11-03"  # TODAY's strip week is Nov 3-9
 def test_week_on_file_edges(covered: frozenset[str], inspections: tuple[Inspection, ...], code: str) -> None:
     """A strip week is on file when more than half its seven days are; otherwise "_" (no report on file)."""
     assert cell_code(strip_cells(inspections, TODAY, covered=covered)[LAST_COLUMN]) == code
+
+
+def test_recent_text_says_a_days_repeats_once() -> None:
+    """Three Approved results the same day read once, with their count; other days as before."""
+    p = place(visit("2026-11-05"), visit("2026-11-05"), visit("2026-11-05"), visit("2026-11-03", status=CONDITIONAL))
+    assert recent_text(p.inspections) == "Nov 5 Approved (3 results) · Nov 3 Conditional Approved"

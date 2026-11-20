@@ -19,6 +19,7 @@ from nm_health.rebuild import Rebuilt, Report, rebuild
 from nm_health.settings import DEFAULT_STRIP_WEEKS, Settings, load
 from nm_health.site import UnsourcedError, write_site
 from nm_health.site_html import NO_SOURCE, site_data
+from nm_health.site_pages import amended_words, report_week, source_html
 from nm_health.viewmodel import build_place, stated
 from tests.test_archive import make_settings
 from tests.test_range_pages import check_golden
@@ -235,7 +236,8 @@ def test_place_page_states_what_the_records_show(tmp_path: Path) -> None:
     assert "Status that day, as issued by the city: Approved." in text
     assert "No later approved inspection in the weekly reports on file." in text
     permit_line = "Food Establishment (Permit # PT1): Operational Status \u2013 Open"
-    assert f'<q>{permit_line}</q> <a href="../reports/{REPORT_FILE}">PDF</a>' in text  # PT1: not in the stand-in
+    link = f'<a href="../reports/{REPORT_FILE}" aria-label="Week of Oct 25 report (PDF)">PDF</a>'
+    assert f"<q>{permit_line}</q> {link}" in text  # PT1: not in the stand-in
     assert "Latest result in the weekly reports on file: Approved, Oct 29, 2026" in text
     assert '<a class="jump" href="#insp-0">Oct 29, 2026</a>: ' in text
     assert '<li class="g" id="insp-0">' in text
@@ -261,7 +263,7 @@ def test_covered_week_has_no_banner(tmp_path: Path) -> None:
     """When an archived report covers the newest date, no banner and pests come from the same week."""
     index = read(build(tmp_path, visit("2026-10-29", ROACHES)), "index.html")
     assert "isn&#x27;t on file yet" not in index
-    assert "Roaches or rodents cited<span" in index
+    assert "Roaches or rodents cited <span" in index
 
 
 def test_landing_page_disclaimer_and_latest(tmp_path: Path) -> None:
@@ -403,9 +405,10 @@ def test_map_and_about_pages(tmp_path: Path) -> None:
     assert '<script type="importmap">{"imports": {"citymap": "./citymap.js"}}</script>' in map_html
     assert '<link rel="stylesheet" href="citymap.css">' in map_html
     about = read(site, "about.html")
-    assert '<a href="https://github.com/silentpickle/nm_health/issues">Report an error</a>' in about
-    assert f'<a href="reports/{REPORT_FILE}">PDF</a>' in about
-    assert f'<a href="https://example.test/pdf/{REPORT_FILE}">archive history</a>' in about
+    assert '<a href="https://github.com/silentpickle/nm_health/issues">Open an issue on GitHub</a>' in about
+    assert f'<a href="reports/{REPORT_FILE}" aria-label="Oct 25 \u2013 Oct 31, 2026 report (PDF)">PDF</a>' in about
+    history = 'aria-label="Oct 25 \u2013 Oct 31, 2026 report: archive history on GitHub">archive history</a>'
+    assert f'<a href="https://example.test/pdf/{REPORT_FILE}" {history}' in about
 
 
 def test_real_archive(tmp_path: Path) -> None:
@@ -461,3 +464,27 @@ def test_build_refuses_an_unsourced_inspection(tmp_path: Path) -> None:
     data = site_data(Rebuilt((visit("2026-10-29"),), (REPORT,)), settings, TODAY.date())
     with pytest.raises(UnsourcedError, match="PT-TEST-2026-10-29"):
         site._require_sources(replace(data, places=[build_place("orphan", [orphan])]))  # noqa: SLF001 - the guard itself
+
+
+@pytest.mark.parametrize(
+    ("printed", "words"),
+    [
+        pytest.param("9/28/2026", "Amended Sep 28, 2026", id="month_day_year"),
+        pytest.param("01/05/2026", "Amended Jan 5, 2026", id="zero_padded"),
+        pytest.param("01/12/206", "Amended \u201c01/12/206\u201d (as printed)", id="typo_kept"),
+        pytest.param(None, "Not marked amended", id="not_amended"),
+    ],
+)
+def test_amended_date_in_words(printed: str | None, words: str) -> None:
+    """A header's amended date reads as a date; one that doesn't parse is quoted as printed, never guessed."""
+    assert amended_words(printed) == words
+
+
+def test_sources_in_words(tmp_path: Path) -> None:
+    """Where each PDF came from, in words: the city's site, an Internet Archive capture, or before the log began."""
+    data = site_data(Rebuilt((), (REPORT,)), make_settings(tmp_path), TODAY.date())
+    wayback = source_html(data, replace(REPORT, source="wayback:20251118062906"))
+    assert "Internet Archive copy</a> of the city's site, captured Nov 18, 2025" in wayback
+    assert source_html(data, replace(REPORT, source="prototype fetch from report_url")).startswith("The city")
+    assert ">The city's site</a>" in source_html(data, replace(REPORT, source="https://example.test/r.pdf"))
+    assert report_week(replace(REPORT, week_start=None)) == "Week not stated"

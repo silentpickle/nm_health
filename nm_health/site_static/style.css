@@ -207,7 +207,7 @@ h2 .n {
   color: var(--muted);
   text-transform: none;
   letter-spacing: 0;
-  margin-left: 6px;
+  margin-left: 2px; /* after a space: screen readers say "Closed 3", not "Closed3" */
 }
 .eyebrow {
   font: 500 0.78rem/1.35 var(--font-data);

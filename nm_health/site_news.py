@@ -21,7 +21,7 @@ from nm_health.site_html import (
     news_links_html,
     used_news,
 )
-from nm_health.viewmodel import MIDDOT, covering_report, nice_date, short_date
+from nm_health.viewmodel import MIDDOT, covering_report, nice_date, plural, short_date
 
 USED = "Used here"
 NOT_USED = "Not used:"
@@ -119,13 +119,17 @@ def news_pages(data: SiteData) -> dict[str, Page]:
     return {saved_page(link): news_page(data, link) for link in data.news_links}
 
 
+NONE_USED = "none: the city's report for that week is on file"
+
+
 def _news_row(data: SiteData, link: NewsLink) -> str:
     usable = len(usable_entries(link, _city_days(data)))
     source = source_of(link, _outlet(data, link))
     links = f" {MIDDOT} ".join(news_links_html(source))
+    used = str(usable) if usable or not link.entries else NONE_USED
     return (
         f"<tr><td>{esc(_weeks(link))}</td><td>{links}</td><td>{len(link.entries)}</td>"
-        f'<td>{usable}</td><td class="data">{esc(link_slug(link))}</td></tr>'
+        f"<td>{esc(used)}</td><td>{esc(link_slug(link))}</td></tr>"
     )
 
 
@@ -136,9 +140,10 @@ def news_table(data: SiteData) -> str:
     ordered = sorted(data.news_links, key=lambda link: link.weeks[-1].end, reverse=True)
     rows = "".join(_news_row(data, link) for link in ordered)
     return f"""<h2>Albuquerque Journal summaries</h2>
-<p>For weeks whose city report wasn't saved: {len(ordered)} articles, each recorded by hand from the article page
-(the week, each place as printed, and red places' descriptions, quoted). Each links to the article, our saved record,
-and an Internet Archive copy when one exists.</p>
+<p>For weeks whose city report wasn't saved: {len(ordered)} articles. Each was saved one at a time from the article
+page in a browser (nothing crawls the paper's site), keeping the week, each place as printed, and red places'
+descriptions, quoted. Each links to the article, our saved record, and an Internet Archive copy when one exists.
+"Used here" counts the entries the site states; an article on a week whose city report is on file isn't used.</p>
 <div class="tablewrap"><table class="datatable"><thead><tr><th>Week</th><th>Article</th><th>Entries</th>
 <th>Used here</th><th>Record</th></tr></thead><tbody>{rows}</tbody></table></div>"""
 
@@ -148,7 +153,7 @@ def news_about(data: SiteData) -> str:
     if not data.news_links:
         return ""
     return (
-        f"<p>For {used_news(data)} weeks whose city report wasn't saved, the site uses the Albuquerque "
+        f"<p>For {plural(used_news(data), 'week', 'weeks')} whose city report wasn't saved, the site uses the Albuquerque "
         "Journal's weekly summary of that report: the same places, dates and results, and for closed or failing places "
         "the paper's description, quoted as its words (not the inspector's notes). "
         "On the weeks both are on file, every inspection in the city's report is in the Journal's summary with the "
