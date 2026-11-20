@@ -28,7 +28,9 @@ NOT_USED = "Not used:"
 CITY_REPORT = "the city's report for that day is on file"
 SAVED_NOTE = (
     "What this site recorded from the article: the week it covers, each place it lists with its dates and results, and "
-    "each red-listed place's description, quoted as the paper printed it. GREEN, YELLOW and RED are the paper's lists: "
+    "each red-listed place's description, quoted as the paper printed it. The paper describes only red-listed places: "
+    "a GREEN or YELLOW entry is a name, address and date, so no notes are recorded for passing or conditional grades. "
+    "GREEN, YELLOW and RED are the paper's lists: "
     "passed (the city's Approved), conditional (Conditional Approved), and closed or failing (Closure or "
     "Unsatisfactory). Entries dated in a week whose city report is on file aren't used: the city's report wins."
 )
@@ -155,7 +157,8 @@ def news_about(data: SiteData) -> str:
     return (
         f"<p>For {plural(used_news(data), 'week', 'weeks')} whose city report wasn't saved, the site uses the Albuquerque "
         "Journal's weekly summary of that report: the same places, dates and results, and for closed or failing places "
-        "the paper's description, quoted as its words (not the inspector's notes). "
+        "the paper's description, quoted as its words (not the inspector's notes); passing and conditional grades "
+        "come with no description, so none is recorded for them. "
         "On the weeks both are on file, every inspection in the city's report is in the Journal's summary with the "
         "same result. A summary never replaces a city report: for days a city report on file covers, only the city's "
         "report is used. Each statement from a summary links to the article, our saved record of it, and an Internet "

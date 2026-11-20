@@ -625,7 +625,8 @@ NEWS_DESCRIBED = (
 )
 NEWS_BODY = (
     "The city's report for this week wasn't saved. This result is from the Albuquerque Journal's summary of that "
-    "report, which doesn't include the inspector's notes."
+    "report. The paper describes only closed or failing places; a passing or conditional result, or a follow-up, is "
+    "listed with its date alone, so there are no notes to show."
 )
 
 
