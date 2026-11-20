@@ -9,7 +9,7 @@ import re
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 
-from nm_health.identity import also_printed, group, title
+from nm_health.identity import also_printed, group, journal_printed, title
 from nm_health.model import Inspection, NewsSource, Violation
 from nm_health.rebuild import Report
 from nm_health.settings import DEFAULT_STRIP_WEEKS
@@ -298,6 +298,8 @@ class Place:
     standing: tuple[Inspection, ...] = ()  # results still in force, one per permit as far as known, oldest first
     # The newest inspection printed under each other name: places joined by permit (identity.group).
     also_printed: tuple[Inspection, ...] = ()
+    # The newest Journal-sourced inspection under each other name: joined by address and name (identity M9), shown.
+    journal_names: tuple[Inspection, ...] = ()
     # (slug, name) of each place the records can't tell apart from this one: kept apart, flagged (identity.group).
     maybe_same: tuple[tuple[str, str], ...] = ()
 
@@ -395,6 +397,7 @@ def build_place(slug: str, inspections: list[Inspection]) -> Place:
         spells=spells,
         standing=tuple(standing(ordered)),
         also_printed=also_printed(ordered, printed.name),
+        journal_names=journal_printed(ordered, printed.name),
     )
 
 

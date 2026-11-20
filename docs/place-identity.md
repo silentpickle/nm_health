@@ -341,11 +341,25 @@ of the 20 judged slugs is in a merged group or a CAN'T TELL pair today.
 News summaries (docs/news-links.md) print a name and an address, no permit, and drop street types and units. Two
 rules, ahead of M1:
 
-- **M9:** a key only the Journal prints joins a key with the same name (case and punctuation aside) and the same
-  street number (digits), first street word and quadrant (`identity.street_key`). Any other pair with it stays apart:
-  one address with two names is two places, never "can't tell".
-- **M10:** a Journal key that would join two places the city's records keep apart joins neither: can't tell, flagged
-  on each. City keys join first, so two keys of one city place count once.
+- **M9:** a key only the Journal prints, against any key at the same street number (digits) and street name (its
+  words, street types dropped; `identity.street_words`). Two names sharing a number and street name but not a type
+  are rare (the owner's call: "one could kind of guess"), so that is one address. The names decide:
+  - **same name** once store numbers ("#31822", "824"), company forms (LLC, Inc), "the", "and" and "restaurant"
+    (however spelled) are set aside, and spacing ("WAL MART" / "Walmart"): same place;
+  - **one name starts the other**, word for word ("Walmart" / "Walmart Supercenter", "Blake's" / "Blake's
+    Lotaburger"; not "Albertsons" / "AFC Sushi at Albertsons"): same place, joined after the exact names;
+  - the same name in **another quadrant**: can't tell (a likely typo), flagged;
+  - anything else at that address (a shopping centre's other tenants): two places.
+- **M10:** a Journal key whose joins would reach two places kept apart joins neither: can't tell, flagged on each.
+  City keys join first, then exact names, then names that start another, so two keys of one place count once ("Clyde
+  Hotel" starts three kitchens' names and joins none; "Clyde Hotel Mercantile" still joins "Clyde Hotel Mercantile
+  Cafe").
 
-Measured on Nov 20, 2026 (37 articles, 365-day window): 31 city places gained Journal inspections, 1,089 places are
-known only from the Journal, and M10 fired on none.
+Every place joined this way shows how the Journal printed it ("The Albuquerque Journal printed it as: …, joined by
+address and name; check it against the article").
+
+Measured on Nov 20, 2026 (37 articles, 365-day window), against every pair of separate places at one street number and
+street name (508): 27 had the same name once store numbers and company forms were set aside, 27 one name starting the
+other, 24 shared a word (stands and kitchens in one building), 11 differed by quadrant, 419 shared nothing (shopping
+centres). With the rules above: 1,292 places (was 1,336), 55 city places with Journal inspections (was 31), 6 places
+flagged.

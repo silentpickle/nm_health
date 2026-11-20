@@ -17,8 +17,9 @@ repeats it. Incomplete is better than wrong, and the record grows by one report 
   Conditional Approved and "passed follow-up inspection" is Approved (`news_fold`). A summary has no inspector notes,
   permit numbers or inspection kinds; a red-listed place's description is the paper's words, quoted with attribution,
   and a pest reading from it is credited to the paper, never to the inspector. A summarized week counts as on file
-  for a closure's length. A Journal place joins a city place only with the same name and the same street number,
-  street and quadrant (place-identity.md, M9 and M10).
+  for a closure's length. A Journal place joins another at the same street number and street name when the names
+  agree, store numbers and company forms aside, or one starts the other, and the page shows the Journal's spelling
+  (place-identity.md, M9 and M10).
 - A strip week (counted back from today, so it straddles two report weeks) most of whose days no report or summary on
   file covers is drawn as a low dash, "No report on file", never as "No inspection": nothing could show there.
 
