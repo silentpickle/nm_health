@@ -265,7 +265,7 @@ def chip(status: str) -> str:
 
 def heading(text: str, count: int) -> str:
     """An h2 with a count beside it."""
-    return f'<h2>{esc(text)}<span class="n">{count}</span></h2>'
+    return f'<h2>{esc(text)} <span class="n">{count}</span></h2>'
 
 
 def _cell(code: str) -> str:

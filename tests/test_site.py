@@ -263,7 +263,7 @@ def test_covered_week_has_no_banner(tmp_path: Path) -> None:
     """When an archived report covers the newest date, no banner and pests come from the same week."""
     index = read(build(tmp_path, visit("2026-10-29", ROACHES)), "index.html")
     assert "isn&#x27;t on file yet" not in index
-    assert "Roaches or rodents cited<span" in index
+    assert "Roaches or rodents cited <span" in index
 
 
 def test_landing_page_disclaimer_and_latest(tmp_path: Path) -> None:

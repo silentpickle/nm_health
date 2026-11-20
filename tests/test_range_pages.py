@@ -172,8 +172,8 @@ def test_all_time_page_lists_older_closures(tmp_path: Path) -> None:
     """All time reaches the oldest inspection on file, closures and pest citations included."""
     body = body_for(tmp_path, month_edges(), ALL_RANGE)
     assert "Inspections Sep 30 \u2013 Oct 30, 2026</p>" in body
-    assert f'{CLOSED_GROUP}<span class="n">1</span>' in body
-    assert 'Roaches or rodents cited<span class="n">2</span>' in body
+    assert f'{CLOSED_GROUP} <span class="n">1</span>' in body
+    assert 'Roaches or rodents cited <span class="n">2</span>' in body
 
 
 def test_month_pests_come_from_its_own_inspections(tmp_path: Path) -> None:
@@ -182,7 +182,7 @@ def test_month_pests_come_from_its_own_inspections(tmp_path: Path) -> None:
     assert "OLDER BUGS" in body
     assert "week of" not in body
     assert "isn&#x27;t on file yet" in body
-    assert 'Roaches or rodents cited<span class="n">2</span>' in body
+    assert 'Roaches or rodents cited <span class="n">2</span>' in body
 
 
 def test_range_cards_capped(tmp_path: Path) -> None:
@@ -190,7 +190,7 @@ def test_range_cards_capped(tmp_path: Path) -> None:
     many = tuple(at(visit("2026-10-30", status=CLOSED), f"PLACE {n:03d}", COVERING) for n in range(PAGE_SIZE + 1))
     body = body_for(tmp_path, Rebuilt(many, (COVERING,)), ALL_RANGE)
     assert body.count('<a class="notice"') == PAGE_SIZE
-    assert f'{CLOSED_GROUP}<span class="n">{PAGE_SIZE + 1}</span>' in body
+    assert f'{CLOSED_GROUP} <span class="n">{PAGE_SIZE + 1}</span>' in body
     assert f'<p class="note">Newest {PAGE_SIZE} shown.' in body
 
 
@@ -207,7 +207,7 @@ def test_week_page_rows_capped(tmp_path: Path) -> None:
     many = tuple(at(visit("2026-10-30"), f"PLACE {n:03d}", COVERING) for n in range(PAGE_SIZE + 1))
     body = week_page(data_for(tmp_path, Rebuilt(many, (COVERING,)))).body
     assert body.count('<a class="row"') == PAGE_SIZE
-    assert f'Other inspections<span class="n">{PAGE_SIZE + 1}</span>' in body
+    assert f'Other inspections <span class="n">{PAGE_SIZE + 1}</span>' in body
 
 
 def test_week_across_new_year_names_both_years(tmp_path: Path) -> None:

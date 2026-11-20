@@ -226,7 +226,7 @@ def test_closure_lines_ended_and_open() -> None:
         visit("2026-10-01", status=CLOSED),
     )
     old, new = ended.closures
-    assert closure_start(old) == f"Mar 2, 2026: {CLOSED} (2 inspections in a row with this kind of result)"
+    assert closure_start(old) == f"Mar 2, 2026: {CLOSED} (2 failing inspections in a row)"
     assert closure_end(old) == f"Next inspection: {CONDITIONAL}, Mar 9, 2026."
     assert closure_start(new) == f"Oct 1, 2026: {CLOSED}"
     assert closure_end(new) is None
@@ -632,3 +632,9 @@ THIS_WEEK_FIRST = "2026-11-03"  # TODAY's strip week is Nov 3-9
 def test_week_on_file_edges(covered: frozenset[str], inspections: tuple[Inspection, ...], code: str) -> None:
     """A strip week is on file when more than half its seven days are; otherwise "_" (no report on file)."""
     assert cell_code(strip_cells(inspections, TODAY, covered=covered)[LAST_COLUMN]) == code
+
+
+def test_recent_text_says_a_days_repeats_once() -> None:
+    """Three Approved results the same day read once, with their count; other days as before."""
+    p = place(visit("2026-11-05"), visit("2026-11-05"), visit("2026-11-05"), visit("2026-11-03", status=CONDITIONAL))
+    assert recent_text(p.inspections) == "Nov 5 Approved (3 results) · Nov 3 Conditional Approved"
