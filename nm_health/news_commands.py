@@ -93,6 +93,10 @@ def list_lines(settings: settings_module.Settings) -> list[str]:
     usable = sum(len(news.usable_entries(link, county)) for link in links)
     total = sum(len(link.entries) for link in links)
     said.append(f"{len(links)} news links; {usable} of {total} entries usable (dated outside every county PDF's week)")
+    missing = news.missing_weeks(links, county)
+    if missing:
+        weeks = ", ".join(f"{week.start.isoformat()}..{week.end.isoformat()}" for week in missing)
+        said.append(f"No county PDF and no news link yet: {weeks}")
     unknown = news.unknown_week_files(settings.manifest)
     if unknown:
         said.append(f"Archived PDFs with no week on file (their days aren't counted as covered): {', '.join(unknown)}")

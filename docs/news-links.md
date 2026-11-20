@@ -44,7 +44,9 @@ your Downloads folder does hold the article's body text: it's yours, never commi
 1. Install the extension once: open `chrome://extensions`, turn on Developer mode, click **Load unpacked**, and pick
    `tools/news-capture`.
 2. Open an article from the tag page. A green **Save for nm_health** button appears at the bottom right of
-   restaurant-inspection articles; click it. Chrome saves `nm-health-news-<article id>.json` to Downloads.
+   restaurant-inspection articles; click it. Chrome saves `nm-health-news-<article id>.json` to Downloads. Past the
+   Journal's free-article limit the paywall hides the text: the button then says "No article text on the page" and
+   saves nothing. Come back to that article later.
 3. Record what you saved, then check it:
 
    ```bash
@@ -60,7 +62,11 @@ your Downloads folder does hold the article's body text: it's yours, never commi
 `news add` prints one line per file: `NEW`, `UPDATED` (the facts changed since the last capture), `same`, or
 `SKIPPED` with the reason (wrong site, no week line, not JSON). Below each record it says how much of it the county
 archive leaves usable, and warns about any line that looked like a fact but didn't read (a place with no date, a
-Result line with no place before it). Adding the same file twice is harmless.
+Result line with no place before it). Adding the same file twice is harmless. The Journal's own typos (a missing
+parenthesis around a date or a "Class C" note) still read; "Editor's note" lines are skipped.
+
+`news list` ends with the weeks that have neither a county PDF nor a news link, from your earliest news link's week to
+the archive's latest day: the articles still worth saving.
 
 ## Not done yet
 

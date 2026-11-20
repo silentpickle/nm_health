@@ -74,6 +74,7 @@ def test_list_prints_links_and_totals(tmp_path: Path) -> None:
         ),
         f"  {COVERED_URL}",
         "2 news links; 1 of 8 entries usable (dated outside every county PDF's week)",
+        "No county PDF and no news link yet: 2026-10-11..2026-11-07",
         "Archived PDFs with no week on file (their days aren't counted as covered): unknown-week_b.pdf",
     ]
 

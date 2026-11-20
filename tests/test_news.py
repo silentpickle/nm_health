@@ -18,6 +18,7 @@ from nm_health.news import (
     Outcome,
     county_days,
     load_links,
+    missing_weeks,
     save_links,
     unknown_week_files,
     upsert,
@@ -27,6 +28,7 @@ from nm_health.news import (
 COUNTY_WEEK = Week(date(2026, 11, 8), date(2026, 11, 14))
 DAYS_IN_WEEK = 7
 ONE_DAY = timedelta(days=1)
+WEEKS_BEFORE_COUNTY = 4  # the news link's week, then three weeks with nothing
 NEXT_WEEK = Week(COUNTY_WEEK.end + ONE_DAY, COUNTY_WEEK.end + ONE_DAY * DAYS_IN_WEEK)
 
 
@@ -122,3 +124,18 @@ def test_county_report_always_wins(tmp_path: Path, week: Week, days: tuple[date,
     entry = entry_on(*days)
     expected = [entry] if usable else []
     assert usable_entries(make_link("https://www.example.test/a/1", week, (entry,)), covered) == expected
+
+
+def test_missing_weeks_named(tmp_path: Path) -> None:
+    """Weeks with neither a county PDF nor a news link, from the first news week to the last county day, merged."""
+    covered = county_days(write_manifest(tmp_path / "manifest.jsonl"))
+    first_start = COUNTY_WEEK.start - ONE_DAY * DAYS_IN_WEEK * WEEKS_BEFORE_COUNTY
+    first = Week(first_start, first_start + ONE_DAY * (DAYS_IN_WEEK - 1))
+    link = make_link("https://www.example.test/a/1", first)
+    gap = Week(first.end + ONE_DAY, COUNTY_WEEK.start - ONE_DAY)
+    assert missing_weeks([link], covered) == [gap]
+
+
+def test_missing_weeks_none_without_links(tmp_path: Path) -> None:
+    """No news links yet: nothing to measure from."""
+    assert missing_weeks([], county_days(write_manifest(tmp_path / "manifest.jsonl"))) == []

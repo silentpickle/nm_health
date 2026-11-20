@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import cast
 
 from nm_health.archive import Week
+from nm_health.settings import DAYS_PER_WEEK
 
 GREEN = "GREEN"
 YELLOW = "YELLOW"
@@ -22,6 +23,7 @@ COLORS = (GREEN, YELLOW, RED)
 NEW = "NEW"
 UPDATED = "UPDATED"
 SAME = "same"
+WEEK_SPAN = timedelta(days=DAYS_PER_WEEK - 1)  # first day to last day of a week
 
 
 @dataclass(frozen=True)
@@ -186,3 +188,25 @@ def entry_days(link: NewsLink, entry: Entry) -> list[date]:
 def usable_entries(link: NewsLink, county: frozenset[date]) -> list[Entry]:
     """Entries no county report can contradict: none of their days is in a week an archived PDF covers."""
     return [entry for entry in link.entries if not any(day in county for day in entry_days(link, entry))]
+
+
+def _runs(weeks: list[Week]) -> list[Week]:
+    """Back-to-back weeks merged into one span."""
+    spans: list[Week] = []
+    for week in weeks:
+        if spans and week.start - spans[-1].end == timedelta(days=1):
+            spans[-1] = Week(spans[-1].start, week.end)
+            continue
+        spans.append(week)
+    return spans
+
+
+def missing_weeks(links: list[NewsLink], county: frozenset[date]) -> list[Week]:
+    """Spans with no county PDF and no news link, from the first news link's week to the last county day."""
+    if not links or not county:
+        return []
+    known = county | {day for link in links for day in week_days(link)}
+    start = min(week.start for link in links for week in link.weeks)
+    offsets = range(0, (max(county) - start).days + 1, DAYS_PER_WEEK)
+    weeks = [Week(start + timedelta(days=offset), start + timedelta(days=offset) + WEEK_SPAN) for offset in offsets]
+    return _runs([week for week in weeks if not any(day in known for day in _days(week))])
