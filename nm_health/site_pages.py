@@ -695,7 +695,7 @@ def _city_status(data: SiteData, place: Place) -> str:
     )
 
 
-NEWS_LATEST = "Latest on file: the Albuquerque Journal's summary of the city's weekly report"
+NEWS_LATEST = "Latest on file: a newspaper's summary of the city's weekly report"
 ALSO_PRINTED = "Also printed as:"
 MERGED_BY_PERMIT = "Merged by permit; names differ."
 

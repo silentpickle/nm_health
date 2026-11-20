@@ -119,13 +119,17 @@ def news_pages(data: SiteData) -> dict[str, Page]:
     return {saved_page(link): news_page(data, link) for link in data.news_links}
 
 
+NONE_USED = "none: the city's report for that week is on file"
+
+
 def _news_row(data: SiteData, link: NewsLink) -> str:
     usable = len(usable_entries(link, _city_days(data)))
     source = source_of(link, _outlet(data, link))
     links = f" {MIDDOT} ".join(news_links_html(source))
+    used = str(usable) if usable or not link.entries else NONE_USED
     return (
         f"<tr><td>{esc(_weeks(link))}</td><td>{links}</td><td>{len(link.entries)}</td>"
-        f'<td>{usable}</td><td class="data">{esc(link_slug(link))}</td></tr>'
+        f"<td>{esc(used)}</td><td>{esc(link_slug(link))}</td></tr>"
     )
 
 
@@ -136,9 +140,10 @@ def news_table(data: SiteData) -> str:
     ordered = sorted(data.news_links, key=lambda link: link.weeks[-1].end, reverse=True)
     rows = "".join(_news_row(data, link) for link in ordered)
     return f"""<h2>Albuquerque Journal summaries</h2>
-<p>For weeks whose city report wasn't saved: {len(ordered)} articles, each recorded by hand from the article page
-(the week, each place as printed, and red places' descriptions, quoted). Each links to the article, our saved record,
-and an Internet Archive copy when one exists.</p>
+<p>For weeks whose city report wasn't saved: {len(ordered)} articles. Each was saved one at a time from the article
+page in a browser (nothing crawls the paper's site), keeping the week, each place as printed, and red places'
+descriptions, quoted. Each links to the article, our saved record, and an Internet Archive copy when one exists.
+"Used here" counts the entries the site states; an article on a week whose city report is on file isn't used.</p>
 <div class="tablewrap"><table class="datatable"><thead><tr><th>Week</th><th>Article</th><th>Entries</th>
 <th>Used here</th><th>Record</th></tr></thead><tbody>{rows}</tbody></table></div>"""
 

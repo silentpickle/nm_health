@@ -258,3 +258,18 @@ def test_lede_and_about_count_journal_weeks(tmp_path: Path) -> None:
         "For 1 other week, whose report wasn't saved, the Albuquerque Journal's summaries fill in."
     )
     assert "1 weekly report and 1 Albuquerque Journal summary of weeks whose report wasn" in about_page(data).body
+
+
+def test_journal_latest_names_outlet_once(tmp_path: Path) -> None:
+    """A Journal-only place's latest-record box names the paper once, after a plain label."""
+    data, _ = site_with_news(tmp_path)
+    hot_wok = next(p for p in data.places if p.name == "Hot Wok")
+    body = place_page(data, hot_wok).body
+    assert "Latest on file: a newspaper's summary of the city's weekly report</span> Albuquerque Journal," in body
+    assert "Journal's summary of the city's weekly report</span> Albuquerque Journal" not in body
+
+
+def test_data_page_says_why_none_used(tmp_path: Path) -> None:
+    """An article on a week the city's report covers says why none of it is used."""
+    data, _ = site_with_news(tmp_path)
+    assert "none: the city&#x27;s report for that week is on file" in data_page(data).body
