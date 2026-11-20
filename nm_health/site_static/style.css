@@ -24,6 +24,7 @@
   --unsat-cell: #c55f00; /* #ff8c00 is only 2.3:1 on white; this clears 3:1 for graphics (WCAG 1.4.11) */
   --unsat-stripe: #ffc58a;
   --none-cell: #dfe3de;
+  --empty-cell: #dfe3de; /* strip "No inspection" cell (chips and tags keep --none-cell behind their text) */
   --font-display:
     "Barlow Condensed", "Arial Narrow", "Helvetica Neue", sans-serif;
   --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -54,6 +55,7 @@
     --unsat-cell: #ff8c00;
     --unsat-stripe: #7a4a14;
     --none-cell: #262d2a;
+    --empty-cell: #56605b; /* 2.6:1 on the surface: seen, yet quieter than any status cell */
     color-scheme: dark;
   }
 }
@@ -80,6 +82,7 @@
   --unsat-cell: #ff8c00;
   --unsat-stripe: #7a4a14;
   --none-cell: #262d2a;
+  --empty-cell: #56605b;
   color-scheme: dark;
 }
 * {
@@ -306,8 +309,7 @@ h2 .n {
   display: block;
   height: 100%;
   border-radius: 2px;
-  background: var(--none-cell);
-  opacity: 0.7;
+  background: var(--empty-cell);
 }
 .strip i.g,
 .strip i.y,
@@ -356,9 +358,9 @@ h2 .n {
 }
 /* No report on file for any day of the week: a low dash, so a gap in the record doesn't read as "no inspection". */
 .strip i.nf {
-  height: 2px;
+  height: 3px;
   background: var(--ink);
-  opacity: 0.4;
+  opacity: 0.7;
 }
 .strip.big {
   height: 30px;
