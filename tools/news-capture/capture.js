@@ -1,7 +1,8 @@
 // Copyright (c) 2026 nm_health contributors
 // Content script (manifest.json) for Albuquerque Journal restaurant-inspection articles. It adds one button; a click
 // saves the open page's citation and body lines as a JSON file for `uv run nm-health news add` (docs/news-links.md).
-// It fetches nothing and runs only on the page you have open: no crawling. nm-health keeps facts, never the prose.
+// It fetches nothing and runs only on the page you have open: no crawling. nm-health keeps the lists and red places'
+// descriptions (quoted with attribution), never the introduction or legend.
 
 const NM_CAPTURE_KIND = "nm-health-news/1";
 const NM_TAG_SELECTOR =

@@ -3,8 +3,9 @@
 
 They hold history the archive lacks (weeks whose PDF nobody saved). A news link never supersedes a county report:
 an entry is usable only when none of its dates falls in a week an archived PDF covers (``usable_entries``). Each
-record is a citation (URL, headline, publication date) plus the facts the article lists: the week, and each place's
-color, name, address, dates and results. Never the article's prose. See docs/news-links.md.
+record is a citation (URL, headline, publication date) plus what the article lists: the week, each place's color,
+name, address, dates and results, and each red-listed place's description as printed (shown only as a quote,
+attributed to the paper). See docs/news-links.md.
 """
 
 import json
@@ -46,6 +47,9 @@ class Entry:
     # Notes such as "Class B" printed after the place.
     classes: tuple[str, ...] = ()
     outcomes: tuple[Outcome, ...] = ()
+    # A red-listed place's description, the article's paragraphs as printed: the Journal's words, quoted with
+    # attribution wherever shown.
+    notes: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -77,6 +81,7 @@ def _entry_json(entry: Entry) -> dict[str, object]:
         "dates": [day.isoformat() for day in entry.dates],
         "classes": list(entry.classes),
         "outcomes": [_outcome_json(outcome) for outcome in entry.outcomes],
+        "notes": list(entry.notes),
     }
 
 
@@ -104,6 +109,7 @@ def _entry_from(data: dict[str, object]) -> Entry:
         dates=tuple(date.fromisoformat(day) for day in cast("list[str]", data["dates"])),
         classes=tuple(cast("list[str]", data["classes"])),
         outcomes=tuple(Outcome(o["result"], date.fromisoformat(o["on"])) for o in outcomes),
+        notes=tuple(cast("list[str]", data.get("notes", []))),
     )
 
 

@@ -41,7 +41,7 @@ LINES = [
     "Test Cafe, 100 Central SE (Nov. 12)",
     "RED",
     "Hot Wok, 500 Coors NW (Class C)",
-    "Narrative about what the inspector found. It is never kept.",
+    "A live mouse was seen by the sink. Rodent droppings were found in storage.",
     "Result: Closure (Nov. 9); re-inspection required (Nov. 9); unsatisfactory (Nov. 10)",
     "Bad Bistro, 600 Yale SE",
     "Result: Closure (Nov. 12)",
@@ -73,6 +73,7 @@ EXPECTED_RECORD = {
             "dates": ["2026-11-12"],
             "classes": [],
             "outcomes": [],
+            "notes": [],
         },
         {
             "color": "GREEN",
@@ -81,6 +82,7 @@ EXPECTED_RECORD = {
             "dates": ["2026-11-13"],
             "classes": ["Class B", "Class C"],
             "outcomes": [],
+            "notes": [],
         },
         {
             "color": "GREEN",
@@ -89,6 +91,7 @@ EXPECTED_RECORD = {
             "dates": ["2026-11-09", "2026-11-10"],
             "classes": [],
             "outcomes": [],
+            "notes": [],
         },
         {
             "color": "GREEN",
@@ -97,6 +100,7 @@ EXPECTED_RECORD = {
             "dates": ["2026-11-11"],
             "classes": [],
             "outcomes": [],
+            "notes": [],
         },
         {
             "color": "YELLOW",
@@ -105,6 +109,7 @@ EXPECTED_RECORD = {
             "dates": ["2026-11-12"],
             "classes": [],
             "outcomes": [],
+            "notes": [],
         },
         {
             "color": "RED",
@@ -117,6 +122,7 @@ EXPECTED_RECORD = {
                 {"result": "re-inspection required", "on": "2026-11-09"},
                 {"result": "unsatisfactory", "on": "2026-11-10"},
             ],
+            "notes": ["A live mouse was seen by the sink. Rodent droppings were found in storage."],
         },
         {
             "color": "RED",
@@ -125,6 +131,7 @@ EXPECTED_RECORD = {
             "dates": ["2026-11-12"],
             "classes": [],
             "outcomes": [{"result": "Closure", "on": "2026-11-12"}],
+            "notes": [],
         },
     ],
     "captured_at": "2026-11-20T00:00:00Z",
@@ -146,11 +153,14 @@ def test_capture_read_whole_record() -> None:
     assert read.problems == []
 
 
-def test_record_keeps_no_prose() -> None:
-    """No narrative sentence reaches the record."""
+def test_description_kept_intro_dropped() -> None:
+    """A red place's description is kept as printed; the introduction and legend never are."""
     read = read_capture(CAPTURE, HOSTS)
     assert read.link is not None
-    assert "inspector" not in str(to_json(read.link))
+    text = str(to_json(read.link))
+    assert "A live mouse was seen by the sink." in text
+    assert "summaries of city restaurant inspections" not in text
+    assert "passing grade" not in text
 
 
 @pytest.mark.parametrize(

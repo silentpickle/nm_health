@@ -83,7 +83,7 @@ cache = "data/judgements.json"
 # News write-ups of the city's weekly reports, saved one article at a time from your own browser with the extension in
 # tools/news-capture, then `uv run nm-health news add` (docs/news-links.md). Only for history the county archive lacks:
 # an entry dated in a week an archived PDF covers is never used, so a county report always wins. Nothing crawls these
-# sites. One JSON line per article: a citation and the facts it lists, never the article's text. Committed.
+# sites. One JSON line per article: a citation, what it lists, and red places' descriptions (quoted only). Committed.
 links = "data/news/links.jsonl"
 # Sites a capture may come from. tools/news-capture/manifest.json matches the same hosts.
 hosts = ["www.abqjournal.com", "abqjournal.com"]

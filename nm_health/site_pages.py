@@ -4,7 +4,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from nm_health.model import Inspection, Violation
+from nm_health.model import Inspection, NewsSource, Violation
 from nm_health.rebuild import Report
 from nm_health.signals import HEADLINE_PESTS, is_pass, is_red
 from nm_health.site_html import (
@@ -492,10 +492,13 @@ def _pest_fact(data: SiteData, place: Place, citation: PestCitation) -> str:
         else f'<span class="open">{NO_LATER_APPROVAL} </span>'
     )
     reading = esc(pest_reading(citation))
+    news = place.inspections[citation.index].news
+    whose = f"the {news.outlet}" if news else "the inspector"
+    issued = f"as the {news.outlet} reported the city's result" if news else "as issued by the city"
     detail = (
-        f'<span class="reading" title="This site\'s reading of the inspector\'s words">{reading}</span>'
+        f'<span class="reading" title="This site\'s reading of {esc(whose)}\'s words">{reading}</span>'
         f"<q>{esc(citation.quote)}</q>"
-        f'<div class="quiet">Status that day, as issued by the city: {esc(citation.status)}. {cleared}'
+        f'<div class="quiet">Status that day, {esc(issued)}: {esc(citation.status)}. {cleared}'
         "</div>"
         f"{_sources(data, place, [place.inspections[citation.index]])}"
         f"{_most_recent_link(data, citation.date)}"
@@ -542,10 +545,14 @@ def _facts(data: SiteData, place: Place) -> str:
     return "".join([*pests, *closures, _other_pests_fact(place)])
 
 
-def _tags(v: Violation) -> str:
+def _tag_spans(tags: tuple[str, ...]) -> str:
     return "".join(
-        f'<span class="tag{" hot" if t in HEADLINE_PESTS else ""}">{esc(TAG_LABEL.get(t, t))}</span>' for t in v.tags
+        f'<span class="tag{" hot" if t in HEADLINE_PESTS else ""}">{esc(TAG_LABEL.get(t, t))}</span>' for t in tags
     )
+
+
+def _tags(v: Violation) -> str:
+    return _tag_spans(v.tags)
 
 
 def _details(v: Violation) -> str:
@@ -563,15 +570,32 @@ def _violation(v: Violation) -> str:
     return f'<li><span class="vt">{esc(title)}</span>{category}{_tags(v)}{quote}{_details(v)}</li>'
 
 
+NEWS_DESCRIBED = (
+    "The city's report for this week wasn't saved. The {outlet}'s summary of it describes this inspection, in the "
+    "paper's words (not the inspector's):"
+)
 NEWS_BODY = (
     "The city's report for this week wasn't saved. This result is from the Albuquerque Journal's summary of that "
     "report, which doesn't include the inspector's notes."
 )
 
 
+def _news_body(inspection: Inspection, news: NewsSource) -> str:
+    """A newspaper-sourced result: its description quoted with attribution when it has one, else what's missing."""
+    if not inspection.violations:
+        return f'<p class="quiet">{esc(NEWS_BODY)}</p>'
+    said = " ".join(v.observation for v in inspection.violations)
+    tags = sorted({t for v in inspection.violations for t in v.tags}, key=lambda t: (t not in HEADLINE_PESTS, t))
+    lead = NEWS_DESCRIBED.format(outlet=news.outlet)
+    return (
+        f'<p class="quiet">{esc(lead)}</p><blockquote class="obs">{esc(said)}</blockquote>'
+        f'<p class="quiet">{_tag_spans(tuple(tags))}</p>'
+    )
+
+
 def _inspection_body(inspection: Inspection) -> str:
     if inspection.news is not None:
-        return f'<p class="quiet">{esc(NEWS_BODY)}</p>'
+        return _news_body(inspection, inspection.news)
     if not inspection.violations:
         return '<p class="quiet">The report lists no violations for this inspection.</p>'
     items = "".join(_violation(v) for v in inspection.violations)
