@@ -270,9 +270,9 @@ def _cell(code: str) -> str:
     return f'<i class="{classes}"></i>' if classes else "<i></i>"
 
 
-def strip_html(place: Place, today: date, weeks: int, *, big: bool = False) -> str:
-    """The week strip, shape-coded, with every dated status in its accessible name."""
-    cells = "".join(_cell(cell_code(c)) for c in strip_cells(place.inspections, today, weeks))
+def strip_html(place: Place, today: date, weeks: int, covered: Coverage, *, big: bool = False) -> str:
+    """The week strip, shape-coded, with every dated status in its accessible name; weeks with nothing on file marked."""
+    cells = "".join(_cell(cell_code(c)) for c in strip_cells(place.inspections, today, weeks, covered))
     size = " big" if big else ""
     label = esc(strip_label(place.inspections, weeks))
     return f'<div class="strip{size}" role="img" aria-label="{label}">{cells}</div>'
@@ -317,6 +317,7 @@ def legend_html() -> str:
         ("o", UNSATISFACTORY_GROUP),
         ("g so", "Status only (no inspector notes on file)"),
         ("", "No inspection"),
+        ("nf", "No report on file"),
         ("g p", "Roaches or rodents cited"),
     )
     return f'<div class="legend">{"".join(_key(c, label) for c, label in keys)}</div>'
@@ -353,7 +354,7 @@ def row_html(place: Place, today: date, covered: Coverage, weeks: int) -> str:
     return (
         f'<li><a class="row" href="{place_href(place)}"><div class="info"><div class="nm">{esc(place.name)}</div>'
         f'<div class="meta">{meta}</div><div class="recent">{esc(recent_text(place.inspections))}</div></div>'
-        f"{strip_html(place, today, weeks)}</a></li>"
+        f"{strip_html(place, today, weeks, covered)}</a></li>"
     )
 
 

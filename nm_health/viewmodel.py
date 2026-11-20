@@ -101,7 +101,10 @@ LEVEL_RANK = {
 }
 # One character per strip cell (places.json; places.js decodes it with the same table).
 # Lowercase: inspector notes on file. Uppercase: status only. Digit: roaches or rodents cited (notes always on file).
+Coverage = frozenset[str]  # ISO dates that some weekly report on file covers
 NO_INSPECTION_CODE = "."
+NOTHING_ON_FILE_CODE = "_"  # no city report or news summary on file covers most days of the week
+ON_FILE_MIN_DAYS = DAYS_PER_WEEK // 2 + 1  # a strip week is on file when more than half its days are
 NOTES_CODES = {LEVEL_APPROVED: "g", LEVEL_CONDITIONAL: "y", LEVEL_UNSATISFACTORY: "o", LEVEL_RED: "r", LEVEL_OTHER: "n"}
 STATUS_ONLY_CODES = {
     LEVEL_APPROVED: "G",
@@ -113,6 +116,7 @@ STATUS_ONLY_CODES = {
 PEST_CODES = {LEVEL_APPROVED: "1", LEVEL_CONDITIONAL: "2", LEVEL_RED: "3", LEVEL_UNSATISFACTORY: "4", LEVEL_OTHER: "0"}
 CELL_CLASSES = {
     NO_INSPECTION_CODE: "",
+    NOTHING_ON_FILE_CODE: "nf",
     "g": "g",
     "y": "y",
     "r": "r",
@@ -410,6 +414,7 @@ class Cell:
     level: str = LEVEL_NONE
     status_only: bool = True
     pest: bool = False
+    on_file: bool = True  # some day of the week is in a report (or news summary) on file
 
 
 def week_index(today: date, iso: str) -> int:
@@ -423,12 +428,30 @@ def _add(cell: Cell, inspection: Inspection) -> Cell:
         level=worst if LEVEL_RANK[worst] > LEVEL_RANK[cell.level] else cell.level,
         status_only=cell.status_only and not inspection.has_details,
         pest=cell.pest or cites_headline_pests(inspection),
+        on_file=cell.on_file,
     )
 
 
-def strip_cells(inspections: tuple[Inspection, ...], today: date, weeks: int = WEEKS) -> tuple[Cell, ...]:
-    """The last `weeks` weeks, oldest on the left, newest (this week) on the right."""
-    cells = [Cell() for _ in range(weeks)]
+def _on_file(today: date, weeks_ago: int, covered: Coverage) -> bool:
+    """Most days of the strip week `weeks_ago` weeks back are in a report on file.
+
+    Strip weeks count back from today, so each straddles two report weeks; "most" maps one missing report week to one
+    marked strip week, whatever day today is.
+    """
+    first = weeks_ago * DAYS_PER_WEEK
+    on_file = sum((today - timedelta(days=first + n)).isoformat() in covered for n in range(DAYS_PER_WEEK))
+    return on_file >= ON_FILE_MIN_DAYS
+
+
+def strip_cells(
+    inspections: tuple[Inspection, ...], today: date, weeks: int = WEEKS, covered: Coverage | None = None
+) -> tuple[Cell, ...]:
+    """The last `weeks` weeks, oldest on the left, newest (this week) on the right.
+
+    With `covered`, a week most of whose days no report on file covers is marked (code "_"): nothing could show there.
+    """
+    on_file = [covered is None or _on_file(today, weeks - 1 - column, covered) for column in range(weeks)]
+    cells = [Cell(on_file=known) for known in on_file]
     for inspection in inspections:
         weeks_ago = week_index(today, inspection.date)
         if not 0 <= weeks_ago < weeks:
@@ -441,7 +464,7 @@ def strip_cells(inspections: tuple[Inspection, ...], today: date, weeks: int = W
 def cell_code(cell: Cell) -> str:
     """One character for the cell (see CELL_CLASSES)."""
     if cell.level == LEVEL_NONE:
-        return NO_INSPECTION_CODE
+        return NO_INSPECTION_CODE if cell.on_file else NOTHING_ON_FILE_CODE
     if cell.pest:
         return PEST_CODES[cell.level]
     return (STATUS_ONLY_CODES if cell.status_only else NOTES_CODES)[cell.level]
@@ -551,9 +574,6 @@ def _in_week(inspection: Inspection, week: tuple[str | None, str | None] | None)
         return False
     first, last = week
     return (first or inspection.date) <= inspection.date <= (last or inspection.date)
-
-
-Coverage = frozenset[str]  # ISO dates that some weekly report on file covers
 
 
 def covered_days(reports: tuple[Report, ...]) -> Coverage:

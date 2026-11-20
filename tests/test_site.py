@@ -16,7 +16,7 @@ from nm_health import feed, site
 from nm_health.identity import group
 from nm_health.model import Inspection, Violation
 from nm_health.rebuild import Rebuilt, Report, rebuild
-from nm_health.settings import Settings, load
+from nm_health.settings import DEFAULT_STRIP_WEEKS, Settings, load
 from nm_health.site import UnsourcedError, write_site
 from nm_health.site_html import NO_SOURCE, site_data
 from nm_health.viewmodel import build_place, stated
@@ -26,6 +26,9 @@ from tests.test_range_pages import check_golden
 TODAY = datetime(2026, 11, 9, 12, tzinfo=UTC)
 REPORT_FILE = "2026-10-25_2026-10-31_abc.pdf"
 REPORT = Report(REPORT_FILE, "abc", "2026-10-25", "2026-10-31", "test", "2026-11-04", "current", 2)
+# The newest two strip weeks: Oct 27-Nov 2 (5 of its days in the report; roaches Oct 29) and this week (none). Every
+# older week has no report on file for most of its days (Oct 20-26 has two report days).
+REPORT_WEEK_CELLS = "1_"
 ROACHES = Violation(
     "Pest Control",
     "Controlling Pests, If Present: Treatment",
@@ -346,8 +349,7 @@ def test_strip_weeks_setting_sets_every_strip(tmp_path: Path) -> None:
     assert months.group(1).count("<span") == QUARTER_WEEKS
     assert f"Inspections in the last {QUARTER_WEEKS} weeks: Oct 29, 2026" in text
     (row,) = json.loads(read(site, "places.json"))["places"]
-    newest_two = "1."  # roaches eleven days ago, nothing this week
-    assert row[STRIP_FIELD] == "." * (QUARTER_WEEKS - len(newest_two)) + newest_two
+    assert row[STRIP_FIELD] == "_" * (QUARTER_WEEKS - len(REPORT_WEEK_CELLS)) + REPORT_WEEK_CELLS
 
 
 def test_strip_axis_names_the_span(tmp_path: Path) -> None:
@@ -376,7 +378,7 @@ def test_places_json_shape(tmp_path: Path) -> None:
         "TEST CAFE",
         None,
         "100 CENTRAL AVE SW",
-        "." * 50 + "1.",
+        "_" * (DEFAULT_STRIP_WEEKS - len(REPORT_WEEK_CELLS)) + REPORT_WEEK_CELLS,
         [[11, 0]],
         0,
         1,

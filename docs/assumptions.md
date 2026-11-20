@@ -18,6 +18,8 @@ repeats it. Incomplete is better than wrong, and the record grows by one report 
   permit numbers or inspection kinds, so its inspections back no pest statement. A summarized week counts as on file
   for a closure's length. A Journal place joins a city place only with the same name and the same street number,
   street and quadrant (place-identity.md, M9 and M10).
+- A strip week (counted back from today, so it straddles two report weeks) most of whose days no report or summary on
+  file covers is drawn as a low dash, "No report on file", never as "No inspection": nothing could show there.
 
 - An inspection appears only if a weekly report on file prints it, dated inside the week the report covers (one
   report prints a typo date, "1/29/2026" in its Jan 27-31, 2025 week; it stays off).

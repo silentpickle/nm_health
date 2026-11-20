@@ -100,7 +100,7 @@ def _place_row(data: SiteData, place: Place, statuses: dict[str, int]) -> list[o
         place.name,
         place.legal_name,
         place.address,
-        strip_code(strip_cells(place.inspections, today, data.settings.strip_weeks)),
+        strip_code(strip_cells(place.inspections, today, data.settings.strip_weeks, data.covered)),
         history,
         max(len(place.inspections) - ARIA_LIST_MAX, 0),
         _flags(place),
@@ -136,7 +136,7 @@ def reopened_json(data: SiteData) -> dict[str, list[list[object]]]:
 def places_json(data: SiteData) -> str:
     """The slim index places.js and map.js read.
 
-    Each place is [slug, name, legal name, address, strip code (one char per week, settings.strip_weeks), [[days before today, status index], ...]
+    Each place is [slug, name, legal name, address, strip code (one char per week, settings.strip_weeks; "_" a week with nothing on file), [[days before today, status index], ...]
     newest first (up to 8), how many more inspections, flags (1 roaches/rodents, 2 employee items, 4 a closure in force, 8 may be the same business as another place, 16 merged by permit with names that differ), latest closure start or "",
     [lat, lng] or null, reopened flag text or "" (viewmodel.reopened_flag)]. `statuses` lists [status, level] by index.
     `reopened` lists each time-range page's Reopened section, keyed by page file: [slug, closure date, reopening date,
