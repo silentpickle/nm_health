@@ -27,9 +27,12 @@ WEEK_LINE = re.compile(rf"^{MONTH} (\d{{1,2}}) ?[-{EN_DASH}] ?(?:{MONTH} )?(\d{{
 # Dates inside parentheses: "Nov. 12", "Nov. 12, 13"; a bare day keeps the month before it.
 MONTH_DAY = re.compile(rf"(?:{MONTH}\s+)?(\d{{1,2}})\b")
 TRAILING_PARENS = re.compile(r"\s*\(([^()]*)\)$")
+# The Journal's typo "(July 29) Class C)": a class note that lost its opening parenthesis.
+CLASS_WITHOUT_OPEN = re.compile(r"\s+(Class\s[^()]*)\)$")
 HEAD_WITH_NUMBER = re.compile(r"^(.+?), (\d.*)$")
 HEAD_ANY = re.compile(r"^(.+?), (.+)$")
-OUTCOME = re.compile(rf"^(.+?)\s*\(({MONTH}\s+\d{{1,2}})\)$")
+# "Closure (Nov. 9)"; also the typos "Closure (Sept. 28" and "passed follow-up inspection Aug. 7)".
+OUTCOME = re.compile(rf"^(.+?)\s*\(?({MONTH}\s+\d{{1,2}})\)?$")
 ISO_DATE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})")
 RESULT_PREFIX = "Result:"
 NONE_LINE = "NONE"
@@ -38,6 +41,9 @@ WWW = "www."
 NOT_AN_OBJECT = "not a news capture (expected a JSON object)"
 REQUIRED_TEXT = ("url", "headline", "published")
 WARNING_CHARS = 80  # of a skipped line, quoted in a warning
+NOTE_PREFIX = "editor's note"  # "Editor's note: ..." lines after the lists: not a fact, skipped quietly
+CURLY_APOSTROPHE = "\N{RIGHT SINGLE QUOTATION MARK}"
+NO_TEXT = "the capture holds no article text (the paywall may have hidden it): save it again once the article shows"
 
 
 @dataclass(frozen=True)
@@ -128,7 +134,7 @@ def parse_head(line: str) -> _Head:
     rest = line.strip()
     classes: list[str] = []
     dates_text: list[str] = []
-    while (match := TRAILING_PARENS.search(rest)) is not None:
+    while (match := TRAILING_PARENS.search(rest) or CLASS_WITHOUT_OPEN.search(rest)) is not None:
         inside = match[1].strip()
         if inside.startswith(CLASS_PREFIX):
             classes[:0] = [note.strip() for note in inside.split(",")]
@@ -216,8 +222,12 @@ def _section_line(walk: _Walk, line: str) -> bool:
     return True
 
 
+def _is_note(line: str) -> bool:
+    return line.lower().replace(CURLY_APOSTROPHE, "'").startswith(NOTE_PREFIX)
+
+
 def _step(walk: _Walk, line: str) -> None:
-    if not line or _section_line(walk, line):
+    if not line or _is_note(line) or _section_line(walk, line):
         return
     if walk.week is None or not walk.color or line == NONE_LINE:
         return  # the introduction and color legend come before the first list
@@ -270,10 +280,14 @@ def _check_published(data: dict[str, object], _hosts: Collection[str]) -> str | 
     return None if _iso_date(published) else f"published is not a date: {published!r}"
 
 
+def _check_lines(data: dict[str, object], _hosts: Collection[str]) -> str | None:
+    return None if _lines(data) else NO_TEXT
+
+
 def _check_week(data: dict[str, object], _hosts: Collection[str]) -> str | None:
     published = _iso_date(_text(data, "published"))
-    if published is None:
-        return None  # reported by _check_published
+    if published is None or not _lines(data):
+        return None  # reported by _check_published or _check_lines
     found = any(week_from_line(line.strip(), published) for line in _lines(data))
     return None if found else 'no week line (like "Nov. 8-14") in the article body'
 
@@ -283,6 +297,7 @@ CHECKS: tuple[Callable[[dict[str, object], Collection[str]], str | None], ...] =
     _check_text,
     _check_host,
     _check_published,
+    _check_lines,
     _check_week,
 )
 

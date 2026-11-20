@@ -282,3 +282,51 @@ def test_non_object_capture_refused() -> None:
     """A JSON file that isn't an object is no capture."""
     read = read_capture(["not", "a", "capture"], HOSTS)
     assert (read.link, read.problems) == (None, ["not a news capture (expected a JSON object)"])
+
+
+def test_outcome_paren_typos_read() -> None:
+    """A Result part missing either parenthesis still reads, and its date is kept."""
+    lines = [
+        "Sept. 27-Oct. 3",
+        "RED",
+        "Rising Star, 1 Main NE",
+        "Result: Closure (Sept. 28; re-inspection required Sept. 28); passed follow-up inspection (Oct. 1)",
+    ]
+    _, entries, warnings = walk_lines(lines, date(2026, 10, 8))
+    assert [(outcome.result, outcome.on) for outcome in entries[0].outcomes] == [
+        ("Closure", date(2026, 9, 28)),
+        ("re-inspection required", date(2026, 9, 28)),
+        ("passed follow-up inspection", date(2026, 10, 1)),
+    ]
+    assert warnings == []
+
+
+def test_class_note_missing_open_paren() -> None:
+    """A class note that lost its "(" ("(July 29) Class C)") is still a class note, and the date still reads."""
+    lines = ["July 26-Aug. 1", "YELLOW", "Desert Grill, 5200 Eubank NE (July 29) Class C)"]
+    _, entries, warnings = walk_lines(lines, date(2026, 8, 6))
+    assert [(e.name, e.address, e.dates, e.classes) for e in entries] == [
+        ("Desert Grill", "5200 Eubank NE", (date(2026, 7, 29),), ("Class C",))
+    ]
+    assert warnings == []
+
+
+def test_editor_note_skipped_quietly() -> None:
+    """An "Editor\u2019s note" line after the lists is no fact and no warning."""
+    lines = [
+        "Nov. 8-14",
+        "RED",
+        "Bad Bistro, 600 Yale SE",
+        "Result: Closure (Nov. 12)",
+        "Editor\u2019s note: This story was updated.",
+    ]
+    _, entries, warnings = walk_lines(lines, PUBLISHED)
+    assert [entry.name for entry in entries] == ["Bad Bistro"]
+    assert warnings == []
+
+
+def test_empty_capture_explained() -> None:
+    """A capture with no article text (the paywall hid it) says so, not that the week line is missing."""
+    assert capture_problems({**CAPTURE, "lines": []}, HOSTS) == [
+        "the capture holds no article text (the paywall may have hidden it): save it again once the article shows"
+    ]

@@ -124,6 +124,10 @@ function nmAddButton(body) {
   button.style.cssText = NM_BUTTON_STYLE;
   button.addEventListener("click", () => {
     const record = nmCapture(body);
+    if (record.lines.length === 0) {
+      button.textContent = "No article text on the page (paywall?)";
+      return;
+    }
     nmSave(record);
     button.textContent = `Saved (${String(record.lines.length)} lines)`;
   });
