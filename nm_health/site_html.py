@@ -160,12 +160,13 @@ def used_news(data: SiteData) -> int:
 
 def news_links_html(source: NewsSource, up: str = "") -> list[str]:
     """The article, our saved record of it, and an Internet Archive copy when one exists."""
+    label = esc(news_label(source))
     links = [
-        f'<a href="{esc(source.url)}">{esc(news_label(source))}</a>',
-        f'<a href="{up}{esc(source.saved)}">{SAVED_RECORD}</a>',
+        f'<a href="{esc(source.url)}">{label}</a>',
+        f'<a href="{up}{esc(source.saved)}" aria-label="Our saved record of {label}">{SAVED_RECORD}</a>',
     ]
     if source.archived:
-        links.append(f'<a href="{esc(source.archived)}">{ARCHIVED_COPY}</a>')
+        links.append(f'<a href="{esc(source.archived)}" aria-label="Archived copy of {label}">{ARCHIVED_COPY}</a>')
     return links
 
 

@@ -188,8 +188,9 @@ def test_site_states_journal_results_with_links(tmp_path: Path) -> None:
     journal = next(i for i in frontier.inspections if i.news)
     links = source_links(data, journal, "../")
     assert f'href="{URL}"' in links
-    assert 'href="../news/abqjournal-3014687.html">saved record' in links
-    assert f'href="{ARCHIVED}">archived copy' in links
+    assert 'href="../news/abqjournal-3014687.html" aria-label="Our saved record of Albuquerque Journal, ' in links
+    assert ">saved record</a>" in links
+    assert f'href="{ARCHIVED}" aria-label="Archived copy of Albuquerque Journal, ' in links
     assert day(2).isoformat() in data.covered
 
 
