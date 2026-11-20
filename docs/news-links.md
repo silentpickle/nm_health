@@ -27,17 +27,19 @@ this repo fetches the Journal. The browser extension reads only the page you hav
 
 ## What a record keeps
 
-A citation and the facts the article lists, never its prose:
+A citation, what the article lists, and each red-listed place's description as printed:
 
 | Field | What |
 |---|---|
 | `url`, `source`, `headline`, `published`, `author` | Where the article is and who published it, when |
 | `weeks` | The week(s) its date line names ("Nov. 8-14"), years worked out from the publication date |
-| `entries` | Each place as printed: `color` (GREEN / YELLOW / RED), `name`, `address`, `dates`, `classes` ("Class B"), `outcomes` (each result in a red place's Result line, with its date) |
+| `entries` | Each place as printed: `color` (GREEN / YELLOW / RED), `name`, `address`, `dates`, `classes` ("Class B"), `outcomes` (each result in a red place's Result line, with its date), `notes` (a red place's description paragraphs, as printed) |
 | `captured_at` | When you saved the page |
 
-The introduction, the color legend and every narrative paragraph are dropped. The JSON file the extension saves to
-your Downloads folder does hold the article's body text: it's yours, never committed, and safe to delete once added.
+The introduction and the color legend are dropped. The descriptions are the paper's words (the owner's decision of
+Nov 20, 2026, knowing the Journal's notice): the site only ever shows them as a quote, attributed to the paper, never
+as the inspector's notes. The JSON files the extension saves to Downloads hold the article's whole body; keep them
+until you're sure nothing more is wanted from them.
 
 ## Recording articles
 
@@ -81,6 +83,12 @@ The site folds usable entries into the places' histories (`nm_health/news_fold.p
   street types and units ("2100 Louisiana NE" for "2100 LOUISIANA BLVD NE"). One that would join two places the city's
   records keep apart joins neither and is flagged (place-identity.md, M9 and M10). Every other Journal place gets its
   own page, under the Journal's spelling.
+- A red place's description goes with the result it explains (its first failing one), quoted on the place page as
+  the paper's words. Each sentence is tagged as an inspector's observation would be (`nm_health/tags.py`), so pest
+  readings ("Rodents, live") and the roaches-or-rodents flags cover these weeks too, credited to the paper. Measured
+  on the 13 red places both a city report and an article describe: roaches 1 of 1 and rodents 2 of 2 agree with the
+  city's notes, none extra; sanitizer 6/6 and training 8/8 agree; the paper leaves out permits and pest paperwork,
+  and its wording misses 5 of 6 date-marking cites.
 - `uv run nm-health site` reads `data/news/links.jsonl`; the daily site build does the same.
 
 `uv run nm-health news archived` looks up an Internet Archive copy for each link that has none and saves its address

@@ -16,6 +16,8 @@ from nm_health.news_fold import (
     CLOSURE,
     CONDITIONAL,
     UNSATISFACTORY,
+    described_result,
+    description_violations,
     entry_statuses,
     link_inspections,
     link_slug,
@@ -25,7 +27,8 @@ from nm_health.news_fold import (
 from nm_health.rebuild import Rebuilt
 from nm_health.site_html import SiteData, site_data, source_links, unsourced
 from nm_health.site_news import news_page
-from nm_health.site_pages import about_page, data_page
+from nm_health.site_pages import about_page, data_page, place_page
+from nm_health.viewmodel import coverage_line, group_places
 from tests.test_archive import make_settings
 from tests.test_identity import NOVEMBER, rec
 
@@ -194,9 +197,9 @@ def test_saved_record_marks_used_entries(tmp_path: Path) -> None:
     """The saved record lists every entry; one dated in a week a city report covers is marked not used."""
     data, article = site_with_news(tmp_path)
     page = news_page(data, article).body
-    assert page.count("Used here") == len(article.entries)
+    assert page.count(">Used here</a>") == len(article.entries)
     november = next(n for n in data.news_links if n.url.endswith("-nov"))
-    assert "Not used: the city&#x27;s report for that day is on file" in news_page(data, november).body
+    assert f'Not used: <a href="../reports/{NOVEMBER.file}">the city&#x27;s report' in news_page(data, november).body
 
 
 def test_about_and_data_name_the_journal(tmp_path: Path) -> None:
@@ -211,3 +214,37 @@ def test_about_and_data_name_the_journal(tmp_path: Path) -> None:
 def test_no_news_adds_nothing() -> None:
     """Without news links, the fold adds nothing (the golden pages pin the rest)."""
     assert news_inspections((), NO_COUNTY, dict(OUTLETS), SINCE) == ()
+
+
+DESCRIBED = replace(RED_PLACE, notes=("A live mouse ran under the prep table. The hand sink was blocked by boxes.",))
+
+
+def test_description_on_first_failing_result() -> None:
+    """The description goes with the result it explains, the place's first failing one; later results stay bare."""
+    found = link_inspections(link(DESCRIBED), NO_COUNTY, JOURNAL, SINCE)
+    described = [(i.date, i.status) for i in found if i.violations]
+    assert described == [(day(1).isoformat(), CLOSURE)]
+    assert described_result(DESCRIBED) == (day(1), CLOSURE)
+
+
+def test_description_tagged_like_notes() -> None:
+    """Each sentence is tagged as an inspector's observation would be: rodents (live) and handwashing here."""
+    violations = description_violations(DESCRIBED)
+    assert [v.observation for v in violations] == [
+        "A live mouse ran under the prep table.",
+        "The hand sink was blocked by boxes.",
+    ]
+    assert [(v.tags, v.pest_state) for v in violations] == [(("rodents",), "live"), (("handwashing",), None)]
+
+
+def test_place_page_quotes_description_with_attribution(tmp_path: Path) -> None:
+    """The place page quotes the paper's words, says whose they are, and credits the pest reading to the paper."""
+    data, _ = site_with_news(tmp_path)
+    data = replace(data, places=group_places(tuple(link_inspections(link(DESCRIBED), NO_COUNTY, JOURNAL, SINCE))))
+    hot_wok = next(p for p in data.places if p.name == "Hot Wok")
+    body = place_page(data, hot_wok).body
+    assert "Albuquerque Journal&#x27;s summary of it describes this inspection, in the paper&#x27;s words" in body
+    assert "A live mouse ran under the prep table. The hand sink was blocked by boxes." in body
+    assert "title=\"This site's reading of the Albuquerque Journal's words\"" in body
+    assert "as the Albuquerque Journal reported the city&#x27;s result" in body
+    assert "The Albuquerque Journal described 1 other in its own words." in coverage_line(hot_wok)

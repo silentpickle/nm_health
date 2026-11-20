@@ -321,6 +321,11 @@ class Place:
         return sum(i.has_details for i in self.inspections)
 
     @property
+    def described(self) -> tuple[Inspection, ...]:
+        """Inspections a newspaper summary describes (no inspector notes; its own words, quoted)."""
+        return tuple(i for i in self.inspections if i.news is not None and i.violations)
+
+    @property
     def headline_pests(self) -> bool:
         """Roaches or rodents cited in any notes on file."""
         return any(p.headline for p in self.pests)
@@ -523,12 +528,16 @@ def month_ticks(today: date, weeks: int = WEEKS) -> list[tuple[str, bool]]:
 
 
 def coverage_line(place: Place) -> str:
-    """How many inspections have inspector notes on file; never a claim that the place is pest-free."""
+    """How many inspections have inspector notes (or a paper's description) on file; never a pest-free claim."""
     total = plural(len(place.inspections), "inspection", "inspections")
-    if not place.with_notes:
+    if not place.with_notes and not place.described:
         return f"Inspector notes on file for none of its {total} in this period, so pest citations can't be shown."
     line = f"Inspector notes on file for {place.with_notes} of {total}."
-    return line if place.headline_pests else f"{line} None of those notes mention roaches or rodents."
+    if place.described:
+        outlet = next(i.news.outlet for i in place.described if i.news)
+        line += f" The {outlet} described {plural(len(place.described), 'other', 'others')} in its own words."
+    sources = "notes or descriptions" if place.described else "notes"
+    return line if place.headline_pests else f"{line} None of those {sources} mention roaches or rodents."
 
 
 def pest_reading(citation: PestCitation) -> str:

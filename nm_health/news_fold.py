@@ -9,10 +9,12 @@ carry the city's status for that day under the mapping below. Only entries no ci
 
 import re
 from collections.abc import Iterable, Mapping
+from dataclasses import replace
 from datetime import date
 
-from nm_health.model import Inspection, NewsSource
+from nm_health.model import Inspection, NewsSource, Violation
 from nm_health.news import GREEN, YELLOW, Entry, NewsLink, usable_entries, week_days
+from nm_health.tags import tagged
 
 APPROVED = "Approved"
 CONDITIONAL = "Conditional Approved"
@@ -30,6 +32,10 @@ STATUS_BY_RESULT = {
 # Same-day results, first to last: a failure comes before the conditional or approved visit that follows it (the city's
 # reports print a place's same-day Conditional then its follow-up Approved; the Journal lists them GREEN first).
 DAY_ORDER = {CLOSURE: 0, UNSATISFACTORY: 1, CONDITIONAL: 2, APPROVED: 3}
+FAILING = (CLOSURE, UNSATISFACTORY)
+# A description is split into sentences, each tagged like an inspector's observation (nm_health.tags): pests from its
+# words, other items (handwashing, sanitizer, ...) from the sentence read as the item cited.
+SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9\u201c\"])")
 ID_PREFIX = "news-"
 SAVED_DIR = "news"
 NOT_SLUG = re.compile(r"[^a-z0-9]+")
@@ -64,6 +70,19 @@ def entry_statuses(entry: Entry) -> list[tuple[date, str]]:
         return [(day, STATUS_BY_COLOR[entry.color]) for day in entry.dates]
     results = [(outcome.on, outcome.result.lower()) for outcome in entry.outcomes]
     return [(day, STATUS_BY_RESULT[result]) for day, result in results if result in STATUS_BY_RESULT]
+
+
+def description_violations(entry: Entry) -> tuple[Violation, ...]:
+    """A red place's description as tagged sentences: the paper's words, which back tags quoted with attribution."""
+    sentences = [part for note in entry.notes for part in SENTENCE_END.split(note.strip()) if part]
+    return tuple(tagged(Violation(category="", item=sentence, rule="", observation=sentence)) for sentence in sentences)
+
+
+def described_result(entry: Entry) -> tuple[date, str] | None:
+    """The result a red place's description is about: its first failing one (else its first)."""
+    ordered = sorted(entry_statuses(entry), key=lambda found: (found[0], DAY_ORDER[found[1]]))
+    failing = [found for found in ordered if found[1] in FAILING]
+    return next(iter(failing or ordered), None)
 
 
 def _inspection(entry: Entry, day: date, status: str, source: NewsSource, inspection_id: str) -> Inspection:
@@ -102,7 +121,10 @@ def link_inspections(link: NewsLink, county: frozenset[date], outlet: str, since
         key = (entry.name, entry.address, day, status)
         if key in found:
             continue
-        found[key] = _inspection(entry, day, status, source, f"{ID_PREFIX}{link_slug(link)}-{len(found)}")
+        inspection = _inspection(entry, day, status, source, f"{ID_PREFIX}{link_slug(link)}-{len(found)}")
+        if entry.notes and (day, status) == described_result(entry):
+            inspection = replace(inspection, violations=description_violations(entry))
+        found[key] = inspection
     return list(found.values())
 
 

@@ -2,8 +2,8 @@
 """Read a page the browser extension saved (tools/news-capture) into a ``NewsLink``.
 
 The capture holds the page's citation (URL, headline, publication time, author) and the article body's lines. Only
-facts are kept: the week line ("Nov. 8-14"), each place listed under GREEN / YELLOW / RED ("Name, address (Nov. 12)"
-with any "(Class B)" note) and each red-listed place's "Result:" line. Narrative paragraphs are dropped.
+the week line ("Nov. 8-14"), each place listed under GREEN / YELLOW / RED ("Name, address (Nov. 12)" with any "(Class B)"
+note), each red-listed place's description paragraphs and its "Result:" line. The introduction and legend are dropped.
 """
 
 import calendar
@@ -64,6 +64,7 @@ class _Walk:
     week: Week | None = None
     color: str = ""
     pending: _Head | None = None
+    notes: list[str] = field(default_factory=list)  # the pending red place's description so far
     weeks: list[Week] = field(default_factory=list)
     entries: list[Entry] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
@@ -181,8 +182,9 @@ def _flush_pending(walk: _Walk) -> None:
     if walk.pending is None:
         return
     walk.warnings.append(f"RED: no Result line for {walk.pending.name}; kept without dates")
-    walk.entries.append(Entry(RED, walk.pending.name, walk.pending.address, (), walk.pending.classes))
-    walk.pending = None
+    head = walk.pending
+    walk.entries.append(Entry(RED, head.name, head.address, (), head.classes, (), tuple(walk.notes)))
+    walk.pending, walk.notes = None, []
 
 
 def _result_line(walk: _Walk, week: Week, line: str) -> None:
@@ -193,17 +195,18 @@ def _result_line(walk: _Walk, week: Week, line: str) -> None:
     walk.warnings.extend(f"RED: {walk.pending.name}: result not read: {part}" for part in unread)
     days = tuple(sorted({outcome.on for outcome in outcomes}))
     head = walk.pending
-    walk.entries.append(Entry(RED, head.name, head.address, days, head.classes, tuple(outcomes)))
-    walk.pending = None
+    walk.entries.append(Entry(RED, head.name, head.address, days, head.classes, tuple(outcomes), tuple(walk.notes)))
+    walk.pending, walk.notes = None, []
 
 
 def _red_line(walk: _Walk, week: Week, line: str) -> None:
-    """Under RED: a place line, its narrative (dropped), then its Result line."""
+    """Under RED: a place line, its description (kept as printed), then its Result line."""
     if line.startswith(RESULT_PREFIX):
         _result_line(walk, week, line)
         return
     if walk.pending is not None:
-        return  # narrative: never kept
+        walk.notes.append(line)
+        return
     if not looks_like_place(line):
         walk.warnings.append(f"RED: not a place line, skipped: {line[:WARNING_CHARS]}")
         return
