@@ -11,6 +11,7 @@ from nm_health.rebuild import Report
 from nm_health.viewmodel import (
     ELLIPSIS,
     MONTH_SPAN_DAYS,
+    PASSED_LAST_CODE,
     QUOTE_CHARS,
     WEEKS,
     Cell,
@@ -303,7 +304,7 @@ def test_strip_cell_shapes(inspections: tuple[Inspection, ...], code: str) -> No
     """This week's cell: worst status, status-only when no notes that week, a digit when roaches/rodents cited."""
     cells = strip_cells(inspections, TODAY)
     assert cell_code(cells[LAST_COLUMN]) == code
-    assert strip_code(cells) == NO_INSPECTION_WEEK[:LAST_COLUMN] + code
+    assert strip_code(cells).removesuffix(PASSED_LAST_CODE) == NO_INSPECTION_WEEK[:LAST_COLUMN] + code
 
 
 @pytest.mark.parametrize(
@@ -638,3 +639,22 @@ def test_recent_text_says_a_days_repeats_once() -> None:
     """Three Approved results the same day read once, with their count; other days as before."""
     p = place(visit("2026-11-05"), visit("2026-11-05"), visit("2026-11-05"), visit("2026-11-03", status=CONDITIONAL))
     assert recent_text(p.inspections) == "Nov 5 Approved (3 results) · Nov 3 Conditional Approved"
+
+
+@pytest.mark.parametrize(
+    ("inspections", "ending"),
+    [
+        pytest.param((visit("2026-11-05"), visit("2026-11-03", status=CLOSED)), "r+", id="closed_then_passed"),
+        pytest.param((visit("2026-11-05", status=CLOSED), visit("2026-11-03")), "r", id="passed_then_closed"),
+        pytest.param((visit("2026-11-05"), visit("2026-11-03")), "g", id="passed_only"),
+        pytest.param(
+            (visit("2026-11-05"), visit("2026-11-05", status=CONDITIONAL, notes=False)),
+            "y+",
+            id="same_day_newest_first",
+        ),
+    ],
+)
+def test_week_ended_with_a_pass_capped(inspections: tuple[Inspection, ...], ending: str) -> None:
+    """A week whose last result is a pass after a worse one keeps the worst cell, followed by "+"; never otherwise."""
+    assert strip_code(strip_cells(inspections, TODAY)).endswith(ending)
+    assert not strip_code(strip_cells(inspections, TODAY)).endswith(ending + PASSED_LAST_CODE)

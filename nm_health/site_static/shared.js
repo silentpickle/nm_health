@@ -41,6 +41,9 @@ const RECENT_MAX = 3;
 const NOON = "T12:00:00";
 const LOCALE = "en-US";
 const NO_STATUS = /** @type {[string, string]} */ (["", "n"]);
+/** Follows a cell's code: that week ended with a pass after a worse result (viewmodel.py PASSED_LAST_CODE). */
+const PASSED_LAST_CODE = "+";
+const PASSED_LAST_CLASS = "tp";
 /** Strip cell code -> classes (same table as nm_health/viewmodel.py CELL_CLASSES). */
 /** @type {Record<string, string>} */
 const CELL_CLASSES = {
@@ -137,7 +140,8 @@ function stripLabel(place) {
     .map((v) => `${fmt(v.date)}: ${v.status}`)
     .join("; ");
   const extra = place.more > 0 ? `; and ${count(place.more)} more` : "";
-  return `Inspections in the last ${String(place.strip.length)} weeks: ${listed}${extra}`;
+  const weeks = place.strip.replaceAll(PASSED_LAST_CODE, "").length;
+  return `Inspections in the last ${String(weeks)} weeks: ${listed}${extra}`;
 }
 
 /**
@@ -151,6 +155,10 @@ export function strip(place) {
     "aria-label": stripLabel(place),
   });
   for (const code of place.strip) {
+    if (code === PASSED_LAST_CODE) {
+      box.lastElementChild?.classList.add(PASSED_LAST_CLASS);
+      continue;
+    }
     const classes = CELL_CLASSES[code] ?? "";
     box.append(classes ? el("i", { class: classes }) : el("i"));
   }
