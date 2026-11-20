@@ -26,8 +26,8 @@ cabq.gov PDF ──daily──▶ data/archive/<week>_<sha>.pdf ──▶ parse 
    other pests, each marked live / dead / droppings / not stated (the inspector's Pest Type and Pest Condition
    fields first). Door gaps and pest paperwork are "pest_control". The status feed adds coordinates, counts and
    every inspection whose weekly report wasn't saved (status only).
-4. **Publish** (`site.yml`): plain HTML pages that read without JavaScript (This week, Last month and All time under
-   the Inspections tab, Places, Map, About, one page per place), a slim `places.json` that `places.js` (search, filters) and `map.js` (packages/citymap) read.
+4. **Publish** (`site.yml`): plain HTML pages that read without JavaScript (This week, Last month, All time and Most
+   failing results under the Inspections tab, Places, Map, About, one page per place), a slim `places.json` that `places.js` (search, filters) and `map.js` (packages/citymap) read.
    The site states only what a person can easily check in a published source meant for people, and links every
    statement to it: the weekly report's page (a byte-for-byte copy under `reports/`), or, for a week whose report
    wasn't saved, the Albuquerque Journal's summary of it (the article, our saved record, an archived copy). The status

@@ -25,9 +25,11 @@ from nm_health.site_html import (
 )
 from nm_health.site_news import news_pages
 from nm_health.site_pages import (
+    FAILING_FILE,
     RANGES,
     about_page,
     data_page,
+    failing_page,
     map_page,
     place_page,
     places_page,
@@ -174,6 +176,7 @@ def _copy_assets(out: Path) -> None:
 def _write_pages(data: SiteData, out: Path) -> None:
     pages = {
         **{r.file: range_page(data, r) for r in RANGES},
+        FAILING_FILE: failing_page(data),
         "places.html": places_page(data),
         "map.html": map_page(data),
         "about.html": about_page(data),

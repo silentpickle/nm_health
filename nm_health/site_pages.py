@@ -50,6 +50,8 @@ from nm_health.viewmodel import (
     closure_end,
     closure_start,
     coverage_line,
+    failure_records,
+    failure_text,
     kind_line,
     latest_report,
     latest_result_text,
@@ -66,6 +68,7 @@ from nm_health.viewmodel import (
     select_period,
     short_date,
     source_label,
+    strip_start,
     thousands,
     unique_places,
     violation_lead,
@@ -227,17 +230,28 @@ ALL_RANGE = TimeRange(
     NO_PESTS_IN_RANGE,
 )
 RANGES = (WEEK_RANGE, MONTH_RANGE, ALL_RANGE)
+# Beside the ranges: places ranked by failing results over the strip's weeks.
+FAILING_FILE = "worst.html"
+FAILING_TITLE = "Most failing results"
+FAILING_NOTE = (
+    "Places with a closure or an unsatisfactory result in the past {weeks} weeks, most days closed first, then most "
+    "days unsatisfactory, then most days roaches or rodents were cited. Counts are days in the city's reports and the "
+    "Albuquerque Journal's summaries on file; weeks with neither (the low dashes on each strip) aren't counted, so a "
+    "place may have more. Each place's page has every date and its source."
+)
 
 
-def _range_link(time_range: TimeRange, current: TimeRange) -> str:
+def _range_link(time_range: TimeRange, current: TimeRange | None) -> str:
     here = ' aria-current="page"' if time_range == current else ""
     return f'<a href="{time_range.file}"{here}>{esc(time_range.title)}</a>'
 
 
-def range_switch(current: TimeRange) -> str:
-    """Links between the time-range pages, the current one marked."""
+def range_switch(current: TimeRange | None) -> str:
+    """Links between the time-range pages and the failing-results page; None marks the failing-results page."""
     links = "".join(_range_link(r, current) for r in RANGES)
-    return f'<nav class="range" aria-label="Time range">{links}</nav>'
+    here = ' aria-current="page"' if current is None else ""
+    failing = f'<a href="{FAILING_FILE}"{here}>{esc(FAILING_TITLE)}</a>'
+    return f'<nav class="range" aria-label="Time range">{links}{failing}</nav>'
 
 
 def _range_head(time_range: TimeRange) -> str:
@@ -288,6 +302,19 @@ def range_page(data: SiteData, time_range: TimeRange) -> Page:
         body = f'{_range_head(time_range)}<p class="muted">No inspections on file yet.</p>'
         return Page(time_range.title, body, RANGE_TAB)
     return Page(time_range.title, _range_body(data, time_range, period), RANGE_TAB)
+
+
+def failing_page(data: SiteData) -> Page:
+    """worst.html: every place with a failing result over the strip's weeks, ranked, each with its strip and counts."""
+    weeks = data.settings.strip_weeks
+    records = failure_records(data.places, strip_start(data.today, weeks).isoformat())
+    rows = rows_html([row_html(r.place, data.today, data.covered, weeks, failure_text(r)) for r in records])
+    body = (
+        f'{disclaimer_html()}\n<h1 class="view">{esc(FAILING_TITLE)}</h1>\n{range_switch(None)}\n'
+        f'<p class="note">{esc(FAILING_NOTE.format(weeks=weeks))}</p>\n'
+        f"{heading('Places', len(records))}\n{rows_axis_html(data.today, weeks)}{rows}"
+    )
+    return Page(FAILING_TITLE, body, RANGE_TAB)
 
 
 def week_page(data: SiteData) -> Page:

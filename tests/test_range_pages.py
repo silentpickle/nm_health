@@ -17,7 +17,16 @@ from nm_health.model import Inspection
 from nm_health.rebuild import Rebuilt, Report
 from nm_health.site import reopened_json
 from nm_health.site_html import SiteData, site_data
-from nm_health.site_pages import ALL_RANGE, MONTH_RANGE, PAGE_SIZE, WEEK_RANGE, TimeRange, range_page, week_page
+from nm_health.site_pages import (
+    ALL_RANGE,
+    MONTH_RANGE,
+    PAGE_SIZE,
+    WEEK_RANGE,
+    TimeRange,
+    failing_page,
+    range_page,
+    week_page,
+)
 from nm_health.viewmodel import CLOSED_GROUP
 from tests.test_archive import make_settings
 from tests.test_viewmodel import CLOSED, CONDITIONAL, FAILED, ROACHES, report, visit
@@ -316,3 +325,14 @@ def test_reopened_by_unsatisfactory_reads_still_failing(tmp_path: Path) -> None:
     ) in body
     rows = {row[0]: row[-1] for row in reopened_json(data)["index.html"]}
     assert rows == {"failing-7-failing-st": True, "passing-7-passing-st": False}
+
+
+def test_failing_page_lists_and_is_linked(tmp_path: Path) -> None:
+    """The failing-results page ranks places with its note, and every range page's switcher links it."""
+    rebuilt = Rebuilt((at(visit("2026-10-29", status=CLOSED), "SHUT", COVERING),), (COVERING,))
+    data = data_for(tmp_path, rebuilt)
+    page = failing_page(data).body
+    assert '<a href="worst.html" aria-current="page">Most failing results</a>' in page
+    assert "Closed on 1 day" in page
+    assert "most days closed first" in page
+    assert '<a href="worst.html">Most failing results</a>' in week_page(data).body
