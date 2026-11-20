@@ -103,6 +103,7 @@ LEVEL_RANK = {
 # Lowercase: inspector notes on file. Uppercase: status only. Digit: roaches or rodents cited (notes always on file).
 Coverage = frozenset[str]  # ISO dates that some weekly report on file covers
 NO_INSPECTION_CODE = "."
+PASSED_LAST_CODE = "+"  # follows a cell's code: the week's last result was a pass, though a worse one came first
 NOTHING_ON_FILE_CODE = "_"  # no city report or news summary on file covers most days of the week
 ON_FILE_MIN_DAYS = DAYS_PER_WEEK // 2 + 1  # a strip week is on file when more than half its days are
 NOTES_CODES = {LEVEL_APPROVED: "g", LEVEL_CONDITIONAL: "y", LEVEL_UNSATISFACTORY: "o", LEVEL_RED: "r", LEVEL_OTHER: "n"}
@@ -420,6 +421,13 @@ class Cell:
     status_only: bool = True
     pest: bool = False
     on_file: bool = True  # some day of the week is in a report (or news summary) on file
+    last_date: str = ""  # the week's newest inspection date, and its level: did the week end with a pass?
+    last_level: str = LEVEL_NONE
+
+    @property
+    def passed_last(self) -> bool:
+        """The week ended with a pass after a worse result: the cell shows the worst, capped to say how it ended."""
+        return self.last_level == LEVEL_APPROVED and self.level != LEVEL_APPROVED
 
 
 def week_index(today: date, iso: str) -> int:
@@ -428,12 +436,16 @@ def week_index(today: date, iso: str) -> int:
 
 
 def _add(cell: Cell, inspection: Inspection) -> Cell:
+    """Add an inspection to its week; callers pass a place's inspections newest first, so a day's first is its last."""
     worst = level(inspection.status)
+    newer = inspection.date > cell.last_date
     return Cell(
         level=worst if LEVEL_RANK[worst] > LEVEL_RANK[cell.level] else cell.level,
         status_only=cell.status_only and not inspection.has_details,
         pest=cell.pest or cites_headline_pests(inspection),
         on_file=cell.on_file,
+        last_date=inspection.date if newer else cell.last_date,
+        last_level=worst if newer else cell.last_level,
     )
 
 
@@ -476,8 +488,8 @@ def cell_code(cell: Cell) -> str:
 
 
 def strip_code(cells: tuple[Cell, ...]) -> str:
-    """The whole strip as one character per week."""
-    return "".join(cell_code(c) for c in cells)
+    """The whole strip, one character per week, each followed by "+" when that week ended with a pass."""
+    return "".join(cell_code(c) + (PASSED_LAST_CODE if c.passed_last else "") for c in cells)
 
 
 def strip_label(inspections: tuple[Inspection, ...], weeks: int = WEEKS) -> str:

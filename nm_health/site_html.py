@@ -268,14 +268,18 @@ def heading(text: str, count: int) -> str:
     return f'<h2>{esc(text)} <span class="n">{count}</span></h2>'
 
 
-def _cell(code: str) -> str:
-    classes = CELL_CLASSES[code]
+PASSED_LAST_CLASS = "tp"  # "then passed": a cap on the cell (style.css)
+
+
+def _cell(code: str, *, passed_last: bool = False) -> str:
+    classes = " ".join(c for c in (CELL_CLASSES[code], PASSED_LAST_CLASS if passed_last else "") if c)
     return f'<i class="{classes}"></i>' if classes else "<i></i>"
 
 
 def strip_html(place: Place, today: date, weeks: int, covered: Coverage, *, big: bool = False) -> str:
     """The week strip, shape-coded, with every dated status in its accessible name; weeks with nothing on file marked."""
-    cells = "".join(_cell(cell_code(c)) for c in strip_cells(place.inspections, today, weeks, covered))
+    found = strip_cells(place.inspections, today, weeks, covered)
+    cells = "".join(_cell(cell_code(c), passed_last=c.passed_last) for c in found)
     size = " big" if big else ""
     label = esc(strip_label(place.inspections, weeks))
     return f'<div class="strip{size}" role="img" aria-label="{label}">{cells}</div>'
@@ -321,6 +325,7 @@ def legend_html() -> str:
         ("g so", "Status only (no inspector notes on file)"),
         ("", "No inspection"),
         ("nf", "No report on file"),
+        ("y tp", "Passed later that week"),
         ("g p", "Roaches or rodents cited"),
     )
     return f'<div class="legend">{"".join(_key(c, label) for c, label in keys)}</div>'
