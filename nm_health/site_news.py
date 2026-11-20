@@ -53,13 +53,16 @@ def _as_printed(entry: Entry) -> str:
 
 
 def _place_links(data: SiteData, link: NewsLink) -> dict[tuple[str, str], tuple[str, int]]:
-    """(name, address) as the article prints them -> its place page and the oldest inspection there from this article."""
-    found: dict[tuple[str, str], tuple[str, int]] = {}
-    for place in data.places:
-        for index, i in enumerate(place.inspections):
-            if i.news is not None and i.news.url == link.url:
-                found[i.name, i.address] = (place.slug, index)  # newest first: the last kept is the oldest
-    return found
+    """(name, address) as the article prints them -> its place page and the oldest inspection there from this article.
+
+    A place's inspections run newest first, so for each name the last one kept is the oldest.
+    """
+    return {
+        (i.name, i.address): (place.slug, index)
+        for place in data.places
+        for index, i in enumerate(place.inspections)
+        if i.news is not None and i.news.url == link.url
+    }
 
 
 def _on_site(data: SiteData, entry: Entry, used: tuple[str, int] | None) -> str:
