@@ -663,7 +663,7 @@ def place_page(data: SiteData, place: Place) -> Page:
     body = (
         f"{_place_head(data, place)}\n"
         '<section class="record" aria-label="What the city\'s records show">'
-        f"{strip_axis_html(data.today, weeks)}{strip_html(place, data.today, weeks, big=True)}{months_html(data.today, weeks)}{legend_html()}"
+        f"{strip_axis_html(data.today, weeks)}{strip_html(place, data.today, weeks, data.covered, big=True)}{months_html(data.today, weeks)}{legend_html()}"
         f'<p class="coverage">{esc(coverage_line(place))}</p>{_facts(data, place)}'
         f'<p class="quiet">{esc(NOT_A_CERTIFICATE)}</p></section>\n'
         f"{heading('Inspections', len(place.inspections))}\n"
