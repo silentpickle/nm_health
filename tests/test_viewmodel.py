@@ -2,7 +2,7 @@
 """What the site states: redaction, pest quotes, coverage, closure lines, strip cells and the week shown."""
 
 from dataclasses import replace
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
@@ -607,3 +607,28 @@ def test_stated_keeps_only_report_inspections_inside_their_week() -> None:
     typo = replace(visit("2027-10-27", number="TYPO"), report_file=week.file)
     feed_only = visit("2026-10-28", number="FEED", notes=False)
     assert stated((inside, typo, feed_only), (week,)) == (inside,)
+
+
+def days_on_file(first: str, count: int) -> frozenset[str]:
+    """`count` days from `first` on."""
+    start = date.fromisoformat(first)
+    return frozenset((start + timedelta(days=n)).isoformat() for n in range(count))
+
+
+THIS_WEEK_FIRST = "2026-11-03"  # TODAY's strip week is Nov 3-9
+
+
+@pytest.mark.parametrize(
+    ("covered", "inspections", "code"),
+    [
+        pytest.param(frozenset(), (), "_", id="nothing_on_file"),
+        pytest.param(days_on_file(THIS_WEEK_FIRST, 4), (), ".", id="four_days_on_file"),
+        pytest.param(days_on_file(THIS_WEEK_FIRST, 3), (), "_", id="three_days_on_file"),
+        pytest.param(days_on_file("2026-11-06", 4), (), ".", id="last_four_days"),
+        pytest.param(days_on_file("2026-10-31", 6), (), "_", id="three_in_week_three_before"),
+        pytest.param(frozenset(), (visit("2026-11-05"),), "g", id="inspection_shown_anyway"),
+    ],
+)
+def test_week_on_file_edges(covered: frozenset[str], inspections: tuple[Inspection, ...], code: str) -> None:
+    """A strip week is on file when more than half its seven days are; otherwise "_" (no report on file)."""
+    assert cell_code(strip_cells(inspections, TODAY, covered=covered)[LAST_COLUMN]) == code

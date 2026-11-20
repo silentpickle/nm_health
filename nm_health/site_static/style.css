@@ -354,6 +354,12 @@ h2 .n {
   outline: 2px solid var(--ink);
   outline-offset: 1px;
 }
+/* No report on file for any day of the week: a low dash, so a gap in the record doesn't read as "no inspection". */
+.strip i.nf {
+  height: 2px;
+  background: var(--ink);
+  opacity: 0.4;
+}
 .strip.big {
   height: 30px;
   gap: 3px;

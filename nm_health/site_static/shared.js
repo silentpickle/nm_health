@@ -45,6 +45,7 @@ const NO_STATUS = /** @type {[string, string]} */ (["", "n"]);
 /** @type {Record<string, string>} */
 const CELL_CLASSES = {
   ".": "",
+  _: "nf",
   g: "g",
   y: "y",
   r: "r",
