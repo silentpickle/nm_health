@@ -428,7 +428,7 @@ def test_group_places_keeps_legal_name_and_orders_newest_first() -> None:
 
 
 def test_week_with_a_covering_report() -> None:
-    """The newest date is in an archived report: no banner, pest citations from the same seven days."""
+    """The newest date is in an archived report: the week is that report's (Oct 25-31), no banner, its own pests."""
     places = group_places(
         (
             visit("2026-10-30", ROACHES),
@@ -438,8 +438,8 @@ def test_week_with_a_covering_report() -> None:
     )
     week = select_week(places, (report("2026-10-25", "2026-10-31"),))
     assert week is not None
-    assert (week.start, week.end, week.covered, week.pest_report) == ("2026-10-24", "2026-10-30", True, None)
-    assert [p.name for p, _ in week.pest_visits] == ["TEST CAFE", "OLD"]
+    assert (week.start, week.end, week.covered, week.pest_report) == ("2026-10-25", "2026-10-31", True, None)
+    assert [p.name for p, _ in week.pest_visits] == ["TEST CAFE"]  # OLD, Oct 24, is the week before
     assert [p.name for p, _ in week.red] == ["SHUT"]
 
 

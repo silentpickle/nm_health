@@ -43,9 +43,8 @@ repeats it. Incomplete is better than wrong, and the record grows by one report 
   inspection with a result that lets the place operate (approved, conditional, or unsatisfactory: a red sticker, but
   open). It doesn't count when the reopening result is another permit's and the closed permit's closure still stands
   (`signals.standing`). On every range (This week, Last month, All time), "Reopened after a closure" lists
-  reopenings dated inside the range, the closure before or inside it; the week is the page's own (the newest
-  inspection date and the six days before it), so it holds the same way when the newest week's report isn't on file
-  yet. A closure and a reopening on the same calendar day never count, on any range: the place may not have shut its
+  the week is the latest report's own week when a report on file covers the newest inspection date (so the page and
+  the report name the same days), else the newest inspection date and the six days before it. A closure and a reopening on the same calendar day never count, on any range: the place may not have shut its
   doors at all (the place page and its row flag still state both results). Each card gives both dates, the closure's
   length as above, and links both reports' pages. A place reopened by an Unsatisfactory result is listed too, but its
   card reads "Open again, still failing:" before the city's status, on a red card with a red chip; Approved and

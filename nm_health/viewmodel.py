@@ -784,6 +784,9 @@ class Period:
 def select_period(places: list[Place], reports: tuple[Report, ...], span_days: int | None) -> Period | None:
     """The newest date and the span_days before it (None: every inspection on file), and its pest citations.
 
+    A week is the covering report's own week when a report on file covers the newest date, so the page and the report
+    name the same days; otherwise the newest date and the six days before it.
+
     Pest citations come from the period's own visits when a report covers the newest date, or when the period is
     longer than a week (its older days are in reports on file). A week whose newest date no report covers takes
     them from the latest report on file instead.
@@ -791,14 +794,22 @@ def select_period(places: list[Place], reports: tuple[Report, ...], span_days: i
     newest = max((p.latest.date for p in places), default=None)
     if newest is None:
         return None
-    start = _first_day(places, newest, span_days)
-    visits = visits_between(places, start, newest)
+    start, end = _report_week(reports, newest, span_days) or (_first_day(places, newest, span_days), newest)
+    visits = visits_between(places, start, end)
     covered = covering_report(reports, newest) is not None
     own = covered or span_days is None or span_days > WEEK_SPAN_DAYS
     report = None if own else latest_report(reports)
     pest_pool = visits if own else _report_visits(places, report)
     pests = tuple(v for v in pest_pool if cites_headline_pests(v[1]))
-    return Period(start, newest, tuple(visits), covered, report, pests, own)
+    return Period(start, end, tuple(visits), covered, report, pests, own)
+
+
+def _report_week(reports: tuple[Report, ...], newest: str, span_days: int | None) -> tuple[str, str] | None:
+    """A week page's span is the report's own week when a report on file covers the newest date."""
+    report = covering_report(reports, newest) if span_days == WEEK_SPAN_DAYS else None
+    if report is None or not (report.week_start and report.week_end):
+        return None
+    return report.week_start, report.week_end
 
 
 def _first_day(places: list[Place], newest: str, span_days: int | None) -> str:
