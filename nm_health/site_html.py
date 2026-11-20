@@ -36,6 +36,7 @@ from nm_health.viewmodel import (
     nice_date,
     notice_count_text,
     notice_quote,
+    plural,
     recent_text,
     reopened_flag,
     reports_in_window,
@@ -67,16 +68,18 @@ FOOTER = (
     "statement. Statuses are shown as the city issued them; inspector observations are quoted as published, with "
     "email addresses and phone numbers removed. Not affiliated with the City of Albuquerque."
 )
+FOOTER_WITH_NEWS = (
+    "Sources: the City of Albuquerque Environmental Health Department's weekly inspection reports and, for weeks whose "
+    "report wasn't saved, the Albuquerque Journal's summaries of them, linked beside every statement. Statuses are the "
+    "city's words; quotes are as published, with email addresses and phone numbers removed. Not affiliated with the "
+    "City of Albuquerque or the Albuquerque Journal."
+)
 NOINDEX = '<meta name="robots" content="noindex, nofollow">'
 PLACE_DIR = "place"
 # What we downloaded from the city, published beside the pages so every statement can link to it.
 REPORTS_DIR = "reports"  # the weekly PDFs, byte for byte
 UNSAFE_FILE_CHARS = re.compile(r"[^A-Za-z0-9-]")
 NO_SOURCE = "No city document on file"
-FOOTER_NEWS = (
-    " Weeks whose city report wasn't saved come from the Albuquerque Journal's summaries of those reports, linked the "
-    "same way, with our saved record of each."
-)
 SAVED_RECORD = "saved record"
 ARCHIVED_COPY = "archived copy"
 
@@ -205,17 +208,16 @@ def _tabs(active: str, up: str) -> str:
 
 
 def lede(data: SiteData) -> str:
-    """The line under the site name, on every page."""
-    return (
-        "Food inspections in the City of Albuquerque's weekly inspection reports, as the city published them: "
-        f"the {len(data.reports)} weekly reports saved so far in the last 12 months, each linked. "
-        "The city itself only shows the latest week, so this record grows by one report every week."
-        + (
-            f" For {used_news(data)} weeks whose report wasn't saved, the Albuquerque Journal's summaries of them, each linked."
-            if data.news_links
-            else ""
-        )
+    """The line under the site name, on every page: what the record is, briefly (About has the rest)."""
+    city = (
+        "Food inspections from the City of Albuquerque's weekly reports, as the city published them, each linked: "
+        f"{plural(len(data.reports), 'report', 'reports')} from the last 12 months. The city's own site shows only the "
+        "latest week, so this record grows by one report a week."
     )
+    if not data.news_links:
+        return city
+    weeks = plural(used_news(data), "other week", "other weeks")
+    return f"{city} For {weeks}, whose report wasn't saved, the Albuquerque Journal's summaries fill in."
 
 
 def page_html(data: SiteData, page: Page, depth: int = 0) -> str:
@@ -245,7 +247,7 @@ def page_html(data: SiteData, page: Page, depth: int = 0) -> str:
 <main id="view">
 {page.body}
 </main>
-<footer>{esc(FOOTER + (FOOTER_NEWS if data.news_links else ""))}</footer>
+<footer>{esc(FOOTER_WITH_NEWS if data.news_links else FOOTER)}</footer>
 </div>
 </body>
 </html>

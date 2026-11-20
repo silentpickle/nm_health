@@ -25,7 +25,7 @@ from nm_health.news_fold import (
     saved_page,
 )
 from nm_health.rebuild import Rebuilt
-from nm_health.site_html import SiteData, site_data, source_links, unsourced
+from nm_health.site_html import SiteData, lede, site_data, source_links, unsourced
 from nm_health.site_news import news_page
 from nm_health.site_pages import about_page, data_page, place_page
 from nm_health.viewmodel import coverage_line, group_places
@@ -208,7 +208,7 @@ def test_about_and_data_name_the_journal(tmp_path: Path) -> None:
     assert "Albuquerque Journal&#x27;s weekly summary" not in about_page(data).body
     assert "Albuquerque Journal's weekly summary" in about_page(data).body
     assert "abqjournal-3014687" in data_page(data).body
-    assert "For 1 weeks whose city report wasn" in about_page(data).body  # the November article is covered: not counted
+    assert "For 1 week whose city report wasn" in about_page(data).body  # the November article is covered: not counted
 
 
 def test_no_news_adds_nothing() -> None:
@@ -248,3 +248,12 @@ def test_place_page_quotes_description_with_attribution(tmp_path: Path) -> None:
     assert "title=\"This site's reading of the Albuquerque Journal's words\"" in body
     assert "as the Albuquerque Journal reported the city&#x27;s result" in body
     assert "The Albuquerque Journal described 1 other in its own words." in coverage_line(hot_wok)
+
+
+def test_lede_and_about_count_journal_weeks(tmp_path: Path) -> None:
+    """With Journal summaries, the lede says what fills in, and About counts reports and summaries apart."""
+    data, _ = site_with_news(tmp_path)
+    assert lede(data).endswith(
+        "For 1 other week, whose report wasn't saved, the Albuquerque Journal's summaries fill in."
+    )
+    assert "1 weekly report and 1 Albuquerque Journal summary of weeks whose report wasn" in about_page(data).body

@@ -27,6 +27,7 @@ from nm_health.site_html import (
     source_links,
     strip_axis_html,
     strip_html,
+    used_news,
 )
 from nm_health.site_news import news_about, news_table
 from nm_health.viewmodel import (
@@ -331,7 +332,8 @@ def data_page(data: SiteData) -> Page:
     )
     body = f"""<section class="about">
 <h1 class="view">Data we have pulled</h1>
-<p>Every weekly report PDF saved so far: {len(ordered)} files, byte for byte as the city published them.
+<p>Every weekly report PDF saved so far: {len(ordered)} files ({len(data.reports)} from the last 12 months), byte for
+byte as the city published them.
 Browse the whole folder on <a href="{esc(archive_tree_url(data))}">GitHub (data/archive)</a>.</p>
 <div class="tablewrap"><table class="datatable"><thead>{head}</thead><tbody>{rows}</tbody></table></div>
 {news_table(data)}
@@ -422,6 +424,13 @@ def about_page(data: SiteData) -> Page:
         f"of {thousands(len(data.places))} places. Weeks whose report wasn't saved aren't shown: the site states only "
         "what a weekly report on file says."
     )
+    if data.news_links:
+        counts = (
+            f"For the last 12 months, {plural(len(data.reports), 'weekly report', 'weekly reports')} and "
+            f"{plural(used_news(data), 'Albuquerque Journal summary', 'Albuquerque Journal summaries')} of weeks whose "
+            f"report wasn't saved are on file: {thousands(data.total)} inspections of {thousands(len(data.places))} "
+            "places. Weeks with neither aren't shown."
+        )
     body = f"""<section class="about">
 <h1 class="view">About this data</h1>
 <h2>Where it comes from</h2>

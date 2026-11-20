@@ -21,7 +21,7 @@ from nm_health.site_html import (
     news_links_html,
     used_news,
 )
-from nm_health.viewmodel import MIDDOT, covering_report, nice_date, short_date
+from nm_health.viewmodel import MIDDOT, covering_report, nice_date, plural, short_date
 
 USED = "Used here"
 NOT_USED = "Not used:"
@@ -148,7 +148,7 @@ def news_about(data: SiteData) -> str:
     if not data.news_links:
         return ""
     return (
-        f"<p>For {used_news(data)} weeks whose city report wasn't saved, the site uses the Albuquerque "
+        f"<p>For {plural(used_news(data), 'week', 'weeks')} whose city report wasn't saved, the site uses the Albuquerque "
         "Journal's weekly summary of that report: the same places, dates and results, and for closed or failing places "
         "the paper's description, quoted as its words (not the inspector's notes). "
         "On the weeks both are on file, every inspection in the city's report is in the Journal's summary with the "
