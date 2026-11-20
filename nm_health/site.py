@@ -12,6 +12,7 @@ from datetime import date
 from pathlib import Path
 
 from nm_health import feed
+from nm_health.news import NewsLink
 from nm_health.rebuild import Rebuilt
 from nm_health.settings import ROOT, Settings
 from nm_health.site_html import (
@@ -22,6 +23,7 @@ from nm_health.site_html import (
     site_data,
     unsourced,
 )
+from nm_health.site_news import news_pages
 from nm_health.site_pages import (
     RANGES,
     about_page,
@@ -65,7 +67,7 @@ JSON_SEPARATORS = (",", ":")
 
 
 class UnsourcedError(Exception):
-    """An inspection the site would describe has no weekly report on file."""
+    """An inspection the site would describe has no weekly report, or news summary of one, on file."""
 
 
 # ---------- places.json ----------
@@ -181,6 +183,8 @@ def _write_pages(data: SiteData, out: Path) -> None:
         _write(out / name, page_html(data, page))
     for place in data.places:
         _write(out / PLACE_DIR / f"{place.slug}.html", page_html(data, place_page(data, place), depth=1))
+    for path, page in news_pages(data).items():
+        _write(out / path, page_html(data, page, depth=1))
 
 
 # ---------- What we downloaded ----------
@@ -204,9 +208,12 @@ def _copy_reports(data: SiteData, out: Path) -> None:
         shutil.copy(data.settings.archive_dir / name, out / REPORTS_DIR / name)
 
 
-def write_site(rebuilt: Rebuilt, settings: Settings) -> int:
-    """Replace the site folder with freshly rendered pages; returns how many place pages were written."""
-    data = site_data(rebuilt, settings, feed.today_utc().date())
+def write_site(rebuilt: Rebuilt, settings: Settings, links: tuple[NewsLink, ...] = ()) -> int:
+    """Replace the site folder with freshly rendered pages; returns how many place pages were written.
+
+    `links` adds news summaries for the weeks no city report on file covers (docs/news-links.md).
+    """
+    data = site_data(rebuilt, settings, feed.today_utc().date(), links)
     _require_sources(data)
     out = settings.site_dir
     shutil.rmtree(out, ignore_errors=True)

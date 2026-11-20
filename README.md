@@ -28,8 +28,10 @@ cabq.gov PDF ──daily──▶ data/archive/<week>_<sha>.pdf ──▶ parse 
    every inspection whose weekly report wasn't saved (status only).
 4. **Publish** (`site.yml`): plain HTML pages that read without JavaScript (This week, Last month and All time under
    the Inspections tab, Places, Map, About, one page per place), a slim `places.json` that `places.js` (search, filters) and `map.js` (packages/citymap) read.
-   The site states only what a weekly report on file says, and links every statement to that report's page (a
-   byte-for-byte copy under `reports/`); the status feed only places map dots. See `docs/assumptions.md`.
+   The site states only what a person can easily check in a published source meant for people, and links every
+   statement to it: the weekly report's page (a byte-for-byte copy under `reports/`), or, for a week whose report
+   wasn't saved, the Albuquerque Journal's summary of it (the article, our saved record, an archived copy). The status
+   feed only places map dots. See `docs/assumptions.md`.
 
 Three report layouts are parsed: the current one (late 2025 on), the early-2025 transitional one, and the
 2021–2024 "Activity Date" one. The last two have no inspection or permit numbers, so their IDs are synthetic.
@@ -52,6 +54,7 @@ uv run nm-health spotcheck | pbcopy   # a packet to paste into any LLM: site sta
 uv run nm-health judge                # local, needs agy: second opinion on long closures (data/judgements.json)
 uv run nm-health news add ~/Downloads/nm-health-news-*.json   # record news articles saved from your browser
 uv run nm-health news list            # news links, and which entries no county PDF covers
+uv run nm-health news archived        # look up Internet Archive copies of the articles (never makes one)
 uv run nm-health search "pho"         # CLI lookups against the database
 uv run nm-health lookup "Little Bear Coffee"
 ```
@@ -71,6 +74,7 @@ uv run nm-health lookup "Little Bear Coffee"
 | `nm_health/tags.py` | One small rule per tag. |
 | `nm_health/rebuild.py`, `database.py`, `site.py` | Archive → inspections → SQLite / static site. |
 | `nm_health/news.py`, `news_capture.py`, `tools/news-capture/` | News links: the record, reading a browser capture, and the Chrome extension that saves one. |
+| `nm_health/news_fold.py`, `site_news.py` | News summaries on the site: entries as inspections for weeks with no PDF, and each article's saved-record page. |
 | `nm_health/audit.py`, `spotcheck.py` | Check the site's assumptions against the city's records, and build an LLM spot-check packet ([docs/assumptions.md](docs/assumptions.md)). |
 | `scripts/checks.sh` | The gate: ruff (all rules), mypy, complexity, shellcheck, ESLint/tsc/Prettier, pytest. Pre-commit and CI run it. |
 

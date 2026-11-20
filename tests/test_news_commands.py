@@ -2,10 +2,12 @@
 """``nm-health news add`` / ``news list``: what each prints, and that nothing it rejects reaches the links file."""
 
 import json
+import urllib.error
 from dataclasses import replace
 from pathlib import Path
 
-from nm_health.news_commands import add_lines, list_lines
+from nm_health.news import load_links
+from nm_health.news_commands import add_lines, archived_lines, list_lines
 from nm_health.settings import Settings, load
 from tests.test_archive import make_settings
 from tests.test_news import write_manifest
@@ -84,3 +86,30 @@ def test_news_settings_read_from_config() -> None:
     settings = load()
     assert settings.news_hosts == ("www.abqjournal.com", "abqjournal.com")
     assert settings.news_links.parts[-3:] == ("data", "news", "links.jsonl")
+
+
+def test_archived_copies_looked_up(tmp_path: Path) -> None:
+    """Each link without a copy is looked up once: found, none yet, or no answer (left for next time); then saved."""
+    settings = news_settings(tmp_path)
+    add_lines([write_capture(tmp_path / f"{n}.json", url=f"{COVERED_URL}{n}") for n in range(3)], settings)
+    answers = {f"{COVERED_URL}0": "https://web.archive.org/web/1/x", f"{COVERED_URL}1": ""}
+
+    def lookup(url: str) -> str:
+        if url not in answers:
+            reason = "offline"
+            raise urllib.error.URLError(reason)
+        return answers[url]
+
+    said = archived_lines(settings, lookup, pause=0)
+    assert said == [
+        "FOUND: https://web.archive.org/web/1/x",
+        f"no copy yet: {COVERED_URL}1",
+        f"no answer for {COVERED_URL}2 (<urlopen error offline>); try again later",
+        "1 of 3 news links have an archived copy",
+    ]
+    assert [link.archived_url for link in load_links(settings.news_links)] == [
+        "https://web.archive.org/web/1/x",
+        "",
+        "",
+    ]
+    assert archived_lines(settings, lambda _url: "again", pause=0)[0] == "FOUND: again"

@@ -11,6 +11,7 @@ from collections import defaultdict
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from functools import cached_property
+from itertools import takewhile
 from typing import Literal
 
 from nm_health.ingest.normalizer import normalize_address, normalize_establishment_name
@@ -21,6 +22,8 @@ NON_ALNUM = re.compile(r"[^a-z0-9]+")
 DBA_RE = re.compile(r"\s+D\.?/?B\.?/?A\.?:?\s+", re.IGNORECASE)  # "Long Cao LLC DBA Dragon Sushi", "X d/b/a Y"
 NOT_ALNUM_UPPER = re.compile(r"[^A-Z0-9]+")
 CITY_SUFFIX_RE = re.compile(r",?\s+ALBUQUERQUE,?\s*NM\s*\d{5}(?:-\d{4})?\s*$", re.IGNORECASE)
+ADDRESS_WORD = re.compile(r"[A-Z0-9]+")
+QUADRANTS = frozenset({"NE", "NW", "SE", "SW"})
 
 
 def split_dba(name: str) -> tuple[str, str | None]:
@@ -49,6 +52,21 @@ def establishment_slug(name: str, address: str) -> str:
 def normalized_address(address: str) -> str:
     """Canonical street address ('1415 4TH ST SW, Unit H')."""
     return str(normalize_address(address)["normalized_address"])
+
+
+def street_key(address: str) -> tuple[str, str, str]:
+    """Street number (digits only), first street word, quadrant: the parts the Journal and the reports both print.
+
+    The Journal drops street types and units ("2100 Louisiana NE" for "2100 LOUISIANA BLVD NE", "2622 Central SE" for
+    "2622 CENTRAL AVE SE, #A"), and a report may print "2906A" for the Journal's "2906".
+    """
+    words = ADDRESS_WORD.findall(address.split(",", 1)[0].upper())
+    if not words:
+        return "", "", ""
+    number, rest = "".join(takewhile(str.isdigit, words[0])), words[1:]
+    quadrant = rest[-1] if rest and rest[-1] in QUADRANTS else ""
+    street = rest[:-1] if quadrant else rest
+    return number, street[0] if street else "", quadrant
 
 
 def compact_name(name: str) -> str:
@@ -97,8 +115,30 @@ class Key:
         """The earliest inspection date."""
         return min(i.date for i in self.inspections)
 
+    @cached_property
+    def journal_only(self) -> bool:
+        """Only a newspaper's summary prints these inspections (nm_health.news_fold): no city report does."""
+        return all(i.news is not None for i in self.inspections)
+
+    @cached_property
+    def street_key(self) -> tuple[str, str, str]:
+        """The address as the Journal and the reports can both be compared (street_key)."""
+        return street_key(self.inspections[0].address)
+
 
 Rule = Callable[[Key, Key], Verdict | None]
+
+
+def journal_place(a: Key, b: Key) -> Verdict | None:
+    """M9: a key only the Journal prints joins a key with one name and one street_key; otherwise stays apart.
+
+    Names agree when they match case and punctuation aside (compact_name). Addresses can't be compared whole: the
+    Journal drops street types and units.
+    """
+    if not (a.journal_only or b.journal_only):
+        return None
+    one_name = compact_name(a.inspections[0].name) == compact_name(b.inspections[0].name)
+    return SAME if one_name and a.street_key == b.street_key else DIFFERENT
 
 
 def shared_permit_here(a: Key, b: Key) -> Verdict | None:
@@ -143,6 +183,7 @@ def no_permit(_a: Key, _b: Key) -> Verdict | None:
 
 
 RULES: tuple[Rule, ...] = (
+    journal_place,
     shared_permit_here,
     feed_only,
     permit_elsewhere,
@@ -190,6 +231,7 @@ def candidates(keys: dict[str, Key]) -> list[tuple[str, str]]:
     for key in keys.values():
         shared["address", key.address].add(key.slug)
         shared["name", compact_name(key.inspections[0].name), *key.street].add(key.slug)
+        shared["street_key", compact_name(key.inspections[0].name), *key.street_key].add(key.slug)
         for permit in key.permits:
             shared["permit", permit].add(key.slug)
     return sorted(set().union(*(_pairs(slugs) for slugs in shared.values())))
@@ -218,17 +260,51 @@ def _unclear(verdicts: dict[tuple[str, str], Verdict], parent: dict[str, str]) -
     return found
 
 
+def _join(parent: dict[str, str], pairs: Iterable[tuple[str, str]]) -> None:
+    for a, b in pairs:
+        parent[_root(parent, a)] = _root(parent, b)
+
+
+def _touches_journal(pair: tuple[str, str], keys: dict[str, Key]) -> bool:
+    return keys[pair[0]].journal_only or keys[pair[1]].journal_only
+
+
+def _journal_partners(
+    verdicts: dict[tuple[str, str], Verdict], keys: dict[str, Key], parent: dict[str, str]
+) -> dict[str, set[str]]:
+    """For each Journal-only key, the city places (joined roots) it would join."""
+    partners: dict[str, set[str]] = defaultdict(set)
+    for a, b in (pair for pair, verdict in verdicts.items() if verdict == SAME):
+        if keys[a].journal_only and not keys[b].journal_only:
+            partners[a].add(_root(parent, b))
+        if keys[b].journal_only and not keys[a].journal_only:
+            partners[b].add(_root(parent, a))
+    return partners
+
+
+def one_city_place(
+    verdicts: dict[tuple[str, str], Verdict], keys: dict[str, Key], parent: dict[str, str]
+) -> dict[tuple[str, str], Verdict]:
+    """M10: a Journal-only key that would join two city places the reports keep apart joins neither: can't tell.
+
+    `parent` holds the city keys already joined, so two keys of one city place count once.
+    """
+    torn = {key for key, roots in _journal_partners(verdicts, keys, parent).items() if len(roots) > 1}
+    return {pair: CANT_TELL if verdict == SAME and torn & set(pair) else verdict for pair, verdict in verdicts.items()}
+
+
 def group(inspections: tuple[Inspection, ...]) -> list[Group]:
     """Inspections grouped by place: keys joined where match() says same, in the order each key first appears.
 
-    A pair match() can't tell apart stays two places, each naming the other in `maybe_same`.
+    City keys join first; then Journal-only keys join the one city place they match (M10). A pair match() can't
+    tell apart stays two places, each naming the other in `maybe_same`.
     """
     keys = _keys(inspections)
     verdicts = {(a, b): match(keys[a], keys[b]) for a, b in candidates(keys)}
     parent = {slug: slug for slug in keys}
-    for (a, b), verdict in verdicts.items():
-        if verdict == SAME:
-            parent[_root(parent, a)] = _root(parent, b)
+    _join(parent, [pair for pair, v in verdicts.items() if v == SAME and not _touches_journal(pair, keys)])
+    verdicts = one_city_place(verdicts, keys, parent)
+    _join(parent, [pair for pair, v in verdicts.items() if v == SAME and _touches_journal(pair, keys)])
     members: dict[str, list[str]] = defaultdict(list)
     for slug in keys:
         members[_root(parent, slug)].append(slug)

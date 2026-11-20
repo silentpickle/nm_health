@@ -1,10 +1,23 @@
 # What the site assumes, and how to check it
 
-## The rule: the city's weekly reports make every statement
+## The rule: only what a person can easily check in a published source meant for people
 
-The public site states only what a City of Albuquerque weekly inspection report on file says, and links every
-statement to the page of that report (a byte-for-byte copy under `reports/`). "Don't shoot the messenger": the city
-makes the declaration, the site repeats it. Incomplete is better than wrong, and the record grows by one report a week.
+The public site states only what can be easily verified by a human being from published sources intended for human
+beings, and links every statement to that source. The source is the City of Albuquerque's weekly inspection report (a
+byte-for-byte copy under `reports/`, opened at its page). For a week whose report wasn't saved, it is the Albuquerque
+Journal's weekly summary of that report: the article, our saved record of what we took from it (`news/`), and an
+Internet Archive copy (docs/news-links.md). "Don't shoot the messenger": the city makes the declaration, the site
+repeats it. Incomplete is better than wrong, and the record grows by one report a week.
+
+- A Journal summary never replaces a city report: an entry dated in a week a city report on file covers isn't used
+  (`news.usable_entries`). On the two weeks both are on file (Jan 4-10 and Sep 20-26, 2026), every inspection in the
+  city's report is in the summary, and all 113 entry-days carry the city's status for that day: GREEN is Approved,
+  YELLOW is Conditional Approved; for a red-listed place, "Closure" or "Unsatisfactory" followed by "re-inspection
+  required" is the city's one Closure / Unsatisfactory Re-Inspection Required status, "conditionally approved" is
+  Conditional Approved and "passed follow-up inspection" is Approved (`news_fold`). A summary has no inspector notes,
+  permit numbers or inspection kinds, so its inspections back no pest statement. A summarized week counts as on file
+  for a closure's length. A Journal place joins a city place only with the same name and the same street number,
+  street and quadrant (place-identity.md, M9 and M10).
 
 - An inspection appears only if a weekly report on file prints it, dated inside the week the report covers (one
   report prints a typo date, "1/29/2026" in its Jan 27-31, 2025 week; it stays off).

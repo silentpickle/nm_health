@@ -68,13 +68,23 @@ parenthesis around a date or a "Class C" note) still read; "Editor's note" lines
 `news list` ends with the weeks that have neither a county PDF nor a news link, from your earliest news link's week to
 the archive's latest day: the articles still worth saving.
 
-## Not done yet
+## On the site
 
-- The site doesn't read news links. Showing them is a change to the rule in [assumptions.md](assumptions.md) (the
-  site states only what a county report on file says), so it waits for a decision on wording.
-- News entries aren't matched to places. The Journal spells names and addresses its own way ("4301 The 25 NE" where
-  the PDF prints "4301 THE LANE 25 NE"), so matching needs rules of its own, measured the way
-  [place-identity.md](place-identity.md) measures the PDFs.
+The site folds usable entries into the places' histories (`nm_health/news_fold.py`), under the rule in
+[assumptions.md](assumptions.md): only what a person can easily check in a published source meant for people.
+
+- Each entry becomes the city's status for its date (GREEN Approved, YELLOW Conditional Approved, a red place's
+  results as the city words them); a place listed twice the same day with one status is one inspection.
+- Every statement links to the article, our saved record of it (`news/<slug>.html`, which lists what we recorded and
+  which entries are used), and an Internet Archive copy.
+- A Journal place joins a city place with the same name and street number, street and quadrant; the Journal drops
+  street types and units ("2100 Louisiana NE" for "2100 LOUISIANA BLVD NE"). One that would join two places the city's
+  records keep apart joins neither and is flagged (place-identity.md, M9 and M10). Every other Journal place gets its
+  own page, under the Journal's spelling.
+- `uv run nm-health site` reads `data/news/links.jsonl`; the daily site build does the same.
+
+`uv run nm-health news archived` looks up an Internet Archive copy for each link that has none and saves its address
+in the record. It only looks: it never asks the Archive to make a copy. As of Nov 20, 2026 all 37 articles have one.
 
 ## Adding a source
 

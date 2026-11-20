@@ -7,7 +7,7 @@ import sys
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
-from nm_health import audit, feed, judge, news_commands, spotcheck
+from nm_health import audit, feed, judge, news, news_commands, spotcheck
 from nm_health import settings as settings_module
 from nm_health.archive import Archived, archive_current, archive_file
 from nm_health.database import write_database
@@ -78,8 +78,9 @@ def cmd_site(_args: argparse.Namespace) -> None:
     """Render the static site from every archived PDF."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     settings = settings_module.load()
-    places = write_site(rebuild(settings, window_start(settings)), settings)
-    _say(f"{places} place pages -> {settings.site_dir}")
+    links = tuple(news.load_links(settings.news_links))
+    places = write_site(rebuild(settings, window_start(settings)), settings, links)
+    _say(f"{places} place pages ({len(links)} news summaries on file) -> {settings.site_dir}")
 
 
 def cmd_audit(_args: argparse.Namespace) -> None:

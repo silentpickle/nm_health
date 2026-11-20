@@ -21,6 +21,8 @@ site_dir = "site"
 cdx_url = "https://web.archive.org/cdx/search/cdx"
 # Raw snapshot bytes: https://web.archive.org/web/<timestamp>id_/<original url>
 raw_url_template = "https://web.archive.org/web/{timestamp}id_/{url}"
+# A snapshot's page for people (the site's "archived copy" links to news articles).
+snapshot_url_template = "https://web.archive.org/web/{timestamp}/{url}"
 
 [site]
 # The site's name, everywhere it appears (page titles, header, footer). Rename here and nowhere else.
@@ -85,6 +87,10 @@ cache = "data/judgements.json"
 links = "data/news/links.jsonl"
 # Sites a capture may come from. tools/news-capture/manifest.json matches the same hosts.
 hosts = ["www.abqjournal.com", "abqjournal.com"]
+
+[news.outlets]
+# Each site's name as the site shows it, by domain.
+"abqjournal.com" = "Albuquerque Journal"
 
 [secrets]
 # None. The collector reads only public pages.

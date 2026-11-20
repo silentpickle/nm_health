@@ -10,7 +10,7 @@ from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 
 from nm_health.identity import also_printed, group, title
-from nm_health.model import Inspection, Violation
+from nm_health.model import Inspection, NewsSource, Violation
 from nm_health.rebuild import Report
 from nm_health.settings import DEFAULT_STRIP_WEEKS
 from nm_health.signals import (
@@ -245,8 +245,9 @@ def cites_headline_pests(inspection: Inspection) -> bool:
 
 
 def public_id(inspection: Inspection) -> str:
-    """The city's inspection number, or '' when the parser had to make one up."""
-    return "" if inspection.inspection_id.startswith(SYNTHETIC_ID_PREFIX) else inspection.inspection_id
+    """The city's inspection number, or '' when the parser had to make one up (or the Journal is the source)."""
+    made_up = inspection.inspection_id.startswith(SYNTHETIC_ID_PREFIX) or inspection.news is not None
+    return "" if made_up else inspection.inspection_id
 
 
 @dataclass(frozen=True)
@@ -603,6 +604,8 @@ def permit_line_text(line: Inspection) -> str:
 def latest_result_text(place: Place) -> str:
     """'Latest result in the weekly reports on file: Approved, Oct 28, 2026 (Corrective Action Compliance)'."""
     latest = place.latest
+    if latest.news is not None:
+        return f"Latest result on file: {latest.status}, {nice_date(latest.date)} ({news_label(latest.news)})"
     return (
         f"Latest result in the weekly reports on file: {latest.status}, "
         f"{when_text(latest.date, latest.time)} ({latest.kind})"
@@ -663,6 +666,11 @@ def amended_text(inspection: Inspection) -> str | None:
     return f"First reported as \u201c{inspection.amended_from}\u201d; a later report changed it."
 
 
+def news_label(source: NewsSource) -> str:
+    """'Albuquerque Journal, Nov 19, 2026': a newspaper summary, by outlet and publication date."""
+    return f"{source.outlet}, {nice_date(source.published)}"
+
+
 def source_label(inspection: Inspection, week_start: str | None) -> str:
     """'Week of Oct 25 report (PDF, p. 3)'."""
     week = f"Week of {short_date(week_start)}" if week_start else "Weekly"
@@ -671,7 +679,9 @@ def source_label(inspection: Inspection, week_start: str | None) -> str:
 
 
 def kind_line(inspection: Inspection) -> str:
-    """'Routine Food Establishment Inspection - #12345 - '."""
+    """'Routine Food Establishment Inspection - #12345 - '; '' when neither is known (a Journal summary)."""
+    if inspection.news is not None:
+        return ""
     parts = [inspection.kind]
     if public_id(inspection):
         parts.append(f"#{public_id(inspection)}")

@@ -128,6 +128,7 @@ EXPECTED_RECORD = {
         },
     ],
     "captured_at": "2026-11-20T00:00:00Z",
+    "archived_url": "",
 }
 
 EXPECTED_WARNINGS = [

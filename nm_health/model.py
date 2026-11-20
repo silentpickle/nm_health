@@ -20,6 +20,17 @@ class Violation:
 
 
 @dataclass(frozen=True)
+class NewsSource:
+    """A newspaper's summary of a city weekly report that wasn't saved: where a reader can check it."""
+
+    outlet: str  # "Albuquerque Journal"
+    url: str  # the article
+    published: str  # ISO yyyy-mm-dd
+    saved: str  # our saved record of it, relative to the site root: "news/abqjournal-3165262.html"
+    archived: str = ""  # an Internet Archive copy, when one exists
+
+
+@dataclass(frozen=True)
 class Inspection:
     """One inspection as one weekly report states it."""
 
@@ -49,3 +60,6 @@ class Inspection:
     # The weekly report's own "Operational Status" (Open / Closed) on the permit line above this inspection's row;
     # None when the report prints no permit line for it.
     operational_status: str | None = None
+    # Set when no city report on file prints this inspection and a newspaper's summary of that report does
+    # (nm_health.news_fold): report_file is then "" and has_details False.
+    news: NewsSource | None = None

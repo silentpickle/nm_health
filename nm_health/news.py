@@ -61,6 +61,8 @@ class NewsLink:
     weeks: tuple[Week, ...]
     entries: tuple[Entry, ...]
     captured_at: str
+    # An Internet Archive copy of the article (`nm-health news archived` looks; we never make one), or "".
+    archived_url: str = ""
 
 
 def _outcome_json(outcome: Outcome) -> dict[str, str]:
@@ -89,6 +91,7 @@ def to_json(link: NewsLink) -> dict[str, object]:
         "weeks": [{"start": week.start.isoformat(), "end": week.end.isoformat()} for week in link.weeks],
         "entries": [_entry_json(entry) for entry in link.entries],
         "captured_at": link.captured_at,
+        "archived_url": link.archived_url,
     }
 
 
@@ -116,6 +119,7 @@ def from_json(data: dict[str, object]) -> NewsLink:
         weeks=tuple(Week(date.fromisoformat(w["start"]), date.fromisoformat(w["end"])) for w in weeks),
         entries=tuple(_entry_from(entry) for entry in cast("list[dict[str, object]]", data["entries"])),
         captured_at=str(data["captured_at"]),
+        archived_url=str(data.get("archived_url", "")),
     )
 
 
@@ -145,6 +149,7 @@ def upsert(links: list[NewsLink], link: NewsLink) -> tuple[list[NewsLink], str]:
     previous = next((old for old in links if old.url == link.url), None)
     if previous is None:
         return [*others, link], NEW
+    link = replace(link, archived_url=link.archived_url or previous.archived_url)  # a re-capture keeps the copy found
     if replace(previous, captured_at=link.captured_at) == link:
         return links, SAME
     return [*others, link], UPDATED

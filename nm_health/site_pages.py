@@ -28,6 +28,7 @@ from nm_health.site_html import (
     strip_axis_html,
     strip_html,
 )
+from nm_health.site_news import news_about, news_table
 from nm_health.viewmodel import (
     CLOSED_GROUP,
     MAYBE_SAME,
@@ -51,6 +52,7 @@ from nm_health.viewmodel import (
     latest_report,
     latest_result_text,
     level,
+    news_label,
     nice_date,
     other_pest_kinds,
     permit_line_text,
@@ -332,6 +334,7 @@ def data_page(data: SiteData) -> Page:
 <p>Every weekly report PDF saved so far: {len(ordered)} files, byte for byte as the city published them.
 Browse the whole folder on <a href="{esc(archive_tree_url(data))}">GitHub (data/archive)</a>.</p>
 <div class="tablewrap"><table class="datatable"><thead>{head}</thead><tbody>{rows}</tbody></table></div>
+{news_table(data)}
 </section>"""
     return Page("Data we have pulled", body, "data")
 
@@ -428,6 +431,7 @@ the copies here are byte-for-byte what the city published.</p>
 <p>The city also runs a public inspection-status feed. It is separate from the weekly reports, and this site treats it
 as a separate source: it is used only for the coordinates of the dots on the map, and no statement here rests on it.</p>
 <p>{esc(counts)}</p>
+{news_about(data)}
 <h2>What it does not say</h2>
 <p>An inspection reports what one inspector found on one day. No citation is not a certification: inspectors never
 declare a place pest-free, and neither does this site.</p>
@@ -559,7 +563,15 @@ def _violation(v: Violation) -> str:
     return f'<li><span class="vt">{esc(title)}</span>{category}{_tags(v)}{quote}{_details(v)}</li>'
 
 
+NEWS_BODY = (
+    "The city's report for this week wasn't saved. This result is from the Albuquerque Journal's summary of that "
+    "report, which doesn't include the inspector's notes."
+)
+
+
 def _inspection_body(inspection: Inspection) -> str:
+    if inspection.news is not None:
+        return f'<p class="quiet">{esc(NEWS_BODY)}</p>'
     if not inspection.violations:
         return '<p class="quiet">The report lists no violations for this inspection.</p>'
     items = "".join(_violation(v) for v in inspection.violations)
@@ -598,13 +610,17 @@ def _city_status(data: SiteData, place: Place) -> str:
     latest = place.latest
     report = source_label(latest, data.week_starts.get(latest.report_file)).split(" (", 1)[0]
     lines = "".join(_permit_line(data, line) for line in permit_lines(place))
+    label = "The city's latest weekly report on file"
+    if latest.news is not None:
+        label, report = NEWS_LATEST, news_label(latest.news)
     return (
-        f'<div class="today"><span class="lbl">The city\'s latest weekly report on file</span> {esc(report)}'
+        f'<div class="today"><span class="lbl">{label}</span> {esc(report)}'
         f"{f'<ul class="permits">{lines}</ul>' if lines else ''}"
         f"<p>{esc(latest_result_text(place))}</p>{_sources(data, place, [latest])}</div>"
     )
 
 
+NEWS_LATEST = "Latest on file: the Albuquerque Journal's summary of the city's weekly report"
 ALSO_PRINTED = "Also printed as:"
 MERGED_BY_PERMIT = "Merged by permit; names differ."
 

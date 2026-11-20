@@ -7,13 +7,20 @@ See docs/news-links.md. Nothing here fetches a page: ``add`` reads files the bro
 import argparse
 import json
 import sys
+import time
+import urllib.error
+import urllib.parse
 from collections import Counter
+from collections.abc import Callable
+from dataclasses import replace
 from datetime import date
 from pathlib import Path
 
 from nm_health import news
 from nm_health import settings as settings_module
+from nm_health.archive import download
 from nm_health.news_capture import CaptureRead, read_capture
+from nm_health.wayback import parse_cdx
 
 
 def _say(line: str) -> None:
@@ -103,6 +110,62 @@ def list_lines(settings: settings_module.Settings) -> list[str]:
     return said
 
 
+LOOKUP_PAUSE_SECONDS = 1.0  # between Internet Archive lookups, to be polite
+
+
+def snapshot_url(url: str, settings: settings_module.Settings) -> str:
+    """The Internet Archive's newest capture of an article, as a page for people; '' when it has none.
+
+    Looks only: nothing here asks the Internet Archive to make a capture.
+    """
+    query = {"url": url, "output": "json", "fl": "timestamp", "filter": "statuscode:200", "limit": "-1"}
+    body = download(
+        f"{settings.cdx_url}?{urllib.parse.urlencode(query)}", settings.user_agent, settings.timeout_seconds
+    )
+    found = parse_cdx(body)
+    return settings.snapshot_url_template.format(timestamp=found[-1].timestamp, url=url) if found else ""
+
+
+Lookup = Callable[[str], str]
+
+
+def _archived_one(link: news.NewsLink, lookup: Lookup) -> tuple[news.NewsLink, str]:
+    try:
+        found = lookup(link.url)
+    except (urllib.error.URLError, TimeoutError) as error:
+        return link, f"no answer for {link.url} ({error}); try again later"
+    if not found:
+        return link, f"no copy yet: {link.url}"
+    return replace(link, archived_url=found), f"FOUND: {found}"
+
+
+def archived_lines(
+    settings: settings_module.Settings, lookup: Lookup, pause: float = LOOKUP_PAUSE_SECONDS
+) -> list[str]:
+    """Look up an Internet Archive copy for each news link that has none yet; save what's found."""
+    links = news.load_links(settings.news_links)
+    said: list[str] = []
+    updated: list[news.NewsLink] = []
+    for link in links:
+        if link.archived_url:
+            updated.append(link)
+            continue
+        found, line = _archived_one(link, lookup)
+        updated.append(found)
+        said.append(line)
+        time.sleep(pause)
+    news.save_links(settings.news_links, updated)
+    have = sum(bool(link.archived_url) for link in updated)
+    return [*said, f"{have} of {len(updated)} news links have an archived copy"]
+
+
+def cmd_news_archived(_args: argparse.Namespace) -> None:
+    """Look up Internet Archive copies of news articles (never makes one)."""
+    settings = settings_module.load()
+    for line in archived_lines(settings, lambda url: snapshot_url(url, settings)):
+        _say(line)
+
+
 def cmd_news_add(args: argparse.Namespace) -> None:
     """Record captures the browser extension saved (tools/news-capture)."""
     for line in add_lines(list(args.files), settings_module.load()):
@@ -124,3 +187,5 @@ def add_commands(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser
     p_add.set_defaults(func=cmd_news_add)
     p_list = news_commands.add_parser("list", help="List news links and which entries the county archive leaves")
     p_list.set_defaults(func=cmd_news_list)
+    p_archived = news_commands.add_parser("archived", help="Look up Internet Archive copies of the articles")
+    p_archived.set_defaults(func=cmd_news_archived)
