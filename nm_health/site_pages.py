@@ -625,7 +625,8 @@ NEWS_DESCRIBED = (
 )
 NEWS_BODY = (
     "The city's report for this week wasn't saved. This result is from the Albuquerque Journal's summary of that "
-    "report, which doesn't include the inspector's notes."
+    "report. The paper describes only closed or failing places; a passing or conditional result, or a follow-up, is "
+    "listed with its date alone, so there are no notes to show."
 )
 
 
@@ -711,6 +712,21 @@ def _also_printed(place: Place) -> str:
     return f'<p class="also">{esc(ALSO_PRINTED)} {names}. <span class="quiet">{esc(MERGED_BY_PERMIT)}</span></p>'
 
 
+JOURNAL_NAMES_NOTE = "Joined by address and name; check it against the article."
+
+
+def _journal_names(place: Place) -> str:
+    """How a newspaper printed this place, when its name differs: each joined by address and name, a guess shown."""
+    if not place.journal_names:
+        return ""
+    outlet = next(i.news.outlet for i in place.journal_names if i.news)
+    names = ", ".join(
+        f'<a href="#insp-{place.inspections.index(i)}">{esc(i.name)}</a> ({esc(nice_date(i.date))})'
+        for i in place.journal_names
+    )
+    return f'<p class="also">The {esc(outlet)} printed it as: {names}. <span class="quiet">{esc(JOURNAL_NAMES_NOTE)}</span></p>'
+
+
 CANT_TELL_NOTE = "The city's records don't say whether they are one business, so the site keeps them apart."
 
 
@@ -727,7 +743,7 @@ def _place_head(data: SiteData, place: Place) -> str:
     return (
         f'<div class="place-head"><a href="../places.html">{LEFT_ARROW} All places</a>'
         f'<h1 class="view">{esc(place.name)}</h1><div class="addr">{esc(place.address + legal)}</div>'
-        f"{_also_printed(place)}{_maybe_same(place)}{_city_status(data, place)}</div>"
+        f"{_also_printed(place)}{_journal_names(place)}{_maybe_same(place)}{_city_status(data, place)}</div>"
     )
 
 

@@ -36,7 +36,8 @@ A citation, what the article lists, and each red-listed place's description as p
 | `entries` | Each place as printed: `color` (GREEN / YELLOW / RED), `name`, `address`, `dates`, `classes` ("Class B"), `outcomes` (each result in a red place's Result line, with its date), `notes` (a red place's description paragraphs, as printed) |
 | `captured_at` | When you saved the page |
 
-The introduction and the color legend are dropped. The descriptions are the paper's words (the owner's decision of
+The introduction and the color legend are dropped. The paper describes only red-listed places, so GREEN and YELLOW
+entries (passing and conditional grades) carry no notes: a name, address and date is all there is to record. The descriptions are the paper's words (the owner's decision of
 Nov 20, 2026, knowing the Journal's notice): the site only ever shows them as a quote, attributed to the paper, never
 as the inspector's notes. The JSON files the extension saves to Downloads hold the article's whole body; keep them
 until you're sure nothing more is wanted from them.
@@ -79,10 +80,10 @@ The site folds usable entries into the places' histories (`nm_health/news_fold.p
   results as the city words them); a place listed twice the same day with one status is one inspection.
 - Every statement links to the article, our saved record of it (`news/<slug>.html`, which lists what we recorded and
   which entries are used), and an Internet Archive copy.
-- A Journal place joins a city place with the same name and street number, street and quadrant; the Journal drops
-  street types and units ("2100 Louisiana NE" for "2100 LOUISIANA BLVD NE"). One that would join two places the city's
-  records keep apart joins neither and is flagged (place-identity.md, M9 and M10). Every other Journal place gets its
-  own page, under the Journal's spelling.
+- A Journal place joins another place at the same street number and street name (types and units dropped) when the
+  names agree, store numbers and "LLC" aside, or one starts the other; never one that would bridge two places kept
+  apart (place-identity.md, M9 and M10). The place page says how the Journal printed it. Every other Journal place
+  gets its own page, under the Journal's spelling.
 - A red place's description goes with the result it explains (its first failing one), quoted on the place page as
   the paper's words. Each sentence is tagged as an inspector's observation would be (`nm_health/tags.py`), so pest
   readings ("Rodents, live") and the roaches-or-rodents flags cover these weeks too, credited to the paper. Measured

@@ -24,6 +24,65 @@ NOT_ALNUM_UPPER = re.compile(r"[^A-Z0-9]+")
 CITY_SUFFIX_RE = re.compile(r",?\s+ALBUQUERQUE,?\s*NM\s*\d{5}(?:-\d{4})?\s*$", re.IGNORECASE)
 ADDRESS_WORD = re.compile(r"[A-Z0-9]+")
 QUADRANTS = frozenset({"NE", "NW", "SE", "SW"})
+# Street types, dropped when comparing addresses: the Journal leaves them out, and a report may print one twice.
+STREET_TYPES = frozenset(
+    {
+        "ST",
+        "STREET",
+        "AVE",
+        "AVENUE",
+        "BLVD",
+        "BOULEVARD",
+        "RD",
+        "ROAD",
+        "DR",
+        "DRIVE",
+        "LN",
+        "LANE",
+        "PL",
+        "PLACE",
+        "CT",
+        "COURT",
+        "PKWY",
+        "PARKWAY",
+        "HWY",
+        "HIGHWAY",
+        "WAY",
+        "TRL",
+        "TRAIL",
+        "CIR",
+        "CIRCLE",
+        "LOOP",
+        "SQ",
+        "PLZ",
+        "PLAZA",
+        "TER",
+        "TERRACE",
+        "ALY",
+    }
+)
+NAME_WORD = re.compile(r"[A-Z0-9]+")
+STORE_NUMBER = re.compile(r"#\s*\d+")
+APOSTROPHES = re.compile(r"['\u2019]")
+# Words that don't tell two businesses at one address apart: company forms, "the", "and", and "restaurant" as spelled.
+NAME_FILLER = frozenset(
+    {
+        "LLC",
+        "INC",
+        "CO",
+        "CORP",
+        "LTD",
+        "LP",
+        "PLLC",
+        "THE",
+        "AND",
+        "RESTAURANT",
+        "RESTAURANTS",
+        "RESTARAUNT",
+        "RESTURANT",
+        "RESTAURAUNT",
+    }
+)
 
 
 def split_dba(name: str) -> tuple[str, str | None]:
@@ -54,19 +113,46 @@ def normalized_address(address: str) -> str:
     return str(normalize_address(address)["normalized_address"])
 
 
-def street_key(address: str) -> tuple[str, str, str]:
-    """Street number (digits only), first street word, quadrant: the parts the Journal and the reports both print.
+def street_words(address: str) -> tuple[str, str, str]:
+    """Street number (digits), street name (its words, types dropped), quadrant: what makes one address.
 
     The Journal drops street types and units ("2100 Louisiana NE" for "2100 LOUISIANA BLVD NE", "2622 Central SE" for
-    "2622 CENTRAL AVE SE, #A"), and a report may print "2906A" for the Journal's "2906".
+    "2622 CENTRAL AVE SE, #A"); a report may print "2906A" for "2906", or a type and quadrant twice ("905 Yale Blvd SE
+    BLVD SE"). Two names that share a number and street name but not a type are rare: one address, as a guess.
     """
     words = ADDRESS_WORD.findall(address.split(",", 1)[0].upper())
     if not words:
         return "", "", ""
-    number, rest = "".join(takewhile(str.isdigit, words[0])), words[1:]
-    quadrant = rest[-1] if rest and rest[-1] in QUADRANTS else ""
-    street = rest[:-1] if quadrant else rest
-    return number, street[0] if street else "", quadrant
+    number = "".join(takewhile(str.isdigit, words[0]))
+    rest = [word for word in words[1:] if word not in STREET_TYPES]
+    quadrants = [word for word in rest if word in QUADRANTS]
+    street = " ".join(word for word in rest if word not in QUADRANTS)
+    return number, street, quadrants[-1] if quadrants else ""
+
+
+def name_core(name: str) -> tuple[str, ...]:
+    """A name's telling words: store numbers ("#31822", "824"), company forms, "the", "and", "restaurant" dropped.
+
+    "TACO BELL #31822" and "Taco Bell", "BJ's Restaurant & Brewhouse" and "BJS RESTAURANT AND BREWHOUSE" agree.
+    """
+    text = APOSTROPHES.sub("", STORE_NUMBER.sub(" ", name.upper())).replace("&", " AND ")
+    return tuple(word for word in NAME_WORD.findall(text) if not word.isdigit() and word not in NAME_FILLER)
+
+
+def same_core(a: tuple[str, ...], b: tuple[str, ...]) -> bool:
+    """One name, spacing aside: "WAL MART" and "WALMART" agree."""
+    return bool(a) and "".join(a) == "".join(b)
+
+
+def begins(a: tuple[str, ...], b: tuple[str, ...]) -> bool:
+    """One name is the start of the other, word for word.
+
+    "Walmart" and "Walmart Supercenter", "Blake's" and "Blake's Lotaburger"; not "Albertsons" and "AFC Sushi at
+    Albertsons".
+    """
+    (short, _), (long_, words) = sorted((("".join(a), a), ("".join(b), b)), key=lambda found: len(found[0]))
+    cuts = {sum(len(word) for word in words[: n + 1]) for n in range(len(words))}  # word ends in the longer name
+    return bool(short) and short != long_ and long_.startswith(short) and len(short) in cuts
 
 
 def compact_name(name: str) -> str:
@@ -121,24 +207,34 @@ class Key:
         return all(i.news is not None for i in self.inspections)
 
     @cached_property
-    def street_key(self) -> tuple[str, str, str]:
-        """The address as the Journal and the reports can both be compared (street_key)."""
-        return street_key(self.inspections[0].address)
+    def address_words(self) -> tuple[str, str, str]:
+        """Street number, street name and quadrant (street_words): how the Journal and the reports both print it."""
+        return street_words(self.inspections[0].address)
+
+    @cached_property
+    def core(self) -> tuple[str, ...]:
+        """The name's telling words (name_core)."""
+        return name_core(self.inspections[0].name)
 
 
 Rule = Callable[[Key, Key], Verdict | None]
 
 
 def journal_place(a: Key, b: Key) -> Verdict | None:
-    """M9: a key only the Journal prints joins a key with one name and one street_key; otherwise stays apart.
+    """M9: a key only the Journal prints, against any other key at one street number and street name.
 
-    Names agree when they match case and punctuation aside (compact_name). Addresses can't be compared whole: the
-    Journal drops street types and units.
+    Same when the names agree (same_core) or one starts the other (begins), in one quadrant; one name in two
+    quadrants can't be told apart (a likely quadrant typo); anything else stays apart. The guard in `group` (M10)
+    keeps a name that starts several others from joining any.
     """
     if not (a.journal_only or b.journal_only):
         return None
-    one_name = compact_name(a.inspections[0].name) == compact_name(b.inspections[0].name)
-    return SAME if one_name and a.street_key == b.street_key else DIFFERENT
+    exact = same_core(a.core, b.core)
+    if a.address_words[:2] != b.address_words[:2] or not (exact or begins(a.core, b.core)):
+        return DIFFERENT
+    if a.address_words[2] and b.address_words[2] and a.address_words[2] != b.address_words[2]:
+        return CANT_TELL if exact else DIFFERENT
+    return SAME
 
 
 def shared_permit_here(a: Key, b: Key) -> Verdict | None:
@@ -231,7 +327,7 @@ def candidates(keys: dict[str, Key]) -> list[tuple[str, str]]:
     for key in keys.values():
         shared["address", key.address].add(key.slug)
         shared["name", compact_name(key.inspections[0].name), *key.street].add(key.slug)
-        shared["street_key", compact_name(key.inspections[0].name), *key.street_key].add(key.slug)
+        shared["street", *key.address_words[:2]].add(key.slug)
         for permit in key.permits:
             shared["permit", permit].add(key.slug)
     return sorted(set().union(*(_pairs(slugs) for slugs in shared.values())))
@@ -269,42 +365,61 @@ def _touches_journal(pair: tuple[str, str], keys: dict[str, Key]) -> bool:
     return keys[pair[0]].journal_only or keys[pair[1]].journal_only
 
 
-def _journal_partners(
-    verdicts: dict[tuple[str, str], Verdict], keys: dict[str, Key], parent: dict[str, str]
-) -> dict[str, set[str]]:
-    """For each Journal-only key, the city places (joined roots) it would join."""
+def _apart(p: str, q: str, verdicts: dict[tuple[str, str], Verdict], parent: dict[str, str]) -> bool:
+    """Two keys not already one place, that no verdict joins."""
+    if _root(parent, p) == _root(parent, q):
+        return False
+    return (verdicts.get((p, q)) or verdicts.get((q, p))) != SAME
+
+
+def _torn(
+    pairs: list[tuple[str, str]], verdicts: dict[tuple[str, str], Verdict], keys: dict[str, Key], parent: dict[str, str]
+) -> set[str]:
+    """Journal-only keys whose same pairs reach two keys that are apart: they'd join places the records keep apart."""
     partners: dict[str, set[str]] = defaultdict(set)
-    for a, b in (pair for pair, verdict in verdicts.items() if verdict == SAME):
-        if keys[a].journal_only and not keys[b].journal_only:
-            partners[a].add(_root(parent, b))
-        if keys[b].journal_only and not keys[a].journal_only:
-            partners[b].add(_root(parent, a))
-    return partners
+    for a, b in pairs:
+        partners[a].add(b)
+        partners[b].add(a)
+    return {
+        key
+        for key, found in partners.items()
+        if keys[key].journal_only and any(_apart(p, q, verdicts, parent) for p, q in _pairs(found))
+    }
 
 
-def one_city_place(
-    verdicts: dict[tuple[str, str], Verdict], keys: dict[str, Key], parent: dict[str, str]
+def _join_journal(
+    verdicts: dict[tuple[str, str], Verdict], keys: dict[str, Key], parent: dict[str, str], *, exact: bool
 ) -> dict[tuple[str, str], Verdict]:
-    """M10: a Journal-only key that would join two city places the reports keep apart joins neither: can't tell.
+    """M10: join the Journal's same pairs of one kind, except where a key would bridge places kept apart.
 
-    `parent` holds the city keys already joined, so two keys of one city place count once.
+    One kind is exact names, the other one name starting another. A key whose pairs would join places kept apart
+    joins none of them: those pairs become can't tell. Returns the verdicts with that applied.
     """
-    torn = {key for key, roots in _journal_partners(verdicts, keys, parent).items() if len(roots) > 1}
-    return {pair: CANT_TELL if verdict == SAME and torn & set(pair) else verdict for pair, verdict in verdicts.items()}
+    pairs = [
+        pair
+        for pair, verdict in verdicts.items()
+        if verdict == SAME
+        and _touches_journal(pair, keys)
+        and same_core(keys[pair[0]].core, keys[pair[1]].core) == exact
+    ]
+    torn = _torn(pairs, verdicts, keys, parent)
+    _join(parent, [pair for pair in pairs if not torn & set(pair)])
+    return {pair: CANT_TELL if pair in pairs and torn & set(pair) else verdict for pair, verdict in verdicts.items()}
 
 
 def group(inspections: tuple[Inspection, ...]) -> list[Group]:
     """Inspections grouped by place: keys joined where match() says same, in the order each key first appears.
 
-    City keys join first; then Journal-only keys join the one city place they match (M10). A pair match() can't
-    tell apart stays two places, each naming the other in `maybe_same`.
+    City keys join first; then Journal-only keys with the same name, then those whose name starts another's, each
+    only where it can't bridge two places kept apart (M10). A pair match() can't tell apart stays two places, each
+    naming the other in `maybe_same`.
     """
     keys = _keys(inspections)
     verdicts = {(a, b): match(keys[a], keys[b]) for a, b in candidates(keys)}
     parent = {slug: slug for slug in keys}
     _join(parent, [pair for pair, v in verdicts.items() if v == SAME and not _touches_journal(pair, keys)])
-    verdicts = one_city_place(verdicts, keys, parent)
-    _join(parent, [pair for pair, v in verdicts.items() if v == SAME and _touches_journal(pair, keys)])
+    verdicts = _join_journal(verdicts, keys, parent, exact=True)
+    verdicts = _join_journal(verdicts, keys, parent, exact=False)
     members: dict[str, list[str]] = defaultdict(list)
     for slug in keys:
         members[_root(parent, slug)].append(slug)
@@ -339,6 +454,19 @@ def also_printed(newest_first: tuple[Inspection, ...], shown: str) -> tuple[Insp
     seen = {compact_name(shown)}
     found: list[Inspection] = []
     for inspection in _printed(newest_first):
+        name = compact_name(inspection.name)
+        if name in seen:
+            continue
+        seen.add(name)
+        found.append(inspection)
+    return tuple(found)
+
+
+def journal_printed(newest_first: tuple[Inspection, ...], shown: str) -> tuple[Inspection, ...]:
+    """The newest Journal-sourced inspection under each name that differs from the one shown (M9's guesses, shown)."""
+    seen = {compact_name(shown)}
+    found: list[Inspection] = []
+    for inspection in (i for i in newest_first if i.news is not None):
         name = compact_name(inspection.name)
         if name in seen:
             continue

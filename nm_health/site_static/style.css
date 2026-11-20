@@ -356,6 +356,12 @@ h2 .n {
   outline: 2px solid var(--ink);
   outline-offset: 1px;
 }
+/* The week ended with a pass after a worse result: the worst stays the cell, a green cap says how the week ended. */
+.strip i.tp {
+  box-sizing: border-box;
+  border-top: 4px solid var(--ok-cell);
+  opacity: 1;
+}
 /* No report on file for any day of the week: a low dash, so a gap in the record doesn't read as "no inspection". */
 .strip i.nf {
   height: 3px;

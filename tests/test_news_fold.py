@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from nm_health.archive import Week
-from nm_health.identity import group, street_key
+from nm_health.identity import Group, begins, group, name_core, same_core, street_words
 from nm_health.model import Inspection
 from nm_health.news import GREEN, RED, YELLOW, Entry, NewsLink, Outcome, upsert
 from nm_health.news_fold import (
@@ -119,16 +119,56 @@ def test_link_names() -> None:
         pytest.param("2100 Louisiana NE", "2100 LOUISIANA BLVD NE", id="street_type"),
         pytest.param("2622 Central SE", "2622 CENTRAL AVE SE, #A", id="unit"),
         pytest.param("2906 Juan Tabo NE", "2906A JUAN TABO NE", id="number_letter"),
+        pytest.param("905 Yale SE", "905 Yale Blvd SE BLVD SE", id="printed_twice"),
     ],
 )
-def test_street_key_matches_city_spelling(journal: str, city: str) -> None:
-    """The Journal drops street types and units; both spellings give one key."""
-    assert street_key(journal) == street_key(city)
+def test_street_words_match_city_spelling(journal: str, city: str) -> None:
+    """The Journal drops street types and units; both spellings are one address."""
+    assert street_words(journal) == street_words(city)
 
 
-def test_street_key_quadrant_differs() -> None:
-    """Another quadrant is another street."""
-    assert street_key("2400 Central SE") != street_key("2400 Central NE")
+@pytest.mark.parametrize(
+    ("one", "other"),
+    [
+        pytest.param("2400 Central SE", "2400 Central NE", id="other_quadrant"),
+        pytest.param("2937 San Mateo NE", "2937 San Pedro NE", id="other_street_same_first_word"),
+        pytest.param("2937 San Mateo NE", "2939 San Mateo NE", id="other_number"),
+    ],
+)
+def test_street_words_tell_addresses_apart(one: str, other: str) -> None:
+    """Another quadrant, street (even one starting with the same word) or number is another address."""
+    assert street_words(one) != street_words(other)
+
+
+@pytest.mark.parametrize(
+    ("one", "other"),
+    [
+        pytest.param("TACO BELL #31822", "Taco Bell", id="store_number"),
+        pytest.param("LITTLE CAESARS 511", "Little Caesars", id="bare_store_number"),
+        pytest.param("BJ\u2019s Restaurant & Brewhouse", "BJS RESTAURANT AND BREWHOUSE", id="and_restaurant"),
+        pytest.param("Royal Buffet Restaurant", "Royal Buffet", id="restaurant"),
+        pytest.param("ODELIA HEALTHCARE LLC", "Odelia Healthcare", id="llc"),
+        pytest.param("WAL MART 824", "Walmart", id="spacing"),
+    ],
+)
+def test_names_agree(one: str, other: str) -> None:
+    """Store numbers, company forms, "the", "and", "restaurant" and spacing aside, one name."""
+    assert same_core(name_core(one), name_core(other))
+
+
+@pytest.mark.parametrize(
+    ("one", "other", "starts"),
+    [
+        pytest.param("Walmart", "Walmart Supercenter", True, id="adds_words"),
+        pytest.param("Blake\u2019s", "Blake\u2019s Lotaburger", True, id="short_form"),
+        pytest.param("Albertsons", "AFC Sushi at Albertsons", False, id="ends_with"),
+        pytest.param("Taco", "Tacos El Gordo", False, id="not_a_whole_word"),
+        pytest.param("Subway", "Subway", False, id="same_name"),
+    ],
+)
+def test_one_name_starts_another(one: str, other: str, starts: bool) -> None:  # noqa: FBT001 - parametrized
+    """Word for word from the start, and longer: "Albertsons" doesn't start "AFC Sushi at Albertsons"."""
+    assert begins(name_core(one), name_core(other)) is starts
 
 
 def journal_visit(name: str, address: str) -> Inspection:
@@ -273,3 +313,91 @@ def test_data_page_says_why_none_used(tmp_path: Path) -> None:
     """An article on a week the city's report covers says why none of it is used."""
     data, _ = site_with_news(tmp_path)
     assert "none: the city&#x27;s report for that week is on file" in data_page(data).body
+
+
+def test_passing_grade_says_why_no_notes(tmp_path: Path) -> None:
+    """A Journal pass has no description; the place page and the saved record both say so."""
+    data, article = site_with_news(tmp_path)
+    frontier = next(p for p in data.places if p.name == "FRONTIER RESTAURANT")
+    body = place_page(data, frontier).body
+    assert "a passing or conditional result, or a follow-up, is listed with its date alone" in body
+    assert "no notes are recorded for passing or conditional grades" in news_page(data, article).body
+
+
+def place_names(groups: list[Group]) -> list[list[str]]:
+    """Each group's names, sorted, for comparing groupings."""
+    return sorted(sorted({i.name for i in g.inspections}) for g in groups)
+
+
+def test_store_number_and_restaurant_joined() -> None:
+    """Church's Chicken #5341 and the Journal's Church's Chicken, Royal Buffet and Royal Buffet Restaurant: one each."""
+    church = rec("2026-11-03", "Church's Chicken #5341", "401 Louisiana BLVD SE", "PT1", NOVEMBER)
+    groups = group(
+        (
+            church,
+            journal_visit("Church\u2019s Chicken", "401 Louisiana SE"),
+            journal_visit("Royal Buffet Restaurant", "6111 San Mateo NE"),
+            journal_visit("Royal Buffet", "6111 San Mateo NE"),
+        )
+    )
+    assert place_names(groups) == [
+        ["Church's Chicken #5341", "Church\u2019s Chicken"],
+        ["Royal Buffet", "Royal Buffet Restaurant"],
+    ]
+
+
+def test_starting_name_joins_after_exact() -> None:
+    """Walmart (Journal) joins WAL MART 824 (city); Walmart Supercenter (Journal) then joins that one place."""
+    city = rec("2026-11-03", "WAL MART 824", "8000 ACADEMY RD NE", "PT1", NOVEMBER)
+    groups = group(
+        (city, journal_visit("Walmart", "8000 Academy NE"), journal_visit("Walmart Supercenter", "8000 Academy NE"))
+    )
+    assert place_names(groups) == [["WAL MART 824", "Walmart", "Walmart Supercenter"]]
+
+
+def test_name_starting_several_joins_none() -> None:
+    """A name starting two kitchens' names that are apart (Clyde Hotel) joins neither, and is flagged against both."""
+    hotel = journal_visit("Clyde Hotel", "330 Tijeras NW")
+    groups = group(
+        (
+            hotel,
+            journal_visit("Clyde Hotel Mercantile", "330 Tijeras NW"),
+            journal_visit("Clyde Hotel Banquet Kitchen", "330 Tijeras NW"),
+        )
+    )
+    assert len(groups) == len(("hotel", "mercantile", "banquet"))
+    assert len(next(g for g in groups if g.inspections[0].name == "Clyde Hotel").maybe_same) == len(
+        ("mercantile", "banquet")
+    )
+
+
+def test_counter_inside_a_store_stays_apart() -> None:
+    """AFC Sushi at Albertsons is its own place; the Journal's Albertsons joins the city's ALBERTSONS #911."""
+    city = rec("2026-11-03", "ALBERTSONS #911", "2801 EUBANK BLVD NE, A", "PT1", NOVEMBER)
+    groups = group(
+        (
+            city,
+            journal_visit("Albertsons", "2801 Eubank NE"),
+            journal_visit("AFC Sushi at Albertsons", "2801 Eubank NE"),
+        )
+    )
+    assert place_names(groups) == [["AFC Sushi at Albertsons"], ["ALBERTSONS #911", "Albertsons"]]
+
+
+def test_same_name_other_quadrant_flagged() -> None:
+    """One name, one number and street, two quadrants: a likely typo, kept apart and flagged."""
+    groups = group(
+        (journal_visit("McDonald\u2019s", "2305 Central NW"), journal_visit("McDonald\u2019s", "2305 Central SW"))
+    )
+    assert [len(g.maybe_same) for g in groups] == [1, 1]
+
+
+def test_place_page_shows_the_journal_spelling(tmp_path: Path) -> None:
+    """A place joined to a Journal entry under another name says how the paper printed it, linked, as a guess."""
+    data, _ = site_with_news(tmp_path)
+    church = rec("2026-11-03", "Church's Chicken #5341", "401 Louisiana BLVD SE", "PT1", NOVEMBER)
+    joined = (church, journal_visit("Church\u2019s Chicken", "401 Louisiana SE"))
+    data = replace(data, places=group_places(joined))
+    body = place_page(data, data.places[0]).body
+    assert 'The Albuquerque Journal printed it as: <a href="#insp-1">Church\u2019s Chicken</a>' in body
+    assert "Joined by address and name; check it against the article." in body
