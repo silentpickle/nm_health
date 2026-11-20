@@ -330,3 +330,21 @@ def test_empty_capture_explained() -> None:
     assert capture_problems({**CAPTURE, "lines": []}, HOSTS) == [
         "the capture holds no article text (the paywall may have hidden it): save it again once the article shows"
     ]
+
+
+def test_results_split_by_comma_or_colon() -> None:
+    """Results the Journal joined with "), " or "): " instead of ";" are still separate results, each dated."""
+    lines = [
+        "Aug. 2-8",
+        "RED",
+        "Hot Wok, 500 Coors NW",
+        "Result: Closure (Aug. 3), re-inspection required (Aug. 3); unsatisfactory (Aug. 5): re-inspection required (Aug. 5)",
+    ]
+    _, entries, warnings = walk_lines(lines, date(2026, 8, 12))
+    assert [(outcome.result, outcome.on.day) for outcome in entries[0].outcomes] == [
+        ("Closure", 3),
+        ("re-inspection required", 3),
+        ("unsatisfactory", 5),
+        ("re-inspection required", 5),
+    ]
+    assert warnings == []

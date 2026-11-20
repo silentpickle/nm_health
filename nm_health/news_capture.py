@@ -35,6 +35,8 @@ HEAD_ANY = re.compile(r"^(.+?), (.+)$")
 OUTCOME = re.compile(rf"^(.+?)\s*\(?({MONTH}\s+\d{{1,2}})\)?$")
 ISO_DATE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})")
 RESULT_PREFIX = "Result:"
+# Results are split by ";", and sometimes by a comma or colon after a date: "Closure (Aug. 3), re-inspection ...".
+RESULT_PARTS = re.compile(r";|(?<=\))\s*[,:]")
 NONE_LINE = "NONE"
 CLASS_PREFIX = "Class"
 WWW = "www."
@@ -164,7 +166,7 @@ def parse_outcomes(line: str, week: Week) -> tuple[list[Outcome], list[str]]:
     """Outcomes from "Result: Closure (Nov. 9); re-inspection required (Nov. 9)", and any part that didn't read."""
     outcomes: list[Outcome] = []
     unread: list[str] = []
-    for part in line.removeprefix(RESULT_PREFIX).split(";"):
+    for part in RESULT_PARTS.split(line.removeprefix(RESULT_PREFIX)):
         match = OUTCOME.match(part.strip())
         days = _dates(match[2], week) if match else None
         if match is None or not days:
