@@ -352,16 +352,18 @@ def _row_flags(place: Place, covered: Coverage) -> str:
     return "".join(flags)
 
 
-def row_html(place: Place, today: date, covered: Coverage, weeks: int) -> str:
-    """One place in a list: name, address, latest status and date, flags, recent statuses (phones) and strip."""
+def row_html(place: Place, today: date, covered: Coverage, weeks: int, counts: str = "") -> str:
+    """One place in a list: name, address, latest status and date, flags, any counts, recent statuses and strip."""
     latest = place.latest
+    extra = f'<div class="counts">{esc(counts)}</div>' if counts else ""
     meta = (
         f'<span class="data">{esc(place.address)}</span>{chip(latest.status)}'
         f"<span>{nice_date(latest.date)}</span>{_row_flags(place, covered)}"
     )
     return (
         f'<li><a class="row" href="{place_href(place)}"><div class="info"><div class="nm">{esc(place.name)}</div>'
-        f'<div class="meta">{meta}</div><div class="recent">{esc(recent_text(place.inspections))}</div></div>'
+        f'<div class="meta">{meta}</div>{extra}'
+        f'<div class="recent">{esc(recent_text(place.inspections))}</div></div>'
         f"{strip_html(place, today, weeks, covered)}</a></li>"
     )
 

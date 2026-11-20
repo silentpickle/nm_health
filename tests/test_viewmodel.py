@@ -25,6 +25,8 @@ from nm_health.viewmodel import (
     closure_start,
     coverage_line,
     covered_days,
+    failure_records,
+    failure_text,
     group_places,
     latest_result_text,
     level,
@@ -658,3 +660,40 @@ def test_week_ended_with_a_pass_capped(inspections: tuple[Inspection, ...], endi
     """A week whose last result is a pass after a worse one keeps the worst cell, followed by "+"; never otherwise."""
     assert strip_code(strip_cells(inspections, TODAY)).endswith(ending)
     assert not strip_code(strip_cells(inspections, TODAY)).endswith(ending + PASSED_LAST_CODE)
+
+
+def test_failure_records_ranked() -> None:
+    """Most closure days first, then unsatisfactory days, then pest days, then the latest failure; passes left out."""
+    twice_closed = place(visit("2026-10-01", status=CLOSED), visit("2026-09-01", status=CLOSED))
+    closed_unsat = place(visit("2026-10-02", status=CLOSED), visit("2026-09-02", status=FAILED))
+    closed_newer = place(visit("2026-10-20", status=CLOSED))
+    closed_older = place(visit("2026-03-01", status=CLOSED))
+    unsat_pests = place(visit("2026-10-03", ROACHES, status=FAILED))
+    passing = place(visit("2026-10-04"))
+    named = {
+        id(twice_closed): "twice_closed",
+        id(closed_unsat): "closed_unsat",
+        id(closed_newer): "closed_newer",
+        id(closed_older): "closed_older",
+        id(unsat_pests): "unsat_pests",
+    }
+    places = [passing, unsat_pests, closed_older, closed_newer, closed_unsat, twice_closed]
+    records = failure_records(places, "2025-11-11")
+    assert [named[id(r.place)] for r in records] == [
+        "twice_closed",
+        "closed_unsat",
+        "closed_newer",
+        "closed_older",
+        "unsat_pests",
+    ]
+    assert failure_text(records[1]) == "Closed on 1 day \u00b7 Unsatisfactory on 1 day"
+    assert failure_text(records[-1]) == "Unsatisfactory on 1 day \u00b7 Roaches or rodents cited on 1 day"
+
+
+@pytest.mark.parametrize(
+    ("since", "listed"),
+    [pytest.param("2026-03-01", True, id="failure_on_first_day"), pytest.param("2026-03-02", False, id="day_after")],
+)
+def test_failure_window_edges(since: str, listed: bool) -> None:  # noqa: FBT001 - parametrized
+    """A failure dated on the window's first day counts; one the day before doesn't."""
+    assert bool(failure_records([place(visit("2026-03-01", status=CLOSED))], since)) is listed

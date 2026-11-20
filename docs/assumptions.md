@@ -20,6 +20,10 @@ repeats it. Incomplete is better than wrong, and the record grows by one report 
   for a closure's length. A Journal place joins another at the same street number and street name when the names
   agree, store numbers and company forms aside, or one starts the other, and the page shows the Journal's spelling
   (place-identity.md, M9 and M10).
+- "Most failing results" (worst.html) lists every place with a closure or an unsatisfactory result in the strip's
+  weeks, ranked by days closed, then days unsatisfactory, then days roaches or rodents were cited (several permits'
+  results on one day count as one day), ties by the latest failure. The counts are this site's tally of the records
+  on file, said so on the page; weeks with no report or summary aren't counted.
 - A strip week (counted back from today, so it straddles two report weeks) most of whose days no report or summary on
   file covers is drawn as a low dash, "No report on file", never as "No inspection": nothing could show there.
 

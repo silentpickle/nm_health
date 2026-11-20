@@ -6,6 +6,7 @@ the only durations are between two inspections on record (a closure and the insp
 """
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 
@@ -921,3 +922,58 @@ def unique_places(visits: list[Visit]) -> list[Place]:
     for place, _ in visits:
         seen.setdefault(place.slug, place)
     return list(seen.values())
+
+
+# ---------- Most failing results over the strip's weeks ----------
+
+
+@dataclass(frozen=True)
+class FailureRecord:
+    """One place's failing results in the strip's weeks, counted in days (several permits the same day count once)."""
+
+    place: Place
+    closed_days: int
+    unsatisfactory_days: int
+    pest_days: int  # days roaches or rodents were cited
+    last_failed: str  # the latest closure or unsatisfactory date
+
+
+def _days_where(inspections: list[Inspection], wanted: Callable[[Inspection], bool]) -> int:
+    return len({i.date for i in inspections if wanted(i)})
+
+
+def failure_record(place: Place, since: str) -> FailureRecord | None:
+    """The place's closures, unsatisfactory results and pest citations from `since` on; None with no failing result."""
+    shown = [i for i in place.inspections if i.date >= since]
+    failing = [i.date for i in shown if level(i.status) in (LEVEL_RED, LEVEL_UNSATISFACTORY)]
+    if not failing:
+        return None
+    return FailureRecord(
+        place=place,
+        closed_days=_days_where(shown, lambda i: level(i.status) == LEVEL_RED),
+        unsatisfactory_days=_days_where(shown, lambda i: level(i.status) == LEVEL_UNSATISFACTORY),
+        pest_days=_days_where(shown, cites_headline_pests),
+        last_failed=max(failing),
+    )
+
+
+def failure_records(places: list[Place], since: str) -> list[FailureRecord]:
+    """Places with a failing result since `since`, most closure days first.
+
+    Then most unsatisfactory days, then most pest days; ties by the latest failure, newest first, then by name.
+    """
+    found = [record for place in places if (record := failure_record(place, since)) is not None]
+    found.sort(key=lambda r: r.place.name.casefold())
+    found.sort(key=lambda r: r.last_failed, reverse=True)
+    found.sort(key=lambda r: (r.closed_days, r.unsatisfactory_days, r.pest_days), reverse=True)
+    return found
+
+
+def failure_text(record: FailureRecord) -> str:
+    """'Closed on 2 days · Unsatisfactory on 1 day · Roaches or rodents cited on 1 day', zero counts left out."""
+    parts = [
+        (record.closed_days, "Closed on"),
+        (record.unsatisfactory_days, "Unsatisfactory on"),
+        (record.pest_days, "Roaches or rodents cited on"),
+    ]
+    return f" {MIDDOT} ".join(f"{label} {plural(count, 'day', 'days')}" for count, label in parts if count)

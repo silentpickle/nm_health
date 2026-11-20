@@ -153,6 +153,7 @@ def test_write_site_writes_every_page(tmp_path: Path) -> None:
         "robots.txt",
         "shared.js",
         "style.css",
+        "worst.html",
     ]
 
 

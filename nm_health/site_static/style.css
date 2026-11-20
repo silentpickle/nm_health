@@ -525,6 +525,11 @@ ul.rows a.row:hover {
   gap: 4px 10px;
   align-items: center;
 }
+.row .counts {
+  font-size: 0.84rem;
+  color: var(--ink);
+  margin-top: 2px;
+}
 .row .flag {
   color: var(--bad);
   font-weight: 600;
