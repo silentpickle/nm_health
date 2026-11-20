@@ -273,3 +273,12 @@ def test_data_page_says_why_none_used(tmp_path: Path) -> None:
     """An article on a week the city's report covers says why none of it is used."""
     data, _ = site_with_news(tmp_path)
     assert "none: the city&#x27;s report for that week is on file" in data_page(data).body
+
+
+def test_passing_grade_says_why_no_notes(tmp_path: Path) -> None:
+    """A Journal pass has no description; the place page and the saved record both say so."""
+    data, article = site_with_news(tmp_path)
+    frontier = next(p for p in data.places if p.name == "FRONTIER RESTAURANT")
+    body = place_page(data, frontier).body
+    assert "a passing or conditional result, or a follow-up, is listed with its date alone" in body
+    assert "no notes are recorded for passing or conditional grades" in news_page(data, article).body
