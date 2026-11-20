@@ -21,6 +21,8 @@ site_dir = "site"
 cdx_url = "https://web.archive.org/cdx/search/cdx"
 # Raw snapshot bytes: https://web.archive.org/web/<timestamp>id_/<original url>
 raw_url_template = "https://web.archive.org/web/{timestamp}id_/{url}"
+# A snapshot's page for people (the site's "archived copy" links to news articles).
+snapshot_url_template = "https://web.archive.org/web/{timestamp}/{url}"
 
 [site]
 # The site's name, everywhere it appears (page titles, header, footer). Rename here and nowhere else.
@@ -76,6 +78,19 @@ long_closure_days = 14
 command = "agy"
 timeout_seconds = 240
 cache = "data/judgements.json"
+
+[news]
+# News write-ups of the city's weekly reports, saved one article at a time from your own browser with the extension in
+# tools/news-capture, then `uv run nm-health news add` (docs/news-links.md). Only for history the county archive lacks:
+# an entry dated in a week an archived PDF covers is never used, so a county report always wins. Nothing crawls these
+# sites. One JSON line per article: a citation and the facts it lists, never the article's text. Committed.
+links = "data/news/links.jsonl"
+# Sites a capture may come from. tools/news-capture/manifest.json matches the same hosts.
+hosts = ["www.abqjournal.com", "abqjournal.com"]
+
+[news.outlets]
+# Each site's name as the site shows it, by domain.
+"abqjournal.com" = "Albuquerque Journal"
 
 [secrets]
 # None. The collector reads only public pages.

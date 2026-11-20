@@ -9,7 +9,9 @@ import re
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-from nm_health.model import Inspection
+from nm_health.model import Inspection, NewsSource
+from nm_health.news import NewsLink
+from nm_health.news_fold import news_days, news_inspections
 from nm_health.rebuild import Rebuilt, Report, permit_line_pages, report_text
 from nm_health.settings import Settings
 from nm_health.signals import is_red
@@ -30,6 +32,7 @@ from nm_health.viewmodel import (
     level,
     maybe_same_text,
     month_ticks,
+    news_label,
     nice_date,
     notice_count_text,
     notice_quote,
@@ -70,6 +73,12 @@ PLACE_DIR = "place"
 REPORTS_DIR = "reports"  # the weekly PDFs, byte for byte
 UNSAFE_FILE_CHARS = re.compile(r"[^A-Za-z0-9-]")
 NO_SOURCE = "No city document on file"
+FOOTER_NEWS = (
+    " Weeks whose city report wasn't saved come from the Albuquerque Journal's summaries of those reports, linked the "
+    "same way, with our saved record of each."
+)
+SAVED_RECORD = "saved record"
+ARCHIVED_COPY = "archived copy"
 
 
 @dataclass(frozen=True)
@@ -84,6 +93,9 @@ class SiteData:
     week_starts: dict[str, str | None]  # report file -> its week's first day
     covered: Coverage  # dates a weekly report on file covers
     permit_pages: dict[tuple[str, str], int]  # (report file, permit) -> page printing its Operational Status line
+    # News articles summarizing weeks in the window (docs/news-links.md); entries the city's reports cover aren't used.
+    news_links: tuple[NewsLink, ...] = ()
+    city_covered: Coverage = frozenset()  # dates a city weekly report on file covers (`covered` adds news weeks)
 
     @property
     def total(self) -> int:
@@ -96,10 +108,17 @@ class SiteData:
         return sum(p.with_notes for p in self.places)
 
 
-def site_data(rebuilt: Rebuilt, settings: Settings, today: date) -> SiteData:
-    """Places from what the weekly reports on file state, and the reports that fall in the window."""
+def site_data(rebuilt: Rebuilt, settings: Settings, today: date, links: tuple[NewsLink, ...] = ()) -> SiteData:
+    """Places from what the weekly reports on file state, and the reports that fall in the window.
+
+    With `links`, news summaries add the inspections of weeks no city report on file covers (news_fold); a news week
+    then counts as on file, like a report's week.
+    """
     since = today - timedelta(days=settings.window_days)
-    places = group_places(stated(rebuilt.inspections, rebuilt.reports))
+    city = covered_days(rebuilt.reports)
+    news = tuple(link for link in links if any(week.end >= since for week in link.weeks))
+    from_news = news_inspections(news, frozenset(map(date.fromisoformat, city)), dict(settings.news_outlets), since)
+    places = group_places(stated(rebuilt.inspections, rebuilt.reports) + from_news)
     return SiteData(
         settings=settings,
         today=today,
@@ -107,8 +126,10 @@ def site_data(rebuilt: Rebuilt, settings: Settings, today: date) -> SiteData:
         reports=reports_in_window(rebuilt.reports, since),
         all_reports=rebuilt.reports,
         week_starts={r.file: r.week_start for r in rebuilt.reports},
-        covered=covered_days(rebuilt.reports),
+        covered=city | news_days(news),
         permit_pages=_permit_pages(settings, places),
+        news_links=news,
+        city_covered=city,
     )
 
 
@@ -125,8 +146,24 @@ def _permit_pages(settings: Settings, places: list[Place]) -> dict[tuple[str, st
 
 
 def unsourced(data: SiteData) -> list[Inspection]:
-    """Inspections no weekly report on file prints: nothing the site may say about them."""
-    return [i for p in data.places for i in p.inspections if not i.report_file]
+    """Inspections neither a weekly report on file nor a news summary of one prints: nothing to say about them."""
+    return [i for p in data.places for i in p.inspections if not i.report_file and i.news is None]
+
+
+def used_news(data: SiteData) -> int:
+    """How many news summaries the site's statements rest on (those of weeks no city report on file covers)."""
+    return len({i.news.url for p in data.places for i in p.inspections if i.news is not None})
+
+
+def news_links_html(source: NewsSource, up: str = "") -> list[str]:
+    """The article, our saved record of it, and an Internet Archive copy when one exists."""
+    links = [
+        f'<a href="{esc(source.url)}">{esc(news_label(source))}</a>',
+        f'<a href="{up}{esc(source.saved)}">{SAVED_RECORD}</a>',
+    ]
+    if source.archived:
+        links.append(f'<a href="{esc(source.archived)}">{ARCHIVED_COPY}</a>')
+    return links
 
 
 def source_links(data: SiteData, inspection: Inspection, up: str = "") -> str:
@@ -136,6 +173,8 @@ def source_links(data: SiteData, inspection: Inspection, up: str = "") -> str:
         page = f"#page={inspection.page}" if inspection.page else ""
         label = source_label(inspection, data.week_starts.get(inspection.report_file))
         links.append(f'<a href="{up}{REPORTS_DIR}/{esc(inspection.report_file)}{page}">{esc(label)}</a>')
+    if inspection.news is not None:
+        links.extend(news_links_html(inspection.news, up))
     return f" {MIDDOT} ".join(links) or f"<span>{NO_SOURCE}</span>"
 
 
@@ -171,6 +210,11 @@ def lede(data: SiteData) -> str:
         "Food inspections in the City of Albuquerque's weekly inspection reports, as the city published them: "
         f"the {len(data.reports)} weekly reports saved so far in the last 12 months, each linked. "
         "The city itself only shows the latest week, so this record grows by one report every week."
+        + (
+            f" For {used_news(data)} weeks whose report wasn't saved, the Albuquerque Journal's summaries of them, each linked."
+            if data.news_links
+            else ""
+        )
     )
 
 
@@ -201,7 +245,7 @@ def page_html(data: SiteData, page: Page, depth: int = 0) -> str:
 <main id="view">
 {page.body}
 </main>
-<footer>{esc(FOOTER)}</footer>
+<footer>{esc(FOOTER + (FOOTER_NEWS if data.news_links else ""))}</footer>
 </div>
 </body>
 </html>

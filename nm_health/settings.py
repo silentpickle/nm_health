@@ -57,6 +57,13 @@ class Settings:
     judge_command: str = "agy"
     judge_timeout_seconds: int = DEFAULT_JUDGE_TIMEOUT_SECONDS
     judge_cache: Path = ROOT / "data" / "judgements.json"
+    # News write-ups of the weekly reports (docs/news-links.md): one JSON line per article, and the sites allowed.
+    news_links: Path = ROOT / "data" / "news" / "links.jsonl"
+    news_hosts: tuple[str, ...] = ()
+    # Each news site's name as readers know it, by domain: (("abqjournal.com", "Albuquerque Journal"),).
+    news_outlets: tuple[tuple[str, str], ...] = ()
+    # A capture's page on the Internet Archive, for people: {timestamp}, {url}.
+    snapshot_url_template: str = "https://web.archive.org/web/{timestamp}/{url}"
 
     def __post_init__(self) -> None:
         """Reject a strip longer than the data kept, or empty."""
@@ -102,4 +109,8 @@ def load(path: Path = CONFIG_PATH) -> Settings:
         judge_command=str(data.get("judge", {}).get("command", "agy")),
         judge_timeout_seconds=int(data.get("judge", {}).get("timeout_seconds", DEFAULT_JUDGE_TIMEOUT_SECONDS)),
         judge_cache=base / str(data.get("judge", {}).get("cache", "data/judgements.json")),
+        news_links=base / str(data.get("news", {}).get("links", "data/news/links.jsonl")),
+        news_hosts=tuple(str(host).lower() for host in data.get("news", {}).get("hosts", [])),
+        news_outlets=tuple((str(k), str(v)) for k, v in data.get("news", {}).get("outlets", {}).items()),
+        snapshot_url_template=str(wayback.get("snapshot_url_template", Settings.snapshot_url_template)),
     )

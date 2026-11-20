@@ -335,3 +335,17 @@ of the 20 judged slugs is in a merged group or a CAN'T TELL pair today.
 4. **Redirects for old place URLs**: deferred until #3 is decided.
 5. **The 4 CAN'T TELL pairs from the old no-permit reports**: deferred. They stay flagged, with no alias entries.
    All four are outside the 12-month window today.
+
+## 6. Journal summaries (added 2026-11-20)
+
+News summaries (docs/news-links.md) print a name and an address, no permit, and drop street types and units. Two
+rules, ahead of M1:
+
+- **M9:** a key only the Journal prints joins a key with the same name (case and punctuation aside) and the same
+  street number (digits), first street word and quadrant (`identity.street_key`). Any other pair with it stays apart:
+  one address with two names is two places, never "can't tell".
+- **M10:** a Journal key that would join two places the city's records keep apart joins neither: can't tell, flagged
+  on each. City keys join first, so two keys of one city place count once.
+
+Measured on Nov 20, 2026 (37 articles, 365-day window): 31 city places gained Journal inspections, 1,089 places are
+known only from the Journal, and M10 fired on none.
