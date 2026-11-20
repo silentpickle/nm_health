@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "nm_health news capture",
+  "version": "1.0.0",
+  "description": "Adds a Save button to Albuquerque Journal restaurant-inspection articles. Saves a JSON file for `nm-health news add`.",
+  "content_scripts": [
+    {
+      "matches": ["https://www.abqjournal.com/*", "https://abqjournal.com/*"],
+      "js": ["capture.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

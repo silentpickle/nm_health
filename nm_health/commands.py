@@ -7,7 +7,7 @@ import sys
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
-from nm_health import audit, feed, judge, spotcheck
+from nm_health import audit, feed, judge, news_commands, spotcheck
 from nm_health import settings as settings_module
 from nm_health.archive import Archived, archive_current, archive_file
 from nm_health.database import write_database
@@ -166,3 +166,5 @@ def add_commands(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser
     p_spot.add_argument("--places", type=int, help="how many places to sample (default: [spotcheck] places)")
     p_spot.add_argument("--seed", type=int, help="sample seed, to repeat a packet (default: changes daily)")
     p_spot.set_defaults(func=cmd_spotcheck)
+
+    news_commands.add_commands(subparsers)

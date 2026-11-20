@@ -50,6 +50,8 @@ uv run nm-health site                 # render site/ (open site/index.html)
 uv run nm-health audit                # check our assumptions against the PDFs and feed (docs/assumptions.md)
 uv run nm-health spotcheck | pbcopy   # a packet to paste into any LLM: site statements + city records
 uv run nm-health judge                # local, needs agy: second opinion on long closures (data/judgements.json)
+uv run nm-health news add ~/Downloads/nm-health-news-*.json   # record news articles saved from your browser
+uv run nm-health news list            # news links, and which entries no county PDF covers
 uv run nm-health search "pho"         # CLI lookups against the database
 uv run nm-health lookup "Little Bear Coffee"
 ```
@@ -61,12 +63,14 @@ uv run nm-health lookup "Little Bear Coffee"
 | Path | What |
 |---|---|
 | `config.toml` | Every setting (source URL, paths, Wayback endpoints). No secrets; none are needed. |
-| `data/archive/` | The archive: every distinct PDF + `manifest.jsonl`. The only data that is committed. |
+| `data/archive/` | The archive: every distinct PDF + `manifest.jsonl`. |
+| `data/news/links.jsonl` | News links: write-ups of weekly reports for weeks with no PDF on file. Never override the archive ([docs/news-links.md](docs/news-links.md)). |
 | `nm_health/archive.py`, `wayback.py` | Download / backfill and dedupe. |
 | `nm_health/ingest/parser.py` | Current layout (the prototype's parser, pinned by `tests/golden/`). |
 | `nm_health/legacy_parser.py` | 2021–2024 and early-2025 layouts. |
 | `nm_health/tags.py` | One small rule per tag. |
 | `nm_health/rebuild.py`, `database.py`, `site.py` | Archive → inspections → SQLite / static site. |
+| `nm_health/news.py`, `news_capture.py`, `tools/news-capture/` | News links: the record, reading a browser capture, and the Chrome extension that saves one. |
 | `nm_health/audit.py`, `spotcheck.py` | Check the site's assumptions against the city's records, and build an LLM spot-check packet ([docs/assumptions.md](docs/assumptions.md)). |
 | `scripts/checks.sh` | The gate: ruff (all rules), mypy, complexity, shellcheck, ESLint/tsc/Prettier, pytest. Pre-commit and CI run it. |
 

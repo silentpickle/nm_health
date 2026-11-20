@@ -6,8 +6,8 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc -p .",
-    "format": "prettier --write nm_health/site_static eslint.config.js tsconfig.json package.json",
-    "format:check": "prettier --check nm_health/site_static eslint.config.js tsconfig.json package.json",
+    "format": "prettier --write nm_health/site_static tools eslint.config.js tsconfig.json package.json",
+    "format:check": "prettier --check nm_health/site_static tools eslint.config.js tsconfig.json package.json",
     "check": "npm run format:check && npm run lint && npm run typecheck"
   },
   "devDependencies": {
