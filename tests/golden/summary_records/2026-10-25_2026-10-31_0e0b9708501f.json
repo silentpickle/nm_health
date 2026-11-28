@@ -1,0 +1,1154 @@
+[
+ {
+  "establishment": {
+   "name": "Acapulco Taco",
+   "address": "840 SAN MATEO BLVD SE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0110914",
+   "operational_status": "Open"
+  },
+  "date": "10/29/2026",
+  "id_num": "PT0110914",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Unsatisfactory Re-Inspection required",
+  "page_str": "Pg. 5",
+  "page_num": 5,
+  "raw": "10/29/2026            PT0110914           Routine Food Establishment Inspection   Unsatisfactory Re-Inspection required     Pg. 5"
+ },
+ {
+  "establishment": {
+   "name": "Acapulco Taco",
+   "address": "840 SAN MATEO BLVD SE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0110914",
+   "operational_status": "Open"
+  },
+  "date": "10/29/2026",
+  "id_num": "CAC-Food-102640-2026",
+  "type": "Corrective Action Compliance",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 5",
+  "page_num": 5,
+  "raw": "10/29/2026       CAC-Food-102640-2026         Corrective Action Compliance                Conditional Approved              Pg. 5"
+ },
+ {
+  "establishment": {
+   "name": "ALBERTSONS #911",
+   "address": "2801 EUBANK BLVD NE, A"
+  },
+  "permit": {
+   "permit_type": "Retail Food Establishment",
+   "permit_number": "PT0043512",
+   "operational_status": "Open"
+  },
+  "date": "10/27/2026",
+  "id_num": "RT-RET-057734-2025",
+  "type": "Routine Retail Food Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 6",
+  "page_num": 6,
+  "raw": "10/27/2026        RT-RET-057734-2025          Routine Retail Food Inspection                   Approved                     Pg. 6"
+ },
+ {
+  "establishment": {
+   "name": "ALBERTSONS #911",
+   "address": "2801 EUBANK BLVD NE, A"
+  },
+  "permit": {
+   "permit_type": "Retail Food Establishment",
+   "permit_number": "PT0043513",
+   "operational_status": "Open"
+  },
+  "date": "10/27/2026",
+  "id_num": "RT-RET-057642-2025",
+  "type": "Routine Retail Food Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 6",
+  "page_num": 6,
+  "raw": "10/27/2026        RT-RET-057642-2025          Routine Retail Food Inspection                   Approved                     Pg. 6"
+ },
+ {
+  "establishment": {
+   "name": "ALBERTSONS #911",
+   "address": "2801 EUBANK BLVD NE, A"
+  },
+  "permit": {
+   "permit_type": "Retail Food Establishment",
+   "permit_number": "PT0043515",
+   "operational_status": "Open"
+  },
+  "date": "10/27/2026",
+  "id_num": "RT-RET-057696-2025",
+  "type": "Routine Retail Food Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 7",
+  "page_num": 7,
+  "raw": "10/27/2026        RT-RET-057696-2025          Routine Retail Food Inspection                   Approved                     Pg. 7"
+ },
+ {
+  "establishment": {
+   "name": "ALBUQ GRAND SENIOR APTS",
+   "address": "1501 TIJERAS AVE NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0043786",
+   "operational_status": "Open"
+  },
+  "date": "10/29/2026",
+  "id_num": "RT-FOODEST-012118-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 7",
+  "page_num": 7,
+  "raw": "10/29/2026      RT-FOODEST-012118-2025    Routine Food Establishment Inspection                Approved                     Pg. 7"
+ },
+ {
+  "establishment": {
+   "name": "AN BE LLC DBA Saigon Restaurant",
+   "address": "6001 SAN MATEO BLVD NE, D4"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "FOODEST-2025-015369",
+   "operational_status": "Open"
+  },
+  "date": "10/29/2026",
+  "id_num": "CAC-Food-102487-2026",
+  "type": "Corrective Action Compliance",
+  "status": "Approved",
+  "page_str": "Pg. 8",
+  "page_num": 8,
+  "raw": "10/29/2026       CAC-Food-102487-2026         Corrective Action Compliance                    Approved                      Pg. 8"
+ },
+ {
+  "establishment": {
+   "name": "AN BE LLC DBA Saigon Restaurant",
+   "address": "6001 SAN MATEO BLVD NE, D4"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "FOODEST-2025-015369",
+   "operational_status": "Open"
+  },
+  "date": "10/29/2026",
+  "id_num": "RT-FOODEST-105944-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 8",
+  "page_num": 8,
+  "raw": "10/29/2026      RT-FOODEST-105944-2025    Routine Food Establishment Inspection          Conditional Approved               Pg. 8"
+ },
+ {
+  "establishment": {
+   "name": "BASIL LEAF VIETNAMESE RESTAURANT",
+   "address": "1225 EUBANK BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0157570",
+   "operational_status": "Open"
+  },
+  "date": "10/28/2026",
+  "id_num": "CAC-Food-102132-2026",
+  "type": "Corrective Action Compliance",
+  "status": "Approved",
+  "page_str": "Pg. 9",
+  "page_num": 9,
+  "raw": "10/28/2026       CAC-Food-102132-2026         Corrective Action Compliance                    Approved                      Pg. 9"
+ },
+ {
+  "establishment": {
+   "name": "BASIL LEAF VIETNAMESE RESTAURANT",
+   "address": "1225 EUBANK BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0157570",
+   "operational_status": "Open"
+  },
+  "date": "10/28/2026",
+  "id_num": "PT0157570",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 9",
+  "page_num": 9,
+  "raw": "10/28/2026            PT0157570           Routine Food Establishment Inspection          Conditional Approved               Pg. 9"
+ },
+ {
+  "establishment": {
+   "name": "BOXING BEAR BREWING COMPANY",
+   "address": "12501 CANDELARIA RD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0156185",
+   "operational_status": "Open"
+  },
+  "date": "10/29/2026",
+  "id_num": "PT0156185",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 11",
+  "page_num": 11,
+  "raw": "10/29/2026            PT0156185           Routine Food Establishment Inspection                Approved                     Pg. 11"
+ },
+ {
+  "establishment": {
+   "name": "Bright Minds Infant and Children's Academy",
+   "address": "3744 Eubank BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0161717",
+   "operational_status": "Open"
+  },
+  "date": "10/30/2026",
+  "id_num": "PT0161717",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 11",
+  "page_num": 11,
+  "raw": "10/30/2026            PT0161717           Routine Food Establishment Inspection                Approved                     Pg. 11"
+ },
+ {
+  "establishment": {
+   "name": "BUBBAS HOLDINGS LLC",
+   "address": "4861 PAN AMERICAN FWY NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0139577",
+   "operational_status": "Open"
+  },
+  "date": "10/28/2026",
+  "id_num": "PT0139577",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 11",
+  "page_num": 11,
+  "raw": "10/28/2026            PT0139577           Routine Food Establishment Inspection          Conditional Approved               Pg. 11"
+ },
+ {
+  "establishment": {
+   "name": "BUBBAS HOLDINGS LLC",
+   "address": "4861 PAN AMERICAN FWY NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0139577",
+   "operational_status": "Open"
+  },
+  "date": "10/28/2026",
+  "id_num": "CAC-Food-102082-2026",
+  "type": "Corrective Action Compliance",
+  "status": "Approved",
+  "page_str": "Pg. 11",
+  "page_num": 11,
+  "raw": "10/28/2026       CAC-Food-102082-2026         Corrective Action Compliance                    Approved                      Pg. 11"
+ },
+ {
+  "establishment": {
+   "name": "BUBBAS HOLDINGS LLC",
+   "address": "4861 PAN AMERICAN FWY NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0139578",
+   "operational_status": "Open"
+  },
+  "date": "10/28/2026",
+  "id_num": "PT0139578",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 12",
+  "page_num": 12,
+  "raw": "10/28/2026            PT0139578           Routine Food Establishment Inspection                Approved                     Pg. 12"
+ },
+ {
+  "establishment": {
+   "name": "BUBBAS HOLDINGS LLC",
+   "address": "4861 PAN AMERICAN FWY NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0139579",
+   "operational_status": "Open"
+  },
+  "date": "10/28/2026",
+  "id_num": "PT0139579",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 12",
+  "page_num": 12,
+  "raw": "10/28/2026            PT0139579           Routine Food Establishment Inspection                Approved                     Pg. 12"
+ },
+ {
+  "establishment": {
+   "name": "BURGER KING",
+   "address": "1990 LADERA DR NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0154377",
+   "operational_status": "Open"
+  },
+  "date": "10/29/2026",
+  "id_num": "PT0154377",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 12",
+  "page_num": 12,
+  "raw": "10/29/2026            PT0154377           Routine Food Establishment Inspection                Approved                     Pg. 12"
+ },
+ {
+  "establishment": {
+   "name": "Cafe es Amor LLC",
+   "address": "2209 Central Ave, Suite B"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "FOODEST-2025-00848",
+   "operational_status": "Open"
+  },
+  "date": "10/27/2026",
+  "id_num": "COM-FOODES-101445-2026",
+  "type": "Complaint Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 13",
+  "page_num": 13,
+  "raw": "10/27/2026      COM-FOODES-101445-2026   Complaint Food Establishment Inspection        Approved            Pg. 13"
+ },
+ {
+  "establishment": {
+   "name": "CAJA DE JUGUETES CHILD DEVELOPMENT CENTER",
+   "address": "5801 CENTRAL AVE NW, B"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0156386",
+   "operational_status": "Open"
+  },
+  "date": "10/28/2026",
+  "id_num": "RT-FOODEST-036206-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 13",
+  "page_num": 13,
+  "raw": "10/28/2026      RT-FOODEST-036206-2026    Routine Food Establishment Inspection         Approved            Pg. 13"
+ },
+ {
+  "establishment": {
+   "name": "Chipotle Mexican Grill",
+   "address": "4331 SAN MATEO BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0156350",
+   "operational_status": "Open"
+  },
+  "date": "10/28/2026",
+  "id_num": "COM-FOODES-101211-2026",
+  "type": "Complaint Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 14",
+  "page_num": 14,
+  "raw": "10/28/2026      COM-FOODES-101211-2026   Complaint Food Establishment Inspection        Approved            Pg. 14"
+ },
+ {
+  "establishment": {
+   "name": "Crepe Brule",
+   "address": "6001 SAN MATEO BLVD NE, E1"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0160615",
+   "operational_status": "Open"
+  },
+  "date": "10/29/2026",
+  "id_num": "PT0160615",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 15",
+  "page_num": 15,
+  "raw": "10/29/2026            PT0160615           Routine Food Establishment Inspection         Approved            Pg. 15"
+ },
+ {
+  "establishment": {
+   "name": "DBA THE EATERY BY WISEPIES",
+   "address": "5700 WEST UNIVERSITY BLVD SE, #130"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0149005",
+   "operational_status": "Open"
+  },
+  "date": "10/30/2026",
+  "id_num": "RT-FOODEST-076661-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 15",
+  "page_num": 15,
+  "raw": "10/30/2026      RT-FOODEST-076661-2025    Routine Food Establishment Inspection         Approved            Pg. 15"
+ },
+ {
+  "establishment": {
+   "name": "DK #747",
+   "address": "8600 CENTRAL AVE SW"
+  },
+  "permit": {
+   "permit_type": "Retail Food Establishment",
+   "permit_number": "PT0144025",
+   "operational_status": "Open"
+  },
+  "date": "10/30/2026",
+  "id_num": "PT0144025",
+  "type": "Routine Retail Food Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 16",
+  "page_num": 16,
+  "raw": "10/30/2026            PT0144025               Routine Retail Food Inspection            Approved            Pg. 16"
+ },
+ {
+  "establishment": {
+   "name": "EAT MY THAI CUISINE",
+   "address": "5303 GIBSON BLVD SE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0159381",
+   "operational_status": "Open"
+  },
+  "date": "10/28/2026",
+  "id_num": "RT-FOODEST-084243-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 16",
+  "page_num": 16,
+  "raw": "10/28/2026      RT-FOODEST-084243-2026    Routine Food Establishment Inspection    Conditional Approved     Pg. 16"
+ },
+ {
+  "establishment": {
+   "name": "EDNAS GIBSON MART",
+   "address": "5501 GIBSON BLVD SE"
+  },
+  "permit": {
+   "permit_type": "Retail Food Establishment",
+   "permit_number": "PT0151853",
+   "operational_status": "Open"
+  },
+  "date": "10/28/2026",
+  "id_num": "RT-RET-073422-2025",
+  "type": "Routine Retail Food Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 18",
+  "page_num": 18,
+  "raw": "10/28/2026        RT-RET-073422-2025          Routine Retail Food Inspection            Approved            Pg. 18"
+ },
+ {
+  "establishment": {
+   "name": "EINSTEIN BROS BAGELS 3661",
+   "address": "6231 RIVERSIDE PLAZA LN NW, A"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0149096",
+   "operational_status": "Open"
+  },
+  "date": "10/27/2026",
+  "id_num": "COM-FOODES-101326-2026",
+  "type": "Complaint Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 18",
+  "page_num": 18,
+  "raw": "10/27/2026      COM-FOODES-101326-2026   Complaint Food Establishment Inspection   Conditional Approved     Pg. 18"
+ },
+ {
+  "establishment": {
+   "name": "El Pollo Loco",
+   "address": "3811 ELLISON DR NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "FOODEST-2026-014302",
+   "operational_status": "Open"
+  },
+  "date": "10/26/2026",
+  "id_num": "RT-FOODEST-100811-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 20",
+  "page_num": 20,
+  "raw": "10/26/2026      RT-FOODEST-100811-2026    Routine Food Establishment Inspection    Conditional Approved     Pg. 20"
+ },
+ {
+  "establishment": {
+   "name": "Family Dollar Stores of New Mexico LLC",
+   "address": "7700 SAGE RD SW"
+  },
+  "permit": {
+   "permit_type": "Retail Food Establishment",
+   "permit_number": "PT0137635",
+   "operational_status": "Open"
+  },
+  "date": "10/28/2026",
+  "id_num": "RT-RET-078388-2025",
+  "type": "Routine Retail Food Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 21",
+  "page_num": 21,
+  "raw": "10/28/2026        RT-RET-078388-2025          Routine Retail Food Inspection            Approved            Pg. 21"
+ },
+ {
+  "establishment": {
+   "name": "Fit & Fabulous Nutrition",
+   "address": "2500 CENTRAL AVE SW, 300"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0155980",
+   "operational_status": "Open"
+  },
+  "date": "10/27/2026",
+  "id_num": "RT-FOODEST-019455-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 21",
+  "page_num": 21,
+  "raw": "10/27/2026      RT-FOODEST-019455-2026    Routine Food Establishment Inspection         Approved            Pg. 21"
+ },
+ {
+  "establishment": {
+   "name": "Fuddruckers",
+   "address": "6600 MENAUL BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0124507",
+   "operational_status": "Open"
+  },
+  "date": "10/26/2026",
+  "id_num": "COM-FOODES-092730-2026",
+  "type": "Complaint Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 21",
+  "page_num": 21,
+  "raw": "10/26/2026      COM-FOODES-092730-2026   Complaint Food Establishment Inspection        Approved            Pg. 21"
+ },
+ {
+  "establishment": {
+   "name": "GRANDMAS DINER LLC",
+   "address": "2500 BROADWAY BLVD SE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0155450",
+   "operational_status": "Open"
+  },
+  "date": "10/30/2026",
+  "id_num": "RT-FOODEST-008236-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 22",
+  "page_num": 22,
+  "raw": "10/30/2026      RT-FOODEST-008236-2026    Routine Food Establishment Inspection         Approved            Pg. 22"
+ },
+ {
+  "establishment": {
+   "name": "HOLIDAY INN EXPRESS",
+   "address": "2300 12TH ST NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0117679",
+   "operational_status": "Open"
+  },
+  "date": "10/30/2026",
+  "id_num": "RT-FOODEST-023416-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 22",
+  "page_num": 22,
+  "raw": "10/30/2026      RT-FOODEST-023416-2025    Routine Food Establishment Inspection         Approved            Pg. 22"
+ },
+ {
+  "establishment": {
+   "name": "Hot Dog on A Stick Operations LLC",
+   "address": "6600 MENAUL BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "FOODEST-2026-012330",
+   "operational_status": "Open"
+  },
+  "date": "10/28/2026",
+  "id_num": "CAC-Food-101800-2026",
+  "type": "Corrective Action Compliance",
+  "status": "Approved",
+  "page_str": "Pg. 23",
+  "page_num": 23,
+  "raw": "10/28/2026       CAC-Food-101800-2026         Corrective Action Compliance                      Approved                     Pg. 23"
+ },
+ {
+  "establishment": {
+   "name": "LITTLE CAESARS 513",
+   "address": "333 MONTANO RD NW, F"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0114266",
+   "operational_status": "Open"
+  },
+  "date": "10/27/2026",
+  "id_num": "RT-FOODEST-010213-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 23",
+  "page_num": 23,
+  "raw": "10/27/2026      RT-FOODEST-010213-2026    Routine Food Establishment Inspection           Conditional Approved               Pg. 23"
+ },
+ {
+  "establishment": {
+   "name": "MAHARAJA INDIAN CUISINE",
+   "address": "4900 LOMAS BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0161484",
+   "operational_status": "Open"
+  },
+  "date": "10/28/2026",
+  "id_num": "PT0161484",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 25",
+  "page_num": 25,
+  "raw": "10/28/2026            PT0161484           Routine Food Establishment Inspection                 Approved                     Pg. 25"
+ },
+ {
+  "establishment": {
+   "name": "El Branco Restaurant",
+   "address": "100 Coors AVE SW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "FOODEST-2025-012746",
+   "operational_status": "Open"
+  },
+  "date": "10/30/2026",
+  "id_num": "RT-FOODEST-086384-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Unsatisfactory Re-Inspection required",
+  "page_str": "Pg. 26",
+  "page_num": 26,
+  "raw": "10/30/2026      RT-FOODEST-086384-2025    Routine Food Establishment Inspection    Unsatisfactory Re-Inspection required     Pg. 26"
+ },
+ {
+  "establishment": {
+   "name": "MAVERIK COUNTRY STORE #621",
+   "address": "650 JUAN TABO BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0155821",
+   "operational_status": "Open"
+  },
+  "date": "10/28/2026",
+  "id_num": "RT-FOODEST-073722-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 26",
+  "page_num": 26,
+  "raw": "10/28/2026      RT-FOODEST-073722-2025    Routine Food Establishment Inspection                 Approved                     Pg. 26"
+ },
+ {
+  "establishment": {
+   "name": "MAVERIK COUNTRY STORE #621",
+   "address": "650 JUAN TABO BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Retail Food Establishment",
+   "permit_number": "PT0155822",
+   "operational_status": "Open"
+  },
+  "date": "10/28/2026",
+  "id_num": "RT-RET-073717-2025",
+  "type": "Routine Retail Food Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 27",
+  "page_num": 27,
+  "raw": "10/28/2026        RT-RET-073717-2025          Routine Retail Food Inspection                    Approved                     Pg. 27"
+ },
+ {
+  "establishment": {
+   "name": "NAAN & DOSA",
+   "address": "6501 WYOMING BLVD NE, B"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0156723",
+   "operational_status": "Open"
+  },
+  "date": "10/28/2026",
+  "id_num": "CAC-Food-102040-2026",
+  "type": "Corrective Action Compliance",
+  "status": "Approved",
+  "page_str": "Pg. 27",
+  "page_num": 27,
+  "raw": "10/28/2026       CAC-Food-102040-2026         Corrective Action Compliance                     Approved                      Pg. 27"
+ },
+ {
+  "establishment": {
+   "name": "NAAN & DOSA",
+   "address": "6501 WYOMING BLVD NE, B"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0156723",
+   "operational_status": "Open"
+  },
+  "date": "10/27/2026",
+  "id_num": "RT-FOODEST-101632-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 28",
+  "page_num": 28,
+  "raw": "10/27/2026      RT-FOODEST-101632-2026    Routine Food Establishment Inspection           Conditional Approved               Pg. 28"
+ },
+ {
+  "establishment": {
+   "name": "NAAN & DOSA",
+   "address": "6501 WYOMING BLVD NE, B"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0156723",
+   "operational_status": "Open"
+  },
+  "date": "10/27/2026",
+  "id_num": "PT0156723",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Closure Re-Inspection Required",
+  "page_str": "Pg. 28",
+  "page_num": 28,
+  "raw": "10/27/2026            PT0156723           Routine Food Establishment Inspection      Closure Re-Inspection Required          Pg. 28"
+ },
+ {
+  "establishment": {
+   "name": "ODELIA HEALTHCARE LLC",
+   "address": "1509 UNIVERSITY BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0155234",
+   "operational_status": "Open"
+  },
+  "date": "10/29/2026",
+  "id_num": "COM-FOODES-102276-2026",
+  "type": "Complaint Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 30",
+  "page_num": 30,
+  "raw": "10/29/2026      COM-FOODES-102276-2026   Complaint Food Establishment Inspection                Approved                     Pg. 30"
+ },
+ {
+  "establishment": {
+   "name": "RED ROOF INN",
+   "address": "2015 MENAUL BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0152707",
+   "operational_status": "Closed"
+  },
+  "date": "10/28/2026",
+  "id_num": "RT-FOODEST-075528-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Closure Re-Inspection Required",
+  "page_str": "Pg. 30",
+  "page_num": 30,
+  "raw": "10/28/2026      RT-FOODEST-075528-2025    Routine Food Establishment Inspection      Closure Re-Inspection Required          Pg. 30"
+ },
+ {
+  "establishment": {
+   "name": "RIG-CAFFEINE & GASOLINE GARAGE",
+   "address": "3732 EUBANK BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0156345",
+   "operational_status": "Open"
+  },
+  "date": "10/29/2026",
+  "id_num": "PT0156345",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 32",
+  "page_num": 32,
+  "raw": "10/29/2026            PT0156345           Routine Food Establishment Inspection                 Approved                     Pg. 32"
+ },
+ {
+  "establishment": {
+   "name": "RIO GRANDE SOCIAL",
+   "address": "10127 COORS BLVD NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0160406",
+   "operational_status": "Open"
+  },
+  "date": "10/28/2026",
+  "id_num": "PT0160406",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 33",
+  "page_num": 33,
+  "raw": "10/28/2026            PT0160406           Routine Food Establishment Inspection                 Approved                     Pg. 33"
+ },
+ {
+  "establishment": {
+   "name": "RIO GRANDE SOCIAL",
+   "address": "10127 COORS BLVD NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0160407",
+   "operational_status": "Open"
+  },
+  "date": "10/28/2026",
+  "id_num": "PT0160407",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 33",
+  "page_num": 33,
+  "raw": "10/28/2026            PT0160407           Routine Food Establishment Inspection                 Approved                     Pg. 33"
+ },
+ {
+  "establishment": {
+   "name": "SANDIA BAPTIST CHURCH",
+   "address": "9429 CONSTITUTION AVE NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0159101",
+   "operational_status": "Open"
+  },
+  "date": "10/28/2026",
+  "id_num": "RT-FOODEST-008592-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 34",
+  "page_num": 34,
+  "raw": "10/28/2026      RT-FOODEST-008592-2026    Routine Food Establishment Inspection                 Approved                     Pg. 34"
+ },
+ {
+  "establishment": {
+   "name": "Sandia Prep School",
+   "address": "532 OSUNA RD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0142548",
+   "operational_status": "Open"
+  },
+  "date": "10/27/2026",
+  "id_num": "PT0142548",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 34",
+  "page_num": 34,
+  "raw": "10/27/2026            PT0142548           Routine Food Establishment Inspection                 Approved                     Pg. 34"
+ },
+ {
+  "establishment": {
+   "name": "SANDIA RIDGE CENTER",
+   "address": "2216 LESTER DR"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0088638",
+   "operational_status": "Open"
+  },
+  "date": "10/26/2026",
+  "id_num": "RT-FOODEST-081574-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 34",
+  "page_num": 34,
+  "raw": "10/26/2026      RT-FOODEST-081574-2025    Routine Food Establishment Inspection                 Approved                     Pg. 34"
+ },
+ {
+  "establishment": {
+   "name": "SANDIA SKIES TRADING COMPANY LLC",
+   "address": "2101 LOUISIANA NE"
+  },
+  "permit": {
+   "permit_type": "Retail Food Establishment",
+   "permit_number": "PT0146289",
+   "operational_status": "Open"
+  },
+  "date": "10/28/2026",
+  "id_num": "PT0146289",
+  "type": "Routine Retail Food Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 35",
+  "page_num": 35,
+  "raw": "10/28/2026            PT0146289               Routine Retail Food Inspection                    Approved                     Pg. 35"
+ },
+ {
+  "establishment": {
+   "name": "SHWAN 3",
+   "address": "2124 SAN MATEO BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Retail Food Establishment",
+   "permit_number": "PT0160462",
+   "operational_status": "Open"
+  },
+  "date": "10/28/2026",
+  "id_num": "COM-RET-102060-2026",
+  "type": "Complaint Retail Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 35",
+  "page_num": 35,
+  "raw": "10/28/2026        COM-RET-102060-2026                     Complaint Retail Inspection                              Approved                            Pg. 35"
+ },
+ {
+  "establishment": {
+   "name": "ST MICHAELS & ALL ANGELS CHURCH",
+   "address": "601 MONTANO RD NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0155141",
+   "operational_status": "Open"
+  },
+  "date": "10/28/2026",
+  "id_num": "PT0155141",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 36",
+  "page_num": 36,
+  "raw": "10/28/2026               PT0155141                  Routine Food Establishment Inspection                          Approved                            Pg. 36"
+ },
+ {
+  "establishment": {
+   "name": "STRIPES BURRITO LLC",
+   "address": "2204 MENAUL BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0158737",
+   "operational_status": "Open"
+  },
+  "date": "10/27/2026",
+  "id_num": "CAC-Food-101473-2026",
+  "type": "Corrective Action Compliance",
+  "status": "Approved",
+  "page_str": "Pg. 36",
+  "page_num": 36,
+  "raw": "10/27/2026       CAC-Food-101473-2026                   Corrective Action Compliance                              Approved                             Pg. 36"
+ },
+ {
+  "establishment": {
+   "name": "STRIPES BURRITO LLC",
+   "address": "2204 MENAUL BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0158737",
+   "operational_status": "Open"
+  },
+  "date": "10/27/2026",
+  "id_num": "RT-FOODEST-010039-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 36",
+  "page_num": 36,
+  "raw": "10/27/2026      RT-FOODEST-010039-2025              Routine Food Establishment Inspection                    Conditional Approved                      Pg. 36"
+ },
+ {
+  "establishment": {
+   "name": "STUFYS DRIVE THRU",
+   "address": "1107 CANDELARIA RD NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0098383",
+   "operational_status": "Open"
+  },
+  "date": "10/29/2026",
+  "id_num": "RT-FOODEST-097665-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 37",
+  "page_num": 37,
+  "raw": "10/29/2026      RT-FOODEST-097665-2025              Routine Food Establishment Inspection                    Conditional Approved                      Pg. 37"
+ },
+ {
+  "establishment": {
+   "name": "SUSHI XUAN",
+   "address": "417 TRAMWAY BLVD NE, 3"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0144375",
+   "operational_status": "Open"
+  },
+  "date": "10/28/2026",
+  "id_num": "CAC-Food-101613-2026",
+  "type": "Corrective Action Compliance",
+  "status": "Approved",
+  "page_str": "Pg. 38",
+  "page_num": 38,
+  "raw": "10/28/2026       CAC-Food-101613-2026                  Corrective Action Compliance                               Approved                             Pg. 38"
+ },
+ {
+  "establishment": {
+   "name": "SUSHI XUAN",
+   "address": "417 TRAMWAY BLVD NE, 3"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0144375",
+   "operational_status": "Open"
+  },
+  "date": "10/27/2026",
+  "id_num": "COM-FOODES-101551-2026",
+  "type": "Complaint Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 38",
+  "page_num": 38,
+  "raw": "10/27/2026      COM-FOODES-101551-2026             Complaint Food Establishment Inspection                   Conditional Approved                      Pg. 38"
+ },
+ {
+  "establishment": {
+   "name": "TACO BELL 2926",
+   "address": "4901 GIBSON BLVD SE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0116987",
+   "operational_status": "Open"
+  },
+  "date": "10/27/2026",
+  "id_num": "CAC-Food-101484-2026",
+  "type": "Corrective Action Compliance",
+  "status": "Approved",
+  "page_str": "Pg. 40",
+  "page_num": 40,
+  "raw": "10/27/2026       CAC-Food-101484-2026                   Corrective Action Compliance                              Approved                             Pg. 40"
+ },
+ {
+  "establishment": {
+   "name": "TACO BELL 2926",
+   "address": "4901 GIBSON BLVD SE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0116987",
+   "operational_status": "Open"
+  },
+  "date": "10/27/2026",
+  "id_num": "RT-FOODEST-002821-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 40",
+  "page_num": 40,
+  "raw": "10/27/2026      RT-FOODEST-002821-2025              Routine Food Establishment Inspection                    Conditional Approved                      Pg. 40"
+ },
+ {
+  "establishment": {
+   "name": "TOMASITAS",
+   "address": "4949 PAN AMERICAN FWY NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0152639",
+   "operational_status": "Open"
+  },
+  "date": "10/26/2026",
+  "id_num": "RT-FOODEST-016214-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 41",
+  "page_num": 41,
+  "raw": "10/26/2026      RT-FOODEST-016214-2026              Routine Food Establishment Inspection                           Approved                           Pg. 41"
+ },
+ {
+  "establishment": {
+   "name": "TWIN DRAGONS INC",
+   "address": "1425 JUAN TABO BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0044348",
+   "operational_status": "Open"
+  },
+  "date": "10/26/2026",
+  "id_num": "CAC-Food-101122-2026",
+  "type": "Corrective Action Compliance",
+  "status": "Approved",
+  "page_str": "Pg. 41",
+  "page_num": 41,
+  "raw": "10/26/2026        CAC-Food-101122-2026                  Corrective Action Compliance                              Approved                             Pg. 41"
+ },
+ {
+  "establishment": {
+   "name": "TWIN DRAGONS INC",
+   "address": "1425 JUAN TABO BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0044348",
+   "operational_status": "Open"
+  },
+  "date": "10/26/2026",
+  "id_num": "PT0044348",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 41",
+  "page_num": 41,
+  "raw": "10/26/2026             PT0044348                    Routine Food Establishment Inspection                    Conditional Approved                      Pg. 41"
+ },
+ {
+  "establishment": {
+   "name": "Unser Bakery LLC",
+   "address": "10850 UNSER BLVD NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "FOODEST-2026-013798",
+   "operational_status": "Open"
+  },
+  "date": "10/27/2026",
+  "id_num": "CAC-Food-101510-2026",
+  "type": "Corrective Action Compliance",
+  "status": "Approved",
+  "page_str": "Pg. 43",
+  "page_num": 43,
+  "raw": "10/27/2026        CAC-Food-101510-2026                   Corrective Action Compliance                               Approved                           Pg. 43"
+ },
+ {
+  "establishment": {
+   "name": "WECKS",
+   "address": "730 JUAN TABO BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0150777",
+   "operational_status": "Open"
+  },
+  "date": "10/27/2026",
+  "id_num": "PT0150777",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 43",
+  "page_num": 43,
+  "raw": "10/27/2026                 PT0150777                  Routine Food Establishment Inspection                          Approved                           Pg. 43"
+ }
+]

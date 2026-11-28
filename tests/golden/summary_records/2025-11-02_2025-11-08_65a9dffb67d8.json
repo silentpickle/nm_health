@@ -1,0 +1,1046 @@
+[
+ {
+  "establishment": {
+   "name": "5 STAR BURGERS NM INC",
+   "address": "5901 WYOMING BLVD NE, P-12"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0155404",
+   "operational_status": "Open"
+  },
+  "date": "11/07/2025",
+  "id_num": "PT0155404",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 6",
+  "page_num": 6,
+  "raw": "11/07/2025            PT0155404             Routine Food Establishment Inspection                Approved                     Pg. 6"
+ },
+ {
+  "establishment": {
+   "name": "BARBACOA JUAREZ",
+   "address": "4100 CENTRAL AVE SW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0157965",
+   "operational_status": "Open"
+  },
+  "date": "11/05/2025",
+  "id_num": "CAC-Food-102820-2025",
+  "type": "Corrective Action Compliance",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 7",
+  "page_num": 7,
+  "raw": "11/05/2025       CAC-Food-102820-2025           Corrective Action Compliance                Conditional Approved              Pg. 7"
+ },
+ {
+  "establishment": {
+   "name": "BARBACOA JUAREZ",
+   "address": "4100 CENTRAL AVE SW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0157965",
+   "operational_status": "Open"
+  },
+  "date": "11/05/2025",
+  "id_num": "RT-FOODEST-002768-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Unsatisfactory Re-Inspection required",
+  "page_str": "Pg. 7",
+  "page_num": 7,
+  "raw": "11/05/2025      RT-FOODEST-002768-2025      Routine Food Establishment Inspection   Unsatisfactory Re-Inspection required     Pg. 7"
+ },
+ {
+  "establishment": {
+   "name": "BIRRIERIA Y TACOS ALEX",
+   "address": "640 COORS BLVD NW, 26/27"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0158602",
+   "operational_status": "Open"
+  },
+  "date": "11/05/2025",
+  "id_num": "CAC-Food-102539-2025",
+  "type": "Corrective Action Compliance",
+  "status": "Approved",
+  "page_str": "Pg. 9",
+  "page_num": 9,
+  "raw": "11/05/2025       CAC-Food-102539-2025           Corrective Action Compliance                    Approved                      Pg. 9"
+ },
+ {
+  "establishment": {
+   "name": "BIRRIERIA Y TACOS ALEX",
+   "address": "640 COORS BLVD NW, 26/27"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0158602",
+   "operational_status": "Open"
+  },
+  "date": "11/05/2025",
+  "id_num": "PT0158602",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 9",
+  "page_num": 9,
+  "raw": "11/05/2025            PT0158602             Routine Food Establishment Inspection          Conditional Approved               Pg. 9"
+ },
+ {
+  "establishment": {
+   "name": "BURGER 21",
+   "address": "2100 LOUISIANA BLVD NE, 818"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0154050",
+   "operational_status": "Open"
+  },
+  "date": "11/06/2025",
+  "id_num": "PT0154050",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 10",
+  "page_num": 10,
+  "raw": "11/06/2025            PT0154050             Routine Food Establishment Inspection                Approved                     Pg. 10"
+ },
+ {
+  "establishment": {
+   "name": "Cafe Monita",
+   "address": "5701 GIBSON BLVD SE"
+  },
+  "permit": {
+   "permit_type": "Mobile Food - EHD",
+   "permit_number": "MOBILE-2025-014128",
+   "operational_status": "Open"
+  },
+  "date": "11/05/2025",
+  "id_num": "CAC-Food-102474-2025",
+  "type": "Corrective Action Compliance",
+  "status": "Approved",
+  "page_str": "Pg. 11",
+  "page_num": 11,
+  "raw": "11/05/2025       CAC-Food-102474-2025           Corrective Action Compliance                     Approved                     Pg. 11"
+ },
+ {
+  "establishment": {
+   "name": "CALIFORNIA PIZZA KITCHEN INC",
+   "address": "2241 Q ST NE, #7G"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0095757",
+   "operational_status": "Open"
+  },
+  "date": "11/05/2025",
+  "id_num": "PT0095757",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 11",
+  "page_num": 11,
+  "raw": "11/05/2025            PT0095757             Routine Food Establishment Inspection                Approved                     Pg. 11"
+ },
+ {
+  "establishment": {
+   "name": "CARLS JR #7331",
+   "address": "1312 EUBANK BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0141795",
+   "operational_status": "Open"
+  },
+  "date": "11/03/2025",
+  "id_num": "PT0141795",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 12",
+  "page_num": 12,
+  "raw": "11/03/2025            PT0141795             Routine Food Establishment Inspection                Approved                     Pg. 12"
+ },
+ {
+  "establishment": {
+   "name": "CAVEMAN BURGERS & TACOS",
+   "address": "6205 CENTRAL AVE NW, 5"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0154073",
+   "operational_status": "Open"
+  },
+  "date": "11/03/2025",
+  "id_num": "CAC-Food-101432-2025",
+  "type": "Corrective Action Compliance",
+  "status": "Approved",
+  "page_str": "Pg. 12",
+  "page_num": 12,
+  "raw": "11/03/2025       CAC-Food-101432-2025           Corrective Action Compliance                     Approved                     Pg. 12"
+ },
+ {
+  "establishment": {
+   "name": "CHOCOLATE CARTEL",
+   "address": "315 JUAN TABO BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Processor",
+   "permit_number": "PT0098975",
+   "operational_status": "Open"
+  },
+  "date": "11/03/2025",
+  "id_num": "PT0098975",
+  "type": "Routine Food Processor Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 13",
+  "page_num": 13,
+  "raw": "11/03/2025            PT0098975               Routine Food Processor Inspection                  Approved                     Pg. 13"
+ },
+ {
+  "establishment": {
+   "name": "COSTCO WHOLESALE 1016",
+   "address": "9955 COORS BYPASS BLVD NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0090455",
+   "operational_status": "Open"
+  },
+  "date": "11/07/2025",
+  "id_num": "PT0090455",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 13",
+  "page_num": 13,
+  "raw": "11/07/2025            PT0090455          Routine Food Establishment Inspection                Approved                     Pg. 13"
+ },
+ {
+  "establishment": {
+   "name": "COSTCO WHOLESALE 1016",
+   "address": "9955 COORS BYPASS BLVD NW"
+  },
+  "permit": {
+   "permit_type": "Retail Food Establishment",
+   "permit_number": "PT0090498",
+   "operational_status": "Open"
+  },
+  "date": "11/07/2025",
+  "id_num": "PT0090498",
+  "type": "Routine Retail Food Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 13",
+  "page_num": 13,
+  "raw": "11/07/2025            PT0090498             Routine Retail Food Inspection                    Approved                     Pg. 13"
+ },
+ {
+  "establishment": {
+   "name": "CRACKIN CRAB",
+   "address": "4959 PAN AMERICAN FWY, C"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0153669",
+   "operational_status": "Open"
+  },
+  "date": "11/07/2025",
+  "id_num": "CAC-Food-103741-2025",
+  "type": "Corrective Action Compliance",
+  "status": "Approved",
+  "page_str": "Pg. 14",
+  "page_num": 14,
+  "raw": "11/07/2025       CAC-Food-103741-2025        Corrective Action Compliance                    Approved                      Pg. 14"
+ },
+ {
+  "establishment": {
+   "name": "CRACKIN CRAB",
+   "address": "4959 PAN AMERICAN FWY, C"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0153669",
+   "operational_status": "Open"
+  },
+  "date": "11/07/2025",
+  "id_num": "PT0153669",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 14",
+  "page_num": 14,
+  "raw": "11/07/2025            PT0153669          Routine Food Establishment Inspection          Conditional Approved               Pg. 14"
+ },
+ {
+  "establishment": {
+   "name": "DONUT MART",
+   "address": "4501 MONTGOMERY BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0155832",
+   "operational_status": "Open"
+  },
+  "date": "11/06/2025",
+  "id_num": "PT0155832",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 16",
+  "page_num": 16,
+  "raw": "11/06/2025            PT0155832          Routine Food Establishment Inspection                Approved                     Pg. 16"
+ },
+ {
+  "establishment": {
+   "name": "DR FIELD GOODS",
+   "address": "1909 BELLAMAH AVE NW, R"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0156070",
+   "operational_status": "Open"
+  },
+  "date": "11/03/2025",
+  "id_num": "CAC-Food-101785-2025",
+  "type": "Corrective Action Compliance",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 18",
+  "page_num": 18,
+  "raw": "11/03/2025       CAC-Food-101785-2025        Corrective Action Compliance                Conditional Approved              Pg. 18"
+ },
+ {
+  "establishment": {
+   "name": "DR FIELD GOODS",
+   "address": "1909 BELLAMAH AVE NW, R"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0156070",
+   "operational_status": "Open"
+  },
+  "date": "11/03/2025",
+  "id_num": "PT0156070",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Unsatisfactory Re-Inspection required",
+  "page_str": "Pg. 18",
+  "page_num": 18,
+  "raw": "11/03/2025            PT0156070          Routine Food Establishment Inspection   Unsatisfactory Re-Inspection required     Pg. 18"
+ },
+ {
+  "establishment": {
+   "name": "GINOS NY STYLE PIZZA",
+   "address": "3908 SAN MATEO BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0136757",
+   "operational_status": "Open"
+  },
+  "date": "11/07/2025",
+  "id_num": "PT0136757",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 19",
+  "page_num": 19,
+  "raw": "11/07/2025            PT0136757          Routine Food Establishment Inspection                Approved                     Pg. 19"
+ },
+ {
+  "establishment": {
+   "name": "Golden Pride Legacy LLC",
+   "address": "1824 LOMAS BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Processor",
+   "permit_number": "PT0128820",
+   "operational_status": "Open"
+  },
+  "date": "11/06/2025",
+  "id_num": "RT-PRC-101562-2025",
+  "type": "Routine Food Processor Inspection",
+  "status": "Unsatisfactory Re-Inspection required",
+  "page_str": "Pg. 20",
+  "page_num": 20,
+  "raw": "11/06/2025        RT-PRC-101562-2025      Routine Food Processor Inspection      Unsatisfactory Re-Inspection required     Pg. 20"
+ },
+ {
+  "establishment": {
+   "name": "Golden Pride Legacy LLC",
+   "address": "1824 LOMAS BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Processor",
+   "permit_number": "PT0128820",
+   "operational_status": "Open"
+  },
+  "date": "11/03/2025",
+  "id_num": "PT0128820",
+  "type": "Routine Food Processor Inspection",
+  "status": "Closure Re-Inspection Required",
+  "page_str": "Pg. 21",
+  "page_num": 21,
+  "raw": "11/03/2025            PT0128820           Routine Food Processor Inspection        Closure Re-Inspection Required          Pg. 21"
+ },
+ {
+  "establishment": {
+   "name": "Guava Tree Cafe",
+   "address": "118 RICHMOND DR NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0137845",
+   "operational_status": "Open"
+  },
+  "date": "11/06/2025",
+  "id_num": "RT-FOODEST-100136-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 23",
+  "page_num": 23,
+  "raw": "11/06/2025      RT-FOODEST-100136-2025   Routine Food Establishment Inspection                Approved                     Pg. 23"
+ },
+ {
+  "establishment": {
+   "name": "HIGH NOON SALOON",
+   "address": "425 SAN FELIPE ST NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0043746",
+   "operational_status": "Open"
+  },
+  "date": "11/07/2025",
+  "id_num": "PT0043746",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 24",
+  "page_num": 24,
+  "raw": "11/07/2025            PT0043746          Routine Food Establishment Inspection                Approved                     Pg. 24"
+ },
+ {
+  "establishment": {
+   "name": "HIGH NOON SALOON",
+   "address": "425 SAN FELIPE ST NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0043747",
+   "operational_status": "Open"
+  },
+  "date": "11/07/2025",
+  "id_num": "PT0043747",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 23",
+  "page_num": 23,
+  "raw": "11/07/2025            PT0043747          Routine Food Establishment Inspection                Approved                     Pg. 23"
+ },
+ {
+  "establishment": {
+   "name": "HONG KONG BUFFET",
+   "address": "10100 COORS BLVD NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0154378",
+   "operational_status": "Open"
+  },
+  "date": "11/06/2025",
+  "id_num": "RT-FOODEST-097603-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 24",
+  "page_num": 24,
+  "raw": "11/06/2025      RT-FOODEST-097603-2025   Routine Food Establishment Inspection          Conditional Approved               Pg. 24"
+ },
+ {
+  "establishment": {
+   "name": "JIMMY JOHNS",
+   "address": "401 EUBANK BLVD SE, A"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0144195",
+   "operational_status": "Open"
+  },
+  "date": "11/04/2025",
+  "id_num": "RT-FOODEST-099646-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 25",
+  "page_num": 25,
+  "raw": "11/04/2025      RT-FOODEST-099646-2025   Routine Food Establishment Inspection                Approved                     Pg. 25"
+ },
+ {
+  "establishment": {
+   "name": "LET’S EAT THAI CUISINE LLC",
+   "address": "3115 SAN MATEO BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0157002",
+   "operational_status": "Open"
+  },
+  "date": "11/04/2025",
+  "id_num": "PT0157002",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 26",
+  "page_num": 26,
+  "raw": "11/04/2025            PT0157002          Routine Food Establishment Inspection                Approved                     Pg. 26"
+ },
+ {
+  "establishment": {
+   "name": "NEXUS BREWERY",
+   "address": "4730 PAN AMERICAN FWY NE, D"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0115821",
+   "operational_status": "Open"
+  },
+  "date": "11/05/2025",
+  "id_num": "PT0115821",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 27",
+  "page_num": 27,
+  "raw": "11/05/2025            PT0115821          Routine Food Establishment Inspection        Approved            Pg. 27"
+ },
+ {
+  "establishment": {
+   "name": "NEXUS BREWERY",
+   "address": "4730 PAN AMERICAN FWY NE, D"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0115820",
+   "operational_status": "Open"
+  },
+  "date": "11/05/2025",
+  "id_num": "CAC-Food-102791-2025",
+  "type": "Corrective Action Compliance",
+  "status": "Approved",
+  "page_str": "Pg. 27",
+  "page_num": 27,
+  "raw": "11/05/2025       CAC-Food-102791-2025        Corrective Action Compliance             Approved            Pg. 27"
+ },
+ {
+  "establishment": {
+   "name": "NEXUS BREWERY",
+   "address": "4730 PAN AMERICAN FWY NE, D"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0115820",
+   "operational_status": "Open"
+  },
+  "date": "11/05/2025",
+  "id_num": "PT0115820",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 27",
+  "page_num": 27,
+  "raw": "11/05/2025            PT0115820          Routine Food Establishment Inspection   Conditional Approved     Pg. 27"
+ },
+ {
+  "establishment": {
+   "name": "NEXUS BREWERY",
+   "address": "4730 PAN AMERICAN FWY NE, D"
+  },
+  "permit": {
+   "permit_type": "Food Processor",
+   "permit_number": "PT0115819",
+   "operational_status": "Open"
+  },
+  "date": "11/05/2025",
+  "id_num": "PT0115819",
+  "type": "Routine Food Processor Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 29",
+  "page_num": 29,
+  "raw": "11/05/2025            PT0115819           Routine Food Processor Inspection           Approved            Pg. 29"
+ },
+ {
+  "establishment": {
+   "name": "PINK PONY SOFT SERVE",
+   "address": "5600 MENAUL BLVD NE, A"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0159072",
+   "operational_status": "Open"
+  },
+  "date": "11/06/2025",
+  "id_num": "RT-FOODEST-103303-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 30",
+  "page_num": 30,
+  "raw": "11/06/2025      RT-FOODEST-103303-2025   Routine Food Establishment Inspection        Approved            Pg. 30"
+ },
+ {
+  "establishment": {
+   "name": "RED ROBIN GOURMET BURGERS AND BREWS",
+   "address": "2100 LOUISIANA BLVD NE, 217"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0151142",
+   "operational_status": "Open"
+  },
+  "date": "11/06/2025",
+  "id_num": "PT0151142",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 30",
+  "page_num": 30,
+  "raw": "11/06/2025            PT0151142          Routine Food Establishment Inspection        Approved            Pg. 30"
+ },
+ {
+  "establishment": {
+   "name": "RED ROBIN GOURMET BURGERS AND BREWS",
+   "address": "2100 LOUISIANA BLVD NE, 217"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0151143",
+   "operational_status": "Open"
+  },
+  "date": "11/06/2025",
+  "id_num": "PT0151143",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 30",
+  "page_num": 30,
+  "raw": "11/06/2025            PT0151143          Routine Food Establishment Inspection        Approved            Pg. 30"
+ },
+ {
+  "establishment": {
+   "name": "RIO GRANDE FARMACEUTICALS LLC DBA BEST BUDS",
+   "address": "6919 MONTGOMERY BLVD NE, B"
+  },
+  "permit": {
+   "permit_type": "Cannabis Food Establishment",
+   "permit_number": "PT0158921",
+   "operational_status": "Open"
+  },
+  "date": "11/04/2025",
+  "id_num": "PT0158921",
+  "type": "Routine Retail Cannabis Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 31",
+  "page_num": 31,
+  "raw": "11/04/2025            PT0158921           Routine Retail Cannabis Inspection          Approved            Pg. 31"
+ },
+ {
+  "establishment": {
+   "name": "ROCK DISTRIBUTING CO. LLC.",
+   "address": "4801 JEFFERSON ST NE"
+  },
+  "permit": {
+   "permit_type": "Food Processor",
+   "permit_number": "PT0092940",
+   "operational_status": "Open"
+  },
+  "date": "11/04/2025",
+  "id_num": "PT0092940",
+  "type": "Routine Food Processor Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 31",
+  "page_num": 31,
+  "raw": "11/04/2025            PT0092940           Routine Food Processor Inspection           Approved            Pg. 31"
+ },
+ {
+  "establishment": {
+   "name": "SATELLITE COFFEE",
+   "address": "1642 ALAMEDA RD NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0105226",
+   "operational_status": "Open"
+  },
+  "date": "11/06/2025",
+  "id_num": "PT0105226",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 31",
+  "page_num": 31,
+  "raw": "11/06/2025            PT0105226          Routine Food Establishment Inspection        Approved            Pg. 31"
+ },
+ {
+  "establishment": {
+   "name": "SHEEHAN WINERY",
+   "address": "303 ROMERO ST NW, 110"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0158609",
+   "operational_status": "Open"
+  },
+  "date": "11/06/2025",
+  "id_num": "PT0158609",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 32",
+  "page_num": 32,
+  "raw": "11/06/2025            PT0158609          Routine Food Establishment Inspection        Approved            Pg. 32"
+ },
+ {
+  "establishment": {
+   "name": "SOO BAK FOODS",
+   "address": "111 HERMOSA DR SE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0154389",
+   "operational_status": "Open"
+  },
+  "date": "11/05/2025",
+  "id_num": "PT0154389",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 33",
+  "page_num": 33,
+  "raw": "11/05/2025            PT0154389          Routine Food Establishment Inspection        Approved            Pg. 33"
+ },
+ {
+  "establishment": {
+   "name": "TAMASHI",
+   "address": "6400 HOLLY AVE NE, G"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0158701",
+   "operational_status": "Open"
+  },
+  "date": "11/06/2025",
+  "id_num": "PT0158701",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 33",
+  "page_num": 33,
+  "raw": "11/06/2025            PT0158701          Routine Food Establishment Inspection        Approved            Pg. 33"
+ },
+ {
+  "establishment": {
+   "name": "Thai House",
+   "address": "2000 CARLISLE BLVD NE, C"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0154594",
+   "operational_status": "Open"
+  },
+  "date": "11/06/2025",
+  "id_num": "RT-FOODEST-101115-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 34",
+  "page_num": 34,
+  "raw": "11/06/2025      RT-FOODEST-101115-2025   Routine Food Establishment Inspection        Approved            Pg. 34"
+ },
+ {
+  "establishment": {
+   "name": "The Burrito Lady",
+   "address": "938 EUBANK BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0045383",
+   "operational_status": "Open"
+  },
+  "date": "11/07/2025",
+  "id_num": "CAC-Food-103538-2025",
+  "type": "Corrective Action Compliance",
+  "status": "Approved",
+  "page_str": "Pg. 35",
+  "page_num": 35,
+  "raw": "11/07/2025       CAC-Food-103538-2025        Corrective Action Compliance             Approved            Pg. 35"
+ },
+ {
+  "establishment": {
+   "name": "The Burrito Lady",
+   "address": "938 EUBANK BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0045383",
+   "operational_status": "Open"
+  },
+  "date": "11/07/2025",
+  "id_num": "PT0045383",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 35",
+  "page_num": 35,
+  "raw": "11/07/2025            PT0045383          Routine Food Establishment Inspection   Conditional Approved     Pg. 35"
+ },
+ {
+  "establishment": {
+   "name": "THE GRASS STATION",
+   "address": "2523 4TH ST NW"
+  },
+  "permit": {
+   "permit_type": "Cannabis Food Establishment",
+   "permit_number": "PT0160987",
+   "operational_status": "Open"
+  },
+  "date": "11/03/2025",
+  "id_num": "PT0160987",
+  "type": "Routine Retail Cannabis Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 36",
+  "page_num": 36,
+  "raw": "11/03/2025            PT0160987           Routine Retail Cannabis Inspection               Approved                 Pg. 36"
+ },
+ {
+  "establishment": {
+   "name": "THE NOTORIOUS P O K E",
+   "address": "1909 BELLAMAH AVE NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0158569",
+   "operational_status": "Open"
+  },
+  "date": "11/07/2025",
+  "id_num": "PT0158569",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 36",
+  "page_num": 36,
+  "raw": "11/07/2025            PT0158569          Routine Food Establishment Inspection             Approved                 Pg. 36"
+ },
+ {
+  "establishment": {
+   "name": "THE RANGE CAFE",
+   "address": "10019 COORS BLVD NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0152417",
+   "operational_status": "Open"
+  },
+  "date": "11/03/2025",
+  "id_num": "CAC-Food-101616-2025",
+  "type": "Corrective Action Compliance",
+  "status": "Approved",
+  "page_str": "Pg. 37",
+  "page_num": 37,
+  "raw": "11/03/2025       CAC-Food-101616-2025        Corrective Action Compliance                 Approved                  Pg. 37"
+ },
+ {
+  "establishment": {
+   "name": "THE RANGE CAFE",
+   "address": "10019 COORS BLVD NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0152417",
+   "operational_status": "Open"
+  },
+  "date": "11/03/2025",
+  "id_num": "PT0152417",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 37",
+  "page_num": 37,
+  "raw": "11/03/2025            PT0152417          Routine Food Establishment Inspection       Conditional Approved           Pg. 37"
+ },
+ {
+  "establishment": {
+   "name": "THE RANGE CAFE",
+   "address": "10019 COORS BLVD NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0152418",
+   "operational_status": "Open"
+  },
+  "date": "11/03/2025",
+  "id_num": "PT0152418",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 37",
+  "page_num": 37,
+  "raw": "11/03/2025            PT0152418          Routine Food Establishment Inspection             Approved                 Pg. 37"
+ },
+ {
+  "establishment": {
+   "name": "The Sandwich Company",
+   "address": "3100 CARLISLE BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0044978",
+   "operational_status": "Open"
+  },
+  "date": "11/03/2025",
+  "id_num": "RT-FOODEST-101666-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 39",
+  "page_num": 39,
+  "raw": "11/03/2025      RT-FOODEST-101666-2025   Routine Food Establishment Inspection             Approved                 Pg. 39"
+ },
+ {
+  "establishment": {
+   "name": "The Sandwich Company",
+   "address": "3100 CARLISLE BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0044978",
+   "operational_status": "Open"
+  },
+  "date": "11/03/2025",
+  "id_num": "PT0044978",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Closure Re-Inspection Required",
+  "page_str": "Pg. 41",
+  "page_num": 41,
+  "raw": "11/03/2025            PT0044978          Routine Food Establishment Inspection   Closure Re-Inspection Required     Pg. 41"
+ },
+ {
+  "establishment": {
+   "name": "THIRSTY EYE BREWING COMPANY",
+   "address": "206 BROADWAY BLVD SE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0154969",
+   "operational_status": "Open"
+  },
+  "date": "11/06/2025",
+  "id_num": "PT0154969",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 44",
+  "page_num": 44,
+  "raw": "11/06/2025            PT0154969          Routine Food Establishment Inspection             Approved                 Pg. 44"
+ },
+ {
+  "establishment": {
+   "name": "TRACTOR BREWING CO",
+   "address": "1800 4TH ST NW"
+  },
+  "permit": {
+   "permit_type": "Food Processor",
+   "permit_number": "PT0134700",
+   "operational_status": "Open"
+  },
+  "date": "11/07/2025",
+  "id_num": "PT0134700",
+  "type": "Routine Food Processor Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 44",
+  "page_num": 44,
+  "raw": "11/07/2025            PT0134700           Routine Food Processor Inspection                Approved                 Pg. 44"
+ },
+ {
+  "establishment": {
+   "name": "TROPICAL SMOOTHIE CAFE",
+   "address": "6400 HOLLY AVE NE, N"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0152858",
+   "operational_status": "Open"
+  },
+  "date": "11/04/2025",
+  "id_num": "PT0152858",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 45",
+  "page_num": 45,
+  "raw": "11/04/2025            PT0152858          Routine Food Establishment Inspection             Approved                 Pg. 45"
+ },
+ {
+  "establishment": {
+   "name": "WAFFLE HOUSE 952",
+   "address": "2250 YALE AVE SE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0097634",
+   "operational_status": "Open"
+  },
+  "date": "11/04/2025",
+  "id_num": "RT-FOODEST-039222-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 46",
+  "page_num": 46,
+  "raw": "11/04/2025      RT-FOODEST-039222-2025   Routine Food Establishment Inspection             Approved                 Pg. 46"
+ },
+ {
+  "establishment": {
+   "name": "WAL MART SUPER CENTER 2924",
+   "address": "2550 COORS BLVD NW"
+  },
+  "permit": {
+   "permit_type": "Retail Food Establishment",
+   "permit_number": "PT0046149",
+   "operational_status": "Open"
+  },
+  "date": "11/04/2025",
+  "id_num": "RT-RET-097714-2025",
+  "type": "Routine Retail Food Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 47",
+  "page_num": 47,
+  "raw": "11/04/2025        RT-RET-097714-2025        Routine Retail Food Inspection                 Approved                 Pg. 47"
+ },
+ {
+  "establishment": {
+   "name": "WAL MART SUPER CENTER 2924",
+   "address": "2550 COORS BLVD NW"
+  },
+  "permit": {
+   "permit_type": "Retail Food Establishment",
+   "permit_number": "PT0046150",
+   "operational_status": "Open"
+  },
+  "date": "11/04/2025",
+  "id_num": "PT0046150",
+  "type": "Routine Retail Food Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 47",
+  "page_num": 47,
+  "raw": "11/04/2025            PT0046150             Routine Retail Food Inspection                 Approved                 Pg. 47"
+ },
+ {
+  "establishment": {
+   "name": "WAL MART SUPER CENTER 2924",
+   "address": "2550 COORS BLVD NW"
+  },
+  "permit": {
+   "permit_type": "Retail Food Establishment",
+   "permit_number": "PT0046152",
+   "operational_status": "Open"
+  },
+  "date": "11/04/2025",
+  "id_num": "RT-RET-097732-2025",
+  "type": "Routine Retail Food Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 46",
+  "page_num": 46,
+  "raw": "11/04/2025        RT-RET-097732-2025        Routine Retail Food Inspection                 Approved                 Pg. 46"
+ },
+ {
+  "establishment": {
+   "name": "YELLER SUB 2",
+   "address": "7200 MONTGOMERY BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0043900",
+   "operational_status": "Open"
+  },
+  "date": "11/07/2025",
+  "id_num": "PT0043900",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 48",
+  "page_num": 48,
+  "raw": "11/07/2025            PT0043900          Routine Food Establishment Inspection             Approved                 Pg. 48"
+ }
+]

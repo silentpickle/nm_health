@@ -1,0 +1,758 @@
+[
+ {
+  "establishment": {
+   "name": "(CHARLEYS PHILLY STEAKS) C AND G ENTERPRISES NM LLC",
+   "address": "6600 MENAUL BLVD NE, 1008"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0158821",
+   "operational_status": "Open"
+  },
+  "date": "11/16/2026",
+  "id_num": "RT-FOODEST-107750-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 4",
+  "page_num": 4,
+  "raw": "11/16/2026      RT-FOODEST-107750-2026    Routine Food Establishment Inspection         Approved              Pg. 4"
+ },
+ {
+  "establishment": {
+   "name": "ALBUQUERQUE HOOTERS",
+   "address": "4601 SAN MATEO BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0044567",
+   "operational_status": "Open"
+  },
+  "date": "11/18/2026",
+  "id_num": "RT-FOODEST-108715-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 4",
+  "page_num": 4,
+  "raw": "11/18/2026      RT-FOODEST-108715-2026    Routine Food Establishment Inspection         Approved              Pg. 4"
+ },
+ {
+  "establishment": {
+   "name": "ALBUQUERQUE HOOTERS",
+   "address": "4601 SAN MATEO BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0044568",
+   "operational_status": "Open"
+  },
+  "date": "11/18/2026",
+  "id_num": "RT-FOODEST-108749-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 5",
+  "page_num": 5,
+  "raw": "11/18/2026      RT-FOODEST-108749-2026    Routine Food Establishment Inspection         Approved              Pg. 5"
+ },
+ {
+  "establishment": {
+   "name": "Albuquerque Nutrition",
+   "address": "2114 JUAN TABO BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "FOODEST-2025-012419",
+   "operational_status": "Open"
+  },
+  "date": "11/18/2026",
+  "id_num": "CAC-Food-108557-2026",
+  "type": "Corrective Action Compliance",
+  "status": "Approved",
+  "page_str": "Pg. 5",
+  "page_num": 5,
+  "raw": "11/18/2026       CAC-Food-108557-2026         Corrective Action Compliance              Approved              Pg. 5"
+ },
+ {
+  "establishment": {
+   "name": "Albuquerque Nutrition",
+   "address": "2114 JUAN TABO BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "FOODEST-2025-012419",
+   "operational_status": "Open"
+  },
+  "date": "11/18/2026",
+  "id_num": "RT-FOODEST-108522-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 5",
+  "page_num": 5,
+  "raw": "11/18/2026      RT-FOODEST-108522-2026    Routine Food Establishment Inspection    Conditional Approved       Pg. 5"
+ },
+ {
+  "establishment": {
+   "name": "Bensi LLC",
+   "address": "2016 CARLISLE BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Retail Food Establishment",
+   "permit_number": "RETAIL-2025-011410",
+   "operational_status": "Open"
+  },
+  "date": "11/18/2026",
+  "id_num": "COM-RET-108495-2026",
+  "type": "Complaint Retail Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 7",
+  "page_num": 7,
+  "raw": "11/18/2026       COM-RET-108495-2026           Complaint Retail Inspection              Approved              Pg. 7"
+ },
+ {
+  "establishment": {
+   "name": "BOBS BURGERS",
+   "address": "6510 PARADISE BLVD NW, E"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0122936",
+   "operational_status": "Open"
+  },
+  "date": "11/19/2026",
+  "id_num": "RT-FOODEST-108926-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 7",
+  "page_num": 7,
+  "raw": "11/19/2026      RT-FOODEST-108926-2026    Routine Food Establishment Inspection         Approved              Pg. 7"
+ },
+ {
+  "establishment": {
+   "name": "CAFE DA LAT",
+   "address": "5615 CENTRAL AVE NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0054333",
+   "operational_status": "Open"
+  },
+  "date": "11/19/2026",
+  "id_num": "COM-FOODES-109030-2026",
+  "type": "Complaint Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 8",
+  "page_num": 8,
+  "raw": "11/19/2026      COM-FOODES-109030-2026   Complaint Food Establishment Inspection        Approved              Pg. 8"
+ },
+ {
+  "establishment": {
+   "name": "CANDLELIGHT ASSISTED LIVING",
+   "address": "3200 CANDLELIGHT DR NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0160074",
+   "operational_status": "Open"
+  },
+  "date": "11/18/2026",
+  "id_num": "RT-FOODEST-108670-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 9",
+  "page_num": 9,
+  "raw": "11/18/2026      RT-FOODEST-108670-2026    Routine Food Establishment Inspection         Approved              Pg. 9"
+ },
+ {
+  "establishment": {
+   "name": "Chispitas",
+   "address": "6600 MENAUL BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0156676",
+   "operational_status": "Open"
+  },
+  "date": "11/16/2026",
+  "id_num": "RT-FOODEST-107832-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 9",
+  "page_num": 9,
+  "raw": "11/16/2026      RT-FOODEST-107832-2026    Routine Food Establishment Inspection    Conditional Approved       Pg. 9"
+ },
+ {
+  "establishment": {
+   "name": "Church's Chicken #5341",
+   "address": "401 Louisiana BLVD SE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0161678",
+   "operational_status": "Open"
+  },
+  "date": "11/17/2026",
+  "id_num": "RT-FOODEST-105663-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 10",
+  "page_num": 10,
+  "raw": "11/17/2026      RT-FOODEST-105663-2026    Routine Food Establishment Inspection         Approved             Pg. 10"
+ },
+ {
+  "establishment": {
+   "name": "EAT MY THAI CUISINE",
+   "address": "5303 GIBSON BLVD SE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0159381",
+   "operational_status": "Open"
+  },
+  "date": "11/19/2026",
+  "id_num": "CAC-Food-109158-2026",
+  "type": "Corrective Action Compliance",
+  "status": "Approved",
+  "page_str": "Pg. 11",
+  "page_num": 11,
+  "raw": "11/19/2026       CAC-Food-109158-2026         Corrective Action Compliance              Approved             Pg. 11"
+ },
+ {
+  "establishment": {
+   "name": "EAT MY THAI CUISINE",
+   "address": "5303 GIBSON BLVD SE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0159381",
+   "operational_status": "Open"
+  },
+  "date": "11/19/2026",
+  "id_num": "RT-FOODEST-109084-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 11",
+  "page_num": 11,
+  "raw": "11/19/2026      RT-FOODEST-109084-2026    Routine Food Establishment Inspection    Conditional Approved      Pg. 11"
+ },
+ {
+  "establishment": {
+   "name": "ECONO LODGE OLD TOWN",
+   "address": "2321 CENTRAL AVE NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "FOODEST-2026-007228",
+   "operational_status": "Open"
+  },
+  "date": "11/19/2026",
+  "id_num": "COM-FOODES-108917-2026",
+  "type": "Complaint Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 12",
+  "page_num": 12,
+  "raw": "11/19/2026      COM-FOODES-108917-2026   Complaint Food Establishment Inspection        Approved             Pg. 12"
+ },
+ {
+  "establishment": {
+   "name": "EL SINALOENSE MARISCOS AND GRILL LLC",
+   "address": "5025 CENTRAL AVE NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0156295",
+   "operational_status": "Open"
+  },
+  "date": "11/16/2026",
+  "id_num": "RT-FOODEST-107724-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 13",
+  "page_num": 13,
+  "raw": "11/16/2026      RT-FOODEST-107724-2026    Routine Food Establishment Inspection                 Approved                     Pg. 13"
+ },
+ {
+  "establishment": {
+   "name": "ELOTES EL VIEJITO",
+   "address": "437 LOUISIANA BLVD SE"
+  },
+  "permit": {
+   "permit_type": "Mobile Food - EHD",
+   "permit_number": "PT0154735",
+   "operational_status": "Open"
+  },
+  "date": "11/19/2026",
+  "id_num": "RT-MBFOOD-108967-2026",
+  "type": "Routine Mobile Food Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 13",
+  "page_num": 13,
+  "raw": "11/19/2026      RT-MBFOOD-108967-2026        Routine Mobile Food Inspection                     Approved                     Pg. 13"
+ },
+ {
+  "establishment": {
+   "name": "HORIZON ACADEMY WEST",
+   "address": "3021 TODOS SANTOS ST NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0130962",
+   "operational_status": "Open"
+  },
+  "date": "11/19/2026",
+  "id_num": "RT-FOODEST-109125-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 13",
+  "page_num": 13,
+  "raw": "11/19/2026      RT-FOODEST-109125-2026    Routine Food Establishment Inspection                 Approved                     Pg. 13"
+ },
+ {
+  "establishment": {
+   "name": "JUICE IT UP",
+   "address": "6300 SAN MATEO BLVD NE, H3"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0147253",
+   "operational_status": "Open"
+  },
+  "date": "11/18/2026",
+  "id_num": "RT-FOODEST-108561-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 14",
+  "page_num": 14,
+  "raw": "11/18/2026      RT-FOODEST-108561-2026    Routine Food Establishment Inspection                 Approved                     Pg. 14"
+ },
+ {
+  "establishment": {
+   "name": "KEVA JUICE SW LLC",
+   "address": "6600 MENAUL BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0115342",
+   "operational_status": "Open"
+  },
+  "date": "11/19/2026",
+  "id_num": "RT-FOODEST-109167-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 15",
+  "page_num": 15,
+  "raw": "11/19/2026      RT-FOODEST-109167-2026    Routine Food Establishment Inspection                 Approved                     Pg. 15"
+ },
+ {
+  "establishment": {
+   "name": "Little Anitas",
+   "address": "10200 CORRALES RD NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0098574",
+   "operational_status": "Open"
+  },
+  "date": "11/17/2026",
+  "id_num": "CAC-Food-108325-2026",
+  "type": "Corrective Action Compliance",
+  "status": "Approved",
+  "page_str": "Pg. 16",
+  "page_num": 16,
+  "raw": "11/17/2026       CAC-Food-108325-2026        Corrective Action Compliance                      Approved                      Pg. 16"
+ },
+ {
+  "establishment": {
+   "name": "Little Anitas",
+   "address": "10200 CORRALES RD NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0098574",
+   "operational_status": "Open"
+  },
+  "date": "11/17/2026",
+  "id_num": "COM-FOODES-108185-2026",
+  "type": "Complaint Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 16",
+  "page_num": 16,
+  "raw": "11/17/2026      COM-FOODES-108185-2026   Complaint Food Establishment Inspection          Conditional Approved               Pg. 16"
+ },
+ {
+  "establishment": {
+   "name": "LUCKY BOY HAMBURGERS",
+   "address": "3521 CONSTITUTION AVE NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0043648",
+   "operational_status": "Closed"
+  },
+  "date": "11/17/2026",
+  "id_num": "COM-FOODES-108209-2026",
+  "type": "Complaint Food Establishment Inspection",
+  "status": "Closure Re-Inspection Required",
+  "page_str": "Pg. 17",
+  "page_num": 17,
+  "raw": "11/17/2026      COM-FOODES-108209-2026   Complaint Food Establishment Inspection     Closure Re-Inspection Required          Pg. 17"
+ },
+ {
+  "establishment": {
+   "name": "NANAS TEA HOUSE",
+   "address": "6300 SAN MATEO BLVD NE, D4"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0156767",
+   "operational_status": "Open"
+  },
+  "date": "11/19/2026",
+  "id_num": "RT-FOODEST-109047-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Unsatisfactory Re-Inspection required",
+  "page_str": "Pg. 20",
+  "page_num": 20,
+  "raw": "11/19/2026      RT-FOODEST-109047-2026    Routine Food Establishment Inspection    Unsatisfactory Re-Inspection required     Pg. 20"
+ },
+ {
+  "establishment": {
+   "name": "NM Food Group Inc DBA Oak and Fire",
+   "address": "905 Yale Blvd SE BLVD SE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "FOODEST-2026-007741",
+   "operational_status": "Open"
+  },
+  "date": "11/19/2026",
+  "id_num": "CAC-Food-109031-2026",
+  "type": "Corrective Action Compliance",
+  "status": "Unsatisfactory Re-Inspection required",
+  "page_str": "Pg. 21",
+  "page_num": 21,
+  "raw": "11/19/2026       CAC-Food-109031-2026         Corrective Action Compliance         Unsatisfactory Re-Inspection required     Pg. 21"
+ },
+ {
+  "establishment": {
+   "name": "NM Food Group Inc DBA Oak and Fire",
+   "address": "905 Yale Blvd SE BLVD SE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "FOODEST-2026-007741",
+   "operational_status": "Open"
+  },
+  "date": "11/17/2026",
+  "id_num": "CAC-Food-108262-2026",
+  "type": "Corrective Action Compliance",
+  "status": "Closure Re-Inspection Required",
+  "page_str": "Pg. 21",
+  "page_num": 21,
+  "raw": "11/17/2026       CAC-Food-108262-2026         Corrective Action Compliance           Closure Re-Inspection Required          Pg. 21"
+ },
+ {
+  "establishment": {
+   "name": "PURLIFE HOLDINGS LLC",
+   "address": "9900 COCHITI RD SE"
+  },
+  "permit": {
+   "permit_type": "Cannabis Food Establishment",
+   "permit_number": "PT0158499",
+   "operational_status": "Open"
+  },
+  "date": "11/16/2026",
+  "id_num": "RT-CANAPRO-056790-2025",
+  "type": "Routine Cannabis Processor Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 22",
+  "page_num": 22,
+  "raw": "11/16/2026      RT-CANAPRO-056790-2025   Routine Cannabis Processor Inspection                  Approved                     Pg. 22"
+ },
+ {
+  "establishment": {
+   "name": "RED LOBSTER RESTAURANTS 0291",
+   "address": "5555 MONTGOMERY BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0137495",
+   "operational_status": "Open"
+  },
+  "date": "11/17/2026",
+  "id_num": "COM-FOODES-108081-2026",
+  "type": "Complaint Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 22",
+  "page_num": 22,
+  "raw": "11/17/2026      COM-FOODES-108081-2026   Complaint Food Establishment Inspection                Approved                     Pg. 22"
+ },
+ {
+  "establishment": {
+   "name": "RED LOBSTER RESTAURANTS 0291",
+   "address": "5555 MONTGOMERY BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0137496",
+   "operational_status": "Open"
+  },
+  "date": "11/17/2026",
+  "id_num": "COM-FOODES-108215-2026",
+  "type": "Complaint Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 22",
+  "page_num": 22,
+  "raw": "11/17/2026      COM-FOODES-108215-2026   Complaint Food Establishment Inspection                Approved                     Pg. 22"
+ },
+ {
+  "establishment": {
+   "name": "RED ROBIN GOURMET BURGERS AND BREWS",
+   "address": "2100 LOUISIANA BLVD NE, 217"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0151142",
+   "operational_status": "Open"
+  },
+  "date": "11/18/2026",
+  "id_num": "RT-FOODEST-108626-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 23",
+  "page_num": 23,
+  "raw": "11/18/2026      RT-FOODEST-108626-2026    Routine Food Establishment Inspection                 Approved                     Pg. 23"
+ },
+ {
+  "establishment": {
+   "name": "RED ROBIN GOURMET BURGERS AND BREWS",
+   "address": "2100 LOUISIANA BLVD NE, 217"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0151143",
+   "operational_status": "Open"
+  },
+  "date": "11/18/2026",
+  "id_num": "RT-FOODEST-108615-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 23",
+  "page_num": 23,
+  "raw": "11/18/2026      RT-FOODEST-108615-2026    Routine Food Establishment Inspection                 Approved                     Pg. 23"
+ },
+ {
+  "establishment": {
+   "name": "SBARRO INC. UNIT # 160",
+   "address": "6600 MENAUL NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0044336",
+   "operational_status": "Open"
+  },
+  "date": "11/18/2026",
+  "id_num": "RT-FOODEST-108702-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 24",
+  "page_num": 24,
+  "raw": "11/18/2026      RT-FOODEST-108702-2026    Routine Food Establishment Inspection           Conditional Approved               Pg. 24"
+ },
+ {
+  "establishment": {
+   "name": "SBARRO INC. UNIT # 160",
+   "address": "6600 MENAUL NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0044336",
+   "operational_status": "Open"
+  },
+  "date": "11/16/2026",
+  "id_num": "RT-FOODEST-107651-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Closure Re-Inspection Required",
+  "page_str": "Pg. 24",
+  "page_num": 24,
+  "raw": "11/16/2026      RT-FOODEST-107651-2026    Routine Food Establishment Inspection      Closure Re-Inspection Required          Pg. 24"
+ },
+ {
+  "establishment": {
+   "name": "SIEMBRA LEADERSHIP HIGH SCHOOL",
+   "address": "610 CENTRAL AVE SW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0159105",
+   "operational_status": "Open"
+  },
+  "date": "11/18/2026",
+  "id_num": "RT-FOODEST-055948-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 25",
+  "page_num": 25,
+  "raw": "11/18/2026      RT-FOODEST-055948-2026    Routine Food Establishment Inspection                 Approved                     Pg. 25"
+ },
+ {
+  "establishment": {
+   "name": "SUBWAY #47257",
+   "address": "2550 COORS BLVD NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0150966",
+   "operational_status": "Open"
+  },
+  "date": "11/18/2026",
+  "id_num": "COM-FOODES-108650-2026",
+  "type": "Complaint Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 26",
+  "page_num": 26,
+  "raw": "11/18/2026      COM-FOODES-108650-2026   Complaint Food Establishment Inspection          Conditional Approved               Pg. 26"
+ },
+ {
+  "establishment": {
+   "name": "SUSHI & BIRYANI",
+   "address": "6600 MENAUL BLVD NE, 5599"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0160998",
+   "operational_status": "Open"
+  },
+  "date": "11/18/2026",
+  "id_num": "CAC-Food-108493-2026",
+  "type": "Corrective Action Compliance",
+  "status": "Approved",
+  "page_str": "Pg. 27",
+  "page_num": 27,
+  "raw": "11/18/2026       CAC-Food-108493-2026         Corrective Action Compliance                      Approved                     Pg. 27"
+ },
+ {
+  "establishment": {
+   "name": "SUSHI & BIRYANI",
+   "address": "6600 MENAUL BLVD NE, 5599"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0160998",
+   "operational_status": "Open"
+  },
+  "date": "11/16/2026",
+  "id_num": "RT-FOODEST-107666-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 27",
+  "page_num": 27,
+  "raw": "11/16/2026      RT-FOODEST-107666-2026    Routine Food Establishment Inspection                 Approved                     Pg. 27"
+ },
+ {
+  "establishment": {
+   "name": "TIGER SUGAR",
+   "address": "6600 MENAUL BLVD NE, 001"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0159739",
+   "operational_status": "Closed"
+  },
+  "date": "11/16/2026",
+  "id_num": "RT-FOODEST-107873-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Closure Re-Inspection Required",
+  "page_str": "Pg. 28",
+  "page_num": 28,
+  "raw": "11/16/2026      RT-FOODEST-107873-2026    Routine Food Establishment Inspection      Closure Re-Inspection Required          Pg. 28"
+ },
+ {
+  "establishment": {
+   "name": "Walgreens 05997",
+   "address": "2625 SAN PEDRO DR NE"
+  },
+  "permit": {
+   "permit_type": "Retail Food Establishment",
+   "permit_number": "PT0043328",
+   "operational_status": "Open"
+  },
+  "date": "11/19/2026",
+  "id_num": "COM-RET-108064-2026",
+  "type": "Complaint Retail Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 31",
+  "page_num": 31,
+  "raw": "11/19/2026       COM-RET-108064-2026           Complaint Retail Inspection                      Approved                     Pg. 31"
+ },
+ {
+  "establishment": {
+   "name": "WYLD",
+   "address": "6919 MONTGOMERY BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Cannabis Food Establishment",
+   "permit_number": "PT0158929",
+   "operational_status": "Open"
+  },
+  "date": "11/17/2026",
+  "id_num": "RT-CANAPRO-044897-2025",
+  "type": "Routine Cannabis Processor Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 32",
+  "page_num": 32,
+  "raw": "11/17/2026      RT-CANAPRO-044897-2025   Routine Cannabis Processor Inspection                  Approved                     Pg. 32"
+ },
+ {
+  "establishment": {
+   "name": "YASMINES EXPRESS (SHAWARMA EXPRESS)",
+   "address": "6600 MENAUL BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0156837",
+   "operational_status": "Closed"
+  },
+  "date": "11/19/2026",
+  "id_num": "CAC-Food-109105-2026",
+  "type": "Corrective Action Compliance",
+  "status": "Unsatisfactory Re-Inspection required",
+  "page_str": "Pg. 32",
+  "page_num": 32,
+  "raw": "11/19/2026       CAC-Food-109105-2026         Corrective Action Compliance         Unsatisfactory Re-Inspection required     Pg. 32"
+ },
+ {
+  "establishment": {
+   "name": "YASMINES EXPRESS (SHAWARMA EXPRESS)",
+   "address": "6600 MENAUL BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0156837",
+   "operational_status": "Closed"
+  },
+  "date": "11/17/2026",
+  "id_num": "CAC-Food-108424-2026",
+  "type": "Corrective Action Compliance",
+  "status": "Closure Re-Inspection Required",
+  "page_str": "Pg. 32",
+  "page_num": 32,
+  "raw": "11/17/2026       CAC-Food-108424-2026         Corrective Action Compliance           Closure Re-Inspection Required          Pg. 32"
+ },
+ {
+  "establishment": {
+   "name": "YASMINES EXPRESS (SHAWARMA EXPRESS)",
+   "address": "6600 MENAUL BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0156837",
+   "operational_status": "Closed"
+  },
+  "date": "11/16/2026",
+  "id_num": "RT-FOODEST-107673-2026",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Closure Re-Inspection Required",
+  "page_str": "Pg. 32",
+  "page_num": 32,
+  "raw": "11/16/2026      RT-FOODEST-107673-2026    Routine Food Establishment Inspection      Closure Re-Inspection Required          Pg. 32"
+ }
+]
