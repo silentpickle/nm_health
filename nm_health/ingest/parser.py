@@ -3,6 +3,7 @@ import subprocess
 from typing import Dict, Any, List, Optional  # noqa: F401, UP035
 from pathlib import Path
 from nm_health.ingest.normalizer import normalize_address, normalize_establishment_name, clean_text  # noqa: F401
+from nm_health.ingest.summary import SummaryRecord, read_summary
 
 # Layout lines that are not part of any inspection's text.
 FOOTER_RE = re.compile(r"^\s*Page \d+ of \d+\s*$")
@@ -174,18 +175,18 @@ class InspectionReportParser:
                 }
 
             # Permit
-            if item.get("permit"):
-                p_num = item["permit"]["permit_number"]
-                establishments_map[est_key]["permits"][p_num] = item["permit"]
+            permit = item["permit"]
+            if permit is not None:
+                establishments_map[est_key]["permits"][permit["permit_number"]] = permit
 
             # Inspection record
             inspection_entry = {
                 "establishment_slug": est_key,
                 "establishment_name": est_name,
                 "establishment_address": est_addr,
-                "permit_number": item["permit"]["permit_number"] if item.get("permit") else None,
-                "permit_type": item["permit"]["permit_type"] if item.get("permit") else None,
-                "operational_status": item["permit"]["operational_status"] if item.get("permit") else "Open",
+                "permit_number": permit["permit_number"] if permit else None,
+                "permit_type": permit["permit_type"] if permit else None,
+                "operational_status": permit["operational_status"] if permit else "Open",
                 "inspection_id_num": insp_id,
                 "inspection_date": self._format_date(insp_date),
                 "inspection_type": item["type"],
@@ -242,87 +243,11 @@ class InspectionReportParser:
             return f"{m.group(3)}-{m.group(1)}-{m.group(2)}"
         return d_str.strip()
 
-    def _parse_summary_pages(self, summary_pages: List[tuple]) -> List[Dict[str, Any]]:  # noqa: UP006
-        records = []
-        current_est = None
-        current_permit = None
+    def _parse_summary_pages(self, summary_pages: list[tuple[int, str]]) -> list[SummaryRecord]:
+        """The summary table's inspection rows, each with its place and permit (see nm_health.ingest.summary)."""
+        return read_summary(text for _page_num, text in summary_pages)
 
-        # Names may carry typographic apostrophes ("PAPA JOHN\u2019S PIZZA") and parentheses ("YASMINES EXPRESS
-        # (SHAWARMA EXPRESS)"): a header that fails here files its rows under the place listed before it.
-        est_re = re.compile(r"^([A-Za-z0-9\s#&\'\u2018\u2019\.\,\-()]+?)\s+-\s+(\d+[A-Za-z0-9\s\,\-\.#/]+)$")
-        permit_re = re.compile(
-            r"^(.*?)\(Permit\s*#\s*-\s*([A-Za-z0-9-]+)\)\s*-\s*Operational\s*Status\s*[-–]\s*([A-Za-z]+)",  # noqa: RUF001
-            re.IGNORECASE,
-        )
-        row_re = re.compile(
-            r"^\s*(\d{2}/\d{2}/\d{4})\s+([A-Za-z0-9\-]+)\s+(.+?)\s{2,}([A-Za-z\s\-]+?)\s+(?:Pg\.\s*(\d+)|Page\s*(\d+)|(\d+))\s*$",
-            re.IGNORECASE,
-        )
-
-        for page_num, text in summary_pages:  # noqa: B007
-            lines = text.split("\n")
-            for line in lines:
-                line_str = line.rstrip()
-                if not line_str:
-                    continue
-                if any(
-                    hdr in line_str
-                    for hdr in [
-                        "City of Albuquerque",
-                        "Environmental Health",
-                        "Consumer Health",
-                        "Summary Table",
-                        "Inspection Date",
-                        "Page ",
-                        "This report includes",
-                    ]
-                ):
-                    continue
-
-                # Check permit line
-                m_permit = permit_re.match(line_str.strip())
-                if m_permit:
-                    current_permit = {
-                        "permit_type": m_permit.group(1).strip(),
-                        "permit_number": m_permit.group(2).strip(),
-                        "operational_status": m_permit.group(3).strip(),
-                    }
-                    continue
-
-                # Check inspection row
-                m_row = row_re.match(line_str)
-                if m_row:
-                    target_pg = m_row.group(5) or m_row.group(6) or m_row.group(7) or ""
-                    records.append(
-                        {
-                            "establishment": current_est,
-                            "permit": current_permit,
-                            "date": m_row.group(1),
-                            "id_num": m_row.group(2).strip(),
-                            "type": m_row.group(3).strip(),
-                            "status": m_row.group(4).strip(),
-                            "page_str": f"Pg. {target_pg}",
-                            "page_num": int(target_pg) if target_pg.isdigit() else None,
-                            "raw": line_str.strip(),
-                        }
-                    )
-                    continue
-
-                # Check establishment header
-                m_est = est_re.match(line_str.strip())
-                if (
-                    m_est
-                    and not line_str.strip().startswith("Week:")
-                    and not line_str.strip().startswith("Report Amended")
-                ):
-                    current_est = {
-                        "name": m_est.group(1).strip(),
-                        "address": m_est.group(2).strip(),
-                    }
-
-        return records
-
-    def _parse_detail_pages(self, detail_pages: List[tuple]) -> Dict[str, Any]:  # noqa: UP006
+    def _parse_detail_pages(self, detail_pages: list[tuple[int, str]]) -> Dict[str, Any]:  # noqa: UP006
         """
         Parses pages containing detailed inspection blocks and violations.
         Returns a dict keyed by '<id_num>_<date>' and '<id_num>'.
@@ -331,7 +256,7 @@ class InspectionReportParser:
 
         # Stitch detail pages while tracking page numbers
         full_detail_text = ""
-        page_offsets = []
+        page_offsets: list[tuple[int, int]] = []
         current_len = 0
         for page_num, text in detail_pages:
             page_offsets.append((current_len, page_num))
