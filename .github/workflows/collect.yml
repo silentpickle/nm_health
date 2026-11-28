@@ -1,6 +1,7 @@
 # Daily: save the city's weekly inspection report PDF if it is new, and the status feed if it changed. The city overwrites one URL every week, so a
 # missed week is gone for good; checking daily also catches amended re-issues. Archiving never parses (a PDF the
-# parser can't read is still kept). A failed run means nothing was saved that day: GitHub emails the repo owner.
+# parser can't read is still kept). A failed run opens (or comments on) a "Daily collect is failing" issue; the next
+# good run closes it.
 name: collect
 on:
   schedule:
@@ -49,3 +50,20 @@ jobs:
     needs: archive
     if: needs.archive.outputs.new == 'true'
     uses: ./.github/workflows/site.yml
+  alert:
+    # One open issue while collect is failing, closed by the next good run (scripts/collect_alert.sh).
+    needs: [archive, site]
+    if: ${{ !cancelled() && github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v5
+      - run: scripts/collect_alert.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          OUTCOME: ${{ (needs.archive.result == 'failure' || needs.site.result == 'failure') && 'failure' || 'success' }}

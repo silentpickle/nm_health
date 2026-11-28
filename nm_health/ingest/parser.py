@@ -245,7 +245,7 @@ class InspectionReportParser:
 
     def _parse_summary_pages(self, summary_pages: list[tuple[int, str]]) -> list[SummaryRecord]:
         """The summary table's inspection rows, each with its place and permit (see nm_health.ingest.summary)."""
-        return read_summary(text for _page_num, text in summary_pages)
+        return read_summary((text for _page_num, text in summary_pages), self.pdf_path.name)
 
     def _parse_detail_pages(self, detail_pages: list[tuple[int, str]]) -> Dict[str, Any]:  # noqa: UP006
         """

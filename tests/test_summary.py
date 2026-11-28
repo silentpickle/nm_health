@@ -39,8 +39,8 @@ def test_S2_unreadable_header() -> None:  # noqa: N802 - test ID keeps its code
 
 def test_S3_orphan_row() -> None:  # noqa: N802 - test ID keeps its code
     """A row before any place header raises, quoting the row (the Nov 2026 crash was a bare TypeError)."""
-    with pytest.raises(SummaryLayoutError, match="RT-FOODEST-107750-2026"):
-        read_summary([f"{PERMIT}\n{ROW}"])
+    with pytest.raises(SummaryLayoutError, match=r"^week\.pdf: .*RT-FOODEST-107750-2026"):
+        read_summary([f"{PERMIT}\n{ROW}"], "week.pdf")
 
 
 def test_S4_split_header() -> None:  # noqa: N802 - test ID keeps its code
