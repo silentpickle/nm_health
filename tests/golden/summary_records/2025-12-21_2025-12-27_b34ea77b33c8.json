@@ -1,0 +1,218 @@
+[
+ {
+  "establishment": {
+   "name": "ABQ SWEET SPOT",
+   "address": "9250 GOLF COURSE BLVD NW, D"
+  },
+  "permit": {
+   "permit_type": "Retail Food Establishment",
+   "permit_number": "PT0153604",
+   "operational_status": "Open"
+  },
+  "date": "12/22/2025",
+  "id_num": "RT-RET-058168-2025",
+  "type": "Routine Retail Food Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 3",
+  "page_num": 3,
+  "raw": "12/22/2025        RT-RET-058168-2025            Routine Retail Food Inspection                   Approved                     Pg. 3"
+ },
+ {
+  "establishment": {
+   "name": "APPLEBEES NEIGHBORHOOD GRILL & BAR",
+   "address": "10895 MONTGOMERY BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0159639",
+   "operational_status": "Open"
+  },
+  "date": "12/23/2025",
+  "id_num": "RT-FOODEST-117750-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 3",
+  "page_num": 3,
+  "raw": "12/23/2025      RT-FOODEST-117750-2025      Routine Food Establishment Inspection                 Approved                    Pg. 3"
+ },
+ {
+  "establishment": {
+   "name": "APPLEBEES NEIGHBORHOOD GRILL & BAR",
+   "address": "10895 MONTGOMERY BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0159640",
+   "operational_status": "Open"
+  },
+  "date": "12/23/2025",
+  "id_num": "RT-FOODEST-117858-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 4",
+  "page_num": 4,
+  "raw": "12/23/2025      RT-FOODEST-117858-2025      Routine Food Establishment Inspection                 Approved                    Pg. 4"
+ },
+ {
+  "establishment": {
+   "name": "Bravo Cucina Italiana",
+   "address": "2220 LOUISIANA BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0082266",
+   "operational_status": "Open"
+  },
+  "date": "12/24/2025",
+  "id_num": "RT-FOODEST-116919-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 4",
+  "page_num": 4,
+  "raw": "12/24/2025      RT-FOODEST-116919-2025      Routine Food Establishment Inspection                 Approved                    Pg. 4"
+ },
+ {
+  "establishment": {
+   "name": "Bravo Cucina Italiana",
+   "address": "2220 LOUISIANA BLVD NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0082266",
+   "operational_status": "Open"
+  },
+  "date": "12/22/2025",
+  "id_num": "CAC-Food-118114-2025",
+  "type": "Corrective Action Compliance",
+  "status": "Unsatisfactory Re-Inspection required",
+  "page_str": "Pg. 5",
+  "page_num": 5,
+  "raw": "12/22/2025       CAC-Food-118114-2025           Corrective Action Compliance        Unsatisfactory Re-Inspection required     Pg. 5"
+ },
+ {
+  "establishment": {
+   "name": "CHURCHS CHICKEN 10386",
+   "address": "9250 GOLF COURSE RD NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0100485",
+   "operational_status": "Open"
+  },
+  "date": "12/22/2025",
+  "id_num": "PT0100485",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 5",
+  "page_num": 5,
+  "raw": "12/22/2025             PT0100485            Routine Food Establishment Inspection           Conditional Approved              Pg. 5"
+ },
+ {
+  "establishment": {
+   "name": "DENNYS 6301",
+   "address": "1602 COORS BLVD NW"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0122943",
+   "operational_status": "Open"
+  },
+  "date": "12/24/2025",
+  "id_num": "RT-FOODEST-050790-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 6",
+  "page_num": 6,
+  "raw": "12/24/2025      RT-FOODEST-050790-2025      Routine Food Establishment Inspection           Conditional Approved              Pg. 6"
+ },
+ {
+  "establishment": {
+   "name": "Fuel Ignited by Sparks LLC",
+   "address": "9250 Golf Course RD NW, B"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "FOODEST-2025-006857",
+   "operational_status": "Open"
+  },
+  "date": "12/22/2025",
+  "id_num": "RT-FOODEST-061450-2025",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 7",
+  "page_num": 7,
+  "raw": "12/22/2025      RT-FOODEST-061450-2025      Routine Food Establishment Inspection                 Approved                    Pg. 7"
+ },
+ {
+  "establishment": {
+   "name": "PAPA JOHN’S PIZZA",
+   "address": "9500 MONTGOMERY BLVD NE, 11"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0155329",
+   "operational_status": "Open"
+  },
+  "date": "12/24/2025",
+  "id_num": "PT0155329",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Approved",
+  "page_str": "Pg. 8",
+  "page_num": 8,
+  "raw": "12/24/2025             PT0155329            Routine Food Establishment Inspection                 Approved                    Pg. 8"
+ },
+ {
+  "establishment": {
+   "name": "SENIOR CARE LLC",
+   "address": "1813 KRISS PL NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0152281",
+   "operational_status": "Open"
+  },
+  "date": "12/22/2025",
+  "id_num": "CAC-Food-118009-2025",
+  "type": "Corrective Action Compliance",
+  "status": "Conditional Approved",
+  "page_str": "Pg. 8",
+  "page_num": 8,
+  "raw": "12/22/2025       CAC-Food-118009-2025           Corrective Action Compliance                Conditional Approved              Pg. 8"
+ },
+ {
+  "establishment": {
+   "name": "SENIOR CARE LLC",
+   "address": "1813 KRISS PL NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0152281",
+   "operational_status": "Open"
+  },
+  "date": "12/22/2025",
+  "id_num": "PT0152281",
+  "type": "Routine Food Establishment Inspection",
+  "status": "Unsatisfactory Re-Inspection required",
+  "page_str": "Pg. 8",
+  "page_num": 8,
+  "raw": "12/22/2025            PT0152281             Routine Food Establishment Inspection   Unsatisfactory Re-Inspection required     Pg. 8"
+ },
+ {
+  "establishment": {
+   "name": "UPTOWN REHABILITATION CENTER",
+   "address": "7900 CONSTITUTION AVE NE"
+  },
+  "permit": {
+   "permit_type": "Food Establishment",
+   "permit_number": "PT0089786",
+   "operational_status": "Open"
+  },
+  "date": "12/22/2025",
+  "id_num": "CAC-Food-118239-2025",
+  "type": "Corrective Action Compliance",
+  "status": "Unsatisfactory Re-Inspection required",
+  "page_str": "Pg. 10",
+  "page_num": 10,
+  "raw": "12/22/2025       CAC-Food-118239-2025           Corrective Action Compliance        Unsatisfactory Re-Inspection required     Pg. 10"
+ }
+]

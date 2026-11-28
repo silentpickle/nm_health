@@ -104,6 +104,37 @@ def test_P1_curly_apostrophe(monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: 
     }
 
 
+def test_P2_parenthesised_names(monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: N802 - test ID keeps its code
+    """Nov 2026: headers with parentheses start their own place.
+
+    They used to fail the header pattern: as the first header the run crashed on a row with no place; later on, the
+    row was filed under the place listed before it.
+    """
+    charleys_row = (
+        "  11/16/2026     RT-FOODEST-107750-2026     Routine Food Establishment Inspection     Approved     Pg. 4"
+    )
+    yasmines_row = (
+        "  11/17/2026     RT-FOODEST-107800-2026     Routine Food Establishment Inspection     Approved     Pg. 9"
+    )
+    summary = (
+        "Summary Table\n"
+        f"(CHARLEYS PHILLY STEAKS) C AND G ENTERPRISES NM LLC - 6600 MENAUL BLVD NE, 1008\n{HEADER_LINE}\n"
+        f"{PERMIT_LINE}\n{charleys_row}\n\n"
+        f"YASMINES EXPRESS (SHAWARMA EXPRESS) - 6600 MENAUL BLVD NE\n{HEADER_LINE}\n{PERMIT_LINE}\n{yasmines_row}"
+    )
+    parsed = parse_pages([summary], monkeypatch)
+    places = {
+        i["inspection_id_num"]: (i["establishment_name"], i["establishment_address"]) for i in parsed["inspections"]
+    }
+    assert places == {
+        "RT-FOODEST-107750-2026": (
+            "(CHARLEYS PHILLY STEAKS) C AND G ENTERPRISES NM LLC",
+            "6600 MENAUL BLVD NE, 1008",
+        ),
+        "RT-FOODEST-107800-2026": ("YASMINES EXPRESS (SHAWARMA EXPRESS)", "6600 MENAUL BLVD NE"),
+    }
+
+
 def test_metadata_title_without_amendment(monkeypatch: pytest.MonkeyPatch) -> None:
     """A first page with a Media Report title and no amendment line."""
     first = "Summary Table\nMedia Report 10.25.2026-10.31.2026\nWeek: October 25, 2026 to October 31, 2026"
